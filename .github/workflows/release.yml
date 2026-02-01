@@ -1,0 +1,190 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Extract version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Display version
+        run: echo "Releasing version ${{ steps.get_version.outputs.VERSION }}"
+
+      - name: Verify version matches package.json
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          if [ "$PACKAGE_VERSION" != "${{ steps.get_version.outputs.VERSION }}" ]; then
+            echo "Error: Tag version ${{ steps.get_version.outputs.VERSION }} does not match package.json version $PACKAGE_VERSION"
+            exit 1
+          fi
+          echo "✓ Version matches: $PACKAGE_VERSION"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Security audit
+        run: npm audit --audit-level=high
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Run linter
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Run tests
+        run: npm test
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      - name: Generate release notes from CHANGELOG
+        id: release_notes
+        run: |
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          echo "Generating release notes for version $VERSION"
+
+          if [ -f "CHANGELOG.md" ]; then
+            # Extract changelog content for the version
+            awk -v version="[$VERSION]" '
+              $0 == "## " version {
+                in_version = 1
+                print
+                next
+              }
+              in_version && /^## / {
+                exit
+              }
+              in_version {
+                print
+              }
+            ' CHANGELOG.md > release_notes.txt
+
+            if [ -s release_notes.txt ]; then
+              # Convert to GitHub-friendly markdown
+              sed -i '' 's/^### /**### /' release_notes.txt
+              sed -i '' 's/^- /- /g' release_notes.txt
+
+              # Remove version header and format
+              tail -n +2 release_notes.txt > final_notes.txt
+
+              # Set output
+              {
+                echo 'notes<<EOF'
+                cat final_notes.txt
+                echo EOF
+              } >> $GITHUB_OUTPUT
+
+              echo "✓ Release notes generated"
+              cat final_notes.txt
+            else
+              echo "## What's Changed" > final_notes.txt
+              echo "" >> final_notes.txt
+              echo "See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details." >> final_notes.txt
+
+              {
+                echo 'notes<<EOF'
+                cat final_notes.txt
+                echo EOF
+              } >> $GITHUB_OUTPUT
+
+              echo "⚠ No specific changelog entries found for version $VERSION"
+            fi
+          else
+            echo "⚠ No CHANGELOG.md found"
+            {
+              echo 'notes<<EOF'
+              echo "## What's Changed"
+              echo ""
+              echo "See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details."
+              echo EOF
+            } >> $GITHUB_OUTPUT
+          fi
+
+      - name: Publish to npm
+        id: npm_publish
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.get_version.outputs.VERSION }}
+          release_name: Release v${{ steps.get_version.outputs.VERSION }}
+          body: ${{ steps.release_notes.outputs.notes }}
+          draft: false
+          prerelease: false
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+
+  verify:
+    needs: release
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20, 21]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install published package
+        run: npm install mcp-tester@${{ steps.get_version.outputs.VERSION }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Verify package installation
+        run: |
+          if [ -d "node_modules/mcp-tester" ]; then
+            echo "✓ Package installed successfully"
+            ls -la node_modules/mcp-tester/
+          else
+            echo "✗ Package installation failed"
+            exit 1
+          fi
+
+      - name: Verify package exports
+        run: |
+          node -e "const pkg = require('./node_modules/mcp-tester/package.json'); console.log('Main:', pkg.main); console.log('Types:', pkg.types); console.log('Exports:', JSON.stringify(pkg.exports, null, 2));"
+
+      - name: Quick import test
+        run: |
+          node -e "import { MCPClient } from 'mcp-tester'; console.log('✓ Package imports correctly');"
