@@ -1,6 +1,14 @@
 # AGENTS.md
 
-This guide helps AI agents work effectively in the mcp-tester repository. It documents essential commands, patterns, conventions, and gotchas observed in this codebase.
+This guide helps AI agents work effectively in mcp-tester repository. It documents essential commands, patterns, conventions, and gotchas observed in this codebase.
+
+## Roadmap
+
+For planned improvements, features, and enhancements, see [TODO.md](./TODO.md). The TODO.md file contains:
+- High, medium, and low priority improvement tasks
+- Detailed task descriptions and effort estimates
+- Progress tracking with status indicators: `[ ]` (not started), `[/]` (in progress), `[x]` (completed)
+- Quick wins that can be completed in under 1 hour
 
 ## Project Overview
 
