@@ -1,0 +1,32 @@
+version: 2
+updates:
+  # Enable version updates for npm dependencies
+  - package-ecosystem: "npm"
+    # Look for `package.json` and `lock` files in the `root` directory
+    directory: "/"
+    # Check the npm registry for updates at 05:00 UTC every day
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "05:00"
+    # Limit the number of open pull requests for version updates to 10
+    open-pull-requests-limit: 10
+    # Increase the version requirements for production dependencies only
+    # when the updated version includes a semver compatible update
+    versioning-strategy: increase
+    # Limit the number of open pull requests for security updates to 10
+    open-pull-requests-limit: 10
+    # Raise pull requests for version updates
+    # with `@dependabot` as the assignees
+    assignees:
+      - "Bwana"
+    # Labels to use for pull requests
+    labels:
+      - "dependencies"
+      - "npm"
+      - "dependabot"
+    # Commit message prefix to use
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+      include: "scope"

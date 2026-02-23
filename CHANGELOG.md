@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Roadmap section in AGENTS.md linking to TODO.md for planned improvements
 - "For AI Agents" section added to README.md with comprehensive description and link to AGENTS.md
 - AGENTS.md link added to README.md Table of Contents and Additional Resources section
+- Dependabot configuration (.github/dependabot.yml) for automated npm dependency updates
+- Weekly dependency update schedule with Monday 05:00 UTC check
+- Automatic PRs for dependency updates with "dependencies", "npm", and "dependabot" labels
 
 ### Changed
 - Replaced all `any` types with proper TypeScript interfaces
