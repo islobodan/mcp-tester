@@ -36,6 +36,23 @@ MCP Tester provides a complete testing framework for MCP server implementations,
 - [Releases](#releases)
 - [Advanced Usage](#advanced-usage)
 - [Troubleshooting](#troubleshooting)
+|- [For AI Agents](#for-ai-agents)
+
+
+## 🤖 For AI Agents
+
+If you're an AI agent or automated system working with this codebase, see [AGENTS.md](./AGENTS.md) for comprehensive documentation including:
+
+- **Essential commands** for development, testing, and releases
+- **Code organization** and file structure
+- **Naming conventions** and style guidelines
+- **Testing patterns** and common gotchas
+- **CI/CD integration** details
+- **Error handling** patterns
+- **Development workflow** and best practices
+- **Key files reference** for quick lookup
+
+The AGENTS.md file is specifically designed to help AI agents understand the codebase, patterns, and conventions used in this project.
 
 ## 🚀 Installation
 
@@ -1397,6 +1414,7 @@ npm run lint --fix
 ```
 
 ## 📚 Additional Resources
+- [AGENTS.md](./AGENTS.md) - Documentation for AI agents working with this codebase
 
 - [MCP Specification](https://spec.modelcontextprotocol.io) - Official MCP protocol specification
 - [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) - Official SDK documentation

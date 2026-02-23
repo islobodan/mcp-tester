@@ -43,7 +43,7 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 3. Publish to npm
+### [/] 3. Publish to npm
 **Description**: Publish package to npm registry for public use.
 
 **Tasks**:
@@ -274,7 +274,7 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ## Documentation Improvements
 
-### [ ] 16. Mention AGENTS.md in README
+### [x] 16. Mention AGENTS.md in README
 **Description**: Add reference to AGENTS.md in README for AI agents.
 
 **Tasks**:
@@ -288,7 +288,29 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 17. Add Troubleshooting Section to README
+### [x] 17. Create Comprehensive Documentation (AGENTS.md & TODO.md)
+**Description**: Create detailed documentation for AI agents and project roadmap.
+
+**Tasks**:
+- Create AGENTS.md (557 lines) with essential commands, patterns, conventions, gotchas
+- Document project overview, code organization, naming conventions
+- Add testing approach with examples and patterns
+- Document CI/CD integration, error handling, development workflow
+- Add key files reference, common tasks, environment variables
+- Create TODO.md (719 lines) with 38 improvement tasks
+- Organize tasks by priority (High, Medium, Low)
+- Add status indicators ([ ], [/], [x]) and progress tracking
+- Include task descriptions, subtasks, impact, effort estimates
+- Add quick wins summary and priority sections
+- Update AGENTS.md with Roadmap section linking to TODO.md
+
+**Impact**: Improves AI agent productivity, provides clear roadmap for improvements
+
+**Estimated Effort**: 4-6 hours
+
+---
+
+### [ ] 18. Add Troubleshooting Section to README
 **Description**: Comprehensive troubleshooting guide in README.
 
 **Tasks**:
@@ -308,7 +330,7 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 18. Add More Language Examples
+### [ ] 19. Add More Language Examples
 **Description**: Examples for testing MCP servers in different languages.
 
 **Tasks**:
@@ -324,7 +346,7 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 19. Add Architecture Diagram
+### [ ] 20. Add Architecture Diagram
 **Description**: Visual diagram of how mcp-tester works.
 
 **Tasks**:
@@ -341,7 +363,7 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ## Developer Experience
 
-### [ ] 20. Add VS Code Snippets
+### [ ] 21. Add VS Code Snippets
 **Description**: Code snippets for common test patterns.
 
 **Tasks**:
@@ -358,7 +380,7 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 21. Add Watch Mode for Development
+### [ ] 22. Add Watch Mode for Development
 **Description**: Hot-reload development mode.
 
 **Tasks**:
@@ -374,7 +396,7 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 22. Add Better Debug Logging
+### [ ] 23. Add Better Debug Logging
 **Description**: Enhanced logging for debugging issues.
 
 **Tasks**:
@@ -393,7 +415,7 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ## Security & Reliability
 
-### [ ] 23. Add Input Validation
+### [ ] 24. Add Input Validation
 **Description**: Validate all inputs to client methods.
 
 **Tasks**:
@@ -410,7 +432,7 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 24. Add Server Health Checks
+### [ ] 25. Add Server Health Checks
 **Description**: Periodic health checks for server process.
 
 **Tasks**:
@@ -426,7 +448,7 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 25. Add Secret Masking in Logs
+### [ ] 26. Add Secret Masking in Logs
 **Description**: Automatically mask sensitive data in logs.
 
 **Tasks**:
@@ -443,7 +465,7 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ## Testing Enhancements
 
-### [ ] 26. Add E2E Tests
+### [ ] 27. Add E2E Tests
 **Description**: End-to-end tests covering complete workflows.
 
 **Tasks**:
@@ -460,7 +482,7 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 27. Add Property-Based Testing
+### [ ] 28. Add Property-Based Testing
 **Description**: Use property-based testing for robustness.
 
 **Tasks**:
@@ -476,7 +498,7 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 28. Add Visual Test Reports
+### [ ] 29. Add Visual Test Reports
 **Description**: Generate visual test reports.
 
 **Tasks**:
@@ -494,7 +516,7 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ## CI/CD Improvements
 
-### [ ] 29. Add Release Automation
+### [ ] 30. Add Release Automation
 **Description**: Automate more of release process.
 
 **Tasks**:
@@ -510,7 +532,7 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 30. Add Dependabot
+### [ ] 31. Add Dependabot
 **Description**: Automated dependency updates.
 
 **Tasks**:
@@ -526,7 +548,7 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 31. Add Code Coverage Comments
+### [ ] 32. Add Code Coverage Comments
 **Description**: Comment PRs with coverage changes.
 
 **Tasks**:
@@ -543,7 +565,7 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ## Community & Ecosystem
 
-### [ ] 32. Add Examples Repository
+### [ ] 33. Add Examples Repository
 **Description**: Separate repository with example MCP servers and tests.
 
 **Tasks**:
@@ -559,7 +581,7 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 33. Create Starter Templates
+### [ ] 34. Create Starter Templates
 **Description**: Starter templates for common use cases.
 
 **Tasks**:
@@ -575,7 +597,7 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 34. Add Contributing Guide Enhancement
+### [ ] 35. Add Contributing Guide Enhancement
 **Description**: Improve CONTRIBUTING.md with more details.
 
 **Tasks**:
@@ -593,7 +615,7 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ## Future / Experimental
 
-### [ ] 35. Add Browser Support
+### [ ] 36. Add Browser Support
 **Description**: Run mcp-tester in browser environments.
 
 **Tasks**:
@@ -609,7 +631,7 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 36. Add Plugin System
+### [ ] 37. Add Plugin System
 **Description**: Allow plugins to extend functionality.
 
 **Tasks**:
@@ -625,7 +647,7 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 37. Add Distributed Testing
+### [ ] 38. Add Distributed Testing
 **Description**: Test across multiple servers simultaneously.
 
 **Tasks**:
@@ -641,7 +663,7 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 38. Add AI-Powered Test Generation
+### [ ] 39. Add AI-Powered Test Generation
 **Description**: Use AI to generate tests from server analysis.
 
 **Tasks**:
@@ -700,12 +722,12 @@ The following tasks can be completed quickly and provide immediate value:
 
 ## Progress Tracking
 
-**Total Items**: 38
-**Completed**: 0
-**In Progress**: 0
-**Not Started**: 38
+**Total Items**: 39
+**Completed**: 2
+**In Progress**: 1
+**Not Started**: 36
 
-**Completion Percentage**: 0%
+**Completion Percentage**: 5.1%
 
 ---
 

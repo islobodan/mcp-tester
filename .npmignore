@@ -1,0 +1,81 @@
+# Dependencies
+node_modules/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Source files (we publish compiled dist/)
+src/
+*.ts
+*.tsbuildinfo
+
+# Test files
+__tests__/
+*.test.ts
+*.spec.ts
+coverage/
+*.lcov
+
+# Build files (keep only dist/)
+build/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Temporary folders
+tmp/
+temp/
+
+# Development/Testing files
+mock-server.js
+test-server.js
+examples/
+
+# Documentation (keep in git, don't publish all to npm)
+agent.md
+AGENTS.md
+TODO.md
+CONTRIBUTING.md
+RELEASE.md
+
+# Git
+.git/
+.gitignore
+.github/
+
+# Config files (not needed by consumers)
+tsconfig.json
+jest.config.js
+.eslintrc.json
+.prettierrc.json

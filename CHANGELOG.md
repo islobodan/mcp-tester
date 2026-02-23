@@ -17,6 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive JSDoc comments for all public APIs
 - Utility functions for environment variable filtering and merging
 - Better process cleanup with SIGTERM and SIGKILL
+- Comprehensive AGENTS.md documentation (557 lines) for AI agents working with the codebase
+- Detailed TODO.md roadmap (719 lines) with 38 improvement tasks organized by priority
+- Progress tracking system in TODO.md with status indicators ([ ] not started, [/] in progress, [x] completed)
+- Package metadata for npm publishing: repository, bugs, homepage fields added to package.json
+- .npmignore file created to control what files are published to npm
+- Roadmap section in AGENTS.md linking to TODO.md for planned improvements
+- "For AI Agents" section added to README.md with comprehensive description and link to AGENTS.md
+- AGENTS.md link added to README.md Table of Contents and Additional Resources section
 
 ### Changed
 - Replaced all `any` types with proper TypeScript interfaces
@@ -25,10 +33,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Better TypeScript type safety throughout the codebase
 - Improved server process management and cleanup
 - Environment variable handling now uses utility functions
+- Updated package.json with repository, bugs, and homepage fields for npm registry
 
 ### Fixed
 - Type safety issues with environment variable merging
 - Process cleanup now properly handles both SIGTERM and SIGKILL
+- Typo in AGENTS.md: "Security Considerations" fixed (was "Security Considerations")
 
 ### Deprecated
 - None
