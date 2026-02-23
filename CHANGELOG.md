@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dependabot configuration (.github/dependabot.yml) for automated npm dependency updates
 - Weekly dependency update schedule with Monday 05:00 UTC check
 - Automatic PRs for dependency updates with "dependencies", "npm", and "dependabot" labels
+- Additional npm badges added to README.md:
+  - npm downloads badge (monthly download count)
+  - npm license badge
+  - Updated GitHub Actions test status badge to use correct repository URL
 
 ### Changed
 - Replaced all `any` types with proper TypeScript interfaces

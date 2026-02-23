@@ -53,7 +53,7 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 - Create npm account (if not exists)
 - Run `npm publish`
 - Verify package can be installed: `npm install mcp-tester`
-- Add npm badge to README
+- [x] Add npm badge to README (added: downloads, license, updated test status)
 
 **Impact**: Enables public use, biggest improvement for adoption
 
@@ -685,7 +685,7 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 The following tasks can be completed quickly and provide immediate value:
 
-- [ ] Add npm badges to README (version, license, downloads)
+- [x] Add npm badges to README (version, license, downloads)
 - [ ] Add Codecov badge to README
 - [ ] Add Node.js compatibility badge
 - [ ] Add AGENTS.md mention to README
