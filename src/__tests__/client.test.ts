@@ -1,23 +1,21 @@
-import { MCPClient } from '../client/MCPClient.js';
-import { describe, it, expect, beforeEach } from '@jest/globals';
+/**
+ * Basic client operations tests using test helpers
+ */
+
+import { createTestClient } from './helpers.js';
+import { describe, it, expect } from '@jest/globals';
 
 describe('MCPClient - Basic Operations', () => {
-  let client: MCPClient;
+  it('should have default options using helper', () => {
+    const client = createTestClient();
 
-  beforeEach(() => {
-    client = new MCPClient({
-      name: 'test-client',
-      version: '1.0.0',
-      timeout: 10000,
-    });
-  });
-
-  it('should have default options', () => {
     expect(client).toBeDefined();
     expect(client.isConnected()).toBe(false);
   });
 
   it('should throw error when calling methods without starting', async () => {
+    const client = createTestClient();
+
     await expect(client.listTools()).rejects.toThrow('Client not started');
     await expect(client.listResources()).rejects.toThrow('Client not started');
     await expect(client.listPrompts()).rejects.toThrow('Client not started');

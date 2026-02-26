@@ -11,15 +11,15 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ## High Priority Improvements
 
-### [ ] 1. Add Jest Test Helpers/Matchers
+### [x] 1. Add Jest Test Helpers/Matchers
 **Description**: Reduce boilerplate in test files with custom Jest matchers and helper functions.
 
 **Tasks**:
-- Create `src/__tests__/matchers.ts` with custom matchers
-- Add `toBeConnectedClient` matcher
-- Create `src/__tests__/helpers.ts` with test utilities
-- Add `createTestSuite()` helper for common setup patterns
-- Document usage in README
+- [x] Create `src/__tests__/matchers.ts` with custom matchers
+- [x] Add `toBeConnectedClient` matcher
+- [x] Create `src/__tests__/helpers.ts` with test utilities
+- [x] Add `createTestSuite()` helper for common setup patterns
+- [x] Document usage in README
 
 **Impact**: Reduces test boilerplate by ~40%
 
@@ -723,11 +723,11 @@ The following tasks can be completed quickly and provide immediate value:
 ## Progress Tracking
 
 **Total Items**: 39
-**Completed**: 3
+**Completed**: 4
 **In Progress**: 0
-**Not Started**: 36
+**Not Started**: 35
 
-**Completion Percentage**: 7.7%
+**Completion Percentage**: 10.3%
 
 ---
 

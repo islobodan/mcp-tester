@@ -758,6 +758,117 @@ it('should handle invalid tool', async () => {
 });
 ```
 
+### Test Helpers and Matchers
+
+MCP Tester includes custom test helpers and Jest matchers to reduce boilerplate and improve test readability.
+
+#### Using Test Helpers
+
+Import helper functions to simplify test setup:
+
+```typescript
+import { createTestClient, createTestSuite, createMockServerConfig } from './helpers.js';
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+
+describe('My Feature', () => {
+  // Use createTestSuite for automatic setup/teardown
+  const testSuite = createTestSuite(createMockServerConfig());
+
+  beforeEach(async () => {
+    await testSuite.setup(); // Starts server automatically
+  });
+
+  afterEach(async () => {
+    await testSuite.teardown(); // Stops server automatically
+  });
+
+  it('should test feature', async () => {
+    const tools = await testSuite.client.listTools();
+    expect(tools).toBeDefined();
+  });
+});
+```
+
+**Available Helper Functions:**
+
+| Function | Description |
+|----------|-------------|
+| `createTestClient(options?)` | Creates client with default test options |
+| `createTestSuite(serverConfig, options?)` | Creates test suite with auto setup/teardown |
+| `setupTestServer(config, options?)` | Manual server setup |
+| `teardownTestServer(client)` | Manual server cleanup |
+| `createMockServerConfig(args?)` | Creates mock server configuration |
+| `waitForClientState(client, isConnected, timeout?)` | Waits for client state |
+| `runWithTimeout(fn, timeout?)` | Runs function with timeout |
+| `retryUntil(fn, attempts?, delay?)` | Retries function until success |
+| `callTool(client, toolName, args?)` | Helper for tool calls |
+| `validateToolResult(result)` | Validates tool call result |
+
+#### Using Custom Matchers
+
+Import custom matchers for improved assertions:
+
+```typescript
+import { toHaveTool, toHaveResource, toHavePrompt } from './matchers.js';
+
+it('should verify tool exists', async () => {
+  const tools = await client.listTools();
+  expect(tools).toHaveTool('echo'); // Custom matcher
+});
+
+it('should verify resource exists', async () => {
+  const resources = await client.listResources();
+  expect(resources).toHaveResource('text://example'); // Custom matcher
+});
+
+it('should verify prompt exists', async () => {
+  const prompts = await client.listPrompts();
+  expect(prompts).toHavePrompt('greeting'); // Custom matcher
+});
+```
+
+**Available Custom Matchers:**
+
+| Matcher | Description |
+|----------|-------------|
+| `toHaveTool(toolName)` | Checks if tool exists in tools array |
+| `toHaveResource(uri)` | Checks if resource exists in resources array |
+| `toHavePrompt(promptName)` | Checks if prompt exists in prompts array |
+| `toHaveToolWithSchema(toolName)` | Checks if tool has input schema |
+
+#### Example with Helpers and Matchers
+
+```typescript
+import { createTestSuite, createMockServerConfig, callTool } from './helpers.js';
+import { toHaveTool, toHaveResource } from './matchers.js';
+
+describe('Complete Example', () => {
+  const testSuite = createTestSuite(createMockServerConfig());
+
+  beforeEach(async () => await testSuite.setup());
+  afterEach(async () => await testSuite.teardown());
+
+  it('should verify tools', async () => {
+    const tools = await testSuite.client.listTools();
+    expect(tools).toHaveTool('echo');
+  });
+
+  it('should verify resources', async () => {
+    const resources = await testSuite.client.listResources();
+    expect(resources).toHaveResource('text://example');
+  });
+
+  it('should call tool', async () => {
+    const result = await callTool(testSuite.client, 'echo', {
+      message: 'hello',
+    });
+    expect(result).toBeDefined();
+  });
+});
+```
+
+For more examples, see `src/__tests__/helpers-example.test.ts`.
+
 ## 💡 Examples
 
 ### Example 1: Basic Tool Testing

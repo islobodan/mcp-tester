@@ -32,6 +32,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - npm downloads badge (monthly download count)
   - npm license badge
   - Updated GitHub Actions test status badge to use correct repository URL
+- Test helpers and custom matchers for Jest:
+  - `src/__tests__/matchers.ts` with custom Jest matchers:
+    - `toHaveTool(toolName)` - Check if tool exists
+    - `toHaveResource(uri)` - Check if resource exists
+    - `toHavePrompt(promptName)` - Check if prompt exists
+    - `toHaveToolWithSchema(toolName)` - Check if tool has schema
+  - `src/__tests__/helpers.ts` with test utilities:
+    - `createTestClient(options?)` - Create client with defaults
+    - `createTestSuite(config, options?)` - Auto setup/teardown
+    - `setupTestServer(config, options?)` - Manual server setup
+    - `teardownTestServer(client)` - Manual server cleanup
+    - `waitForClientState(client, isConnected, timeout?)` - Wait for state
+    - `createMockServerConfig(args?)` - Create server config
+    - `runWithTimeout(fn, timeout?)` - Run with timeout
+    - `retryUntil(fn, attempts?, delay?)` - Retry until success
+    - `callTool(client, toolName, args?)` - Tool call helper
+    - `validateToolResult(result)` - Validate result
+  - `src/__tests__/helpers-example.test.ts` - Usage examples
+- Updated `src/__tests__/client.test.ts` to use helpers
+- Documentation in README.md for helpers and matchers with usage examples
 
 ### Changed
 - Replaced all `any` types with proper TypeScript interfaces
