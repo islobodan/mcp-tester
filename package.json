@@ -53,7 +53,7 @@
   },
   "homepage": "https://github.com/islobodan/mcp-tester#readme",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.25.2"
+    "@modelcontextprotocol/sdk": "^1.27.1"
   },
   "devDependencies": {
     "@types/jest": "^29.5.0",
