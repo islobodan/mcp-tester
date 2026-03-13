@@ -1,5 +1,3 @@
-
-
 export class MockMCPServer {
   private tools: Map<string, any> = new Map();
   private resources: Map<string, any> = new Map();

@@ -21,7 +21,7 @@ export const DEFAULT_TEST_CLIENT_OPTIONS: MCPClientOptions = {
  */
 export const DEFAULT_TEST_SERVER_CONFIG: MCPServerConfig = {
   command: 'node',
-  args: ['./test/mock-server.js'],
+  args: ['./dist/__tests__/fixtures/mock-server.js'],
   env: {
     NODE_ENV: 'test',
   },
@@ -136,9 +136,7 @@ export function waitForClientState(
       } else if (Date.now() - startTime > timeout) {
         reject(
           new Error(
-            `Timeout waiting for client to be ${
-              isConnected ? 'connected' : 'disconnected'
-            }`
+            `Timeout waiting for client to be ${isConnected ? 'connected' : 'disconnected'}`
           )
         );
       } else {
@@ -156,7 +154,7 @@ export function waitForClientState(
  * @returns MCPServerConfig
  */
 export function createMockServerConfig(
-  args: string[] = ['./test/mock-server.js']
+  args: string[] = ['./dist/__tests__/fixtures/mock-server.js']
 ): MCPServerConfig {
   return {
     command: 'node',
@@ -173,10 +171,7 @@ export function createMockServerConfig(
  * @param timeout - Maximum time to wait (ms)
  * @returns Promise that resolves or rejects after timeout
  */
-export async function runWithTimeout<T>(
-  fn: () => Promise<T>,
-  timeout: number = 10000
-): Promise<T> {
+export async function runWithTimeout<T>(fn: () => Promise<T>, timeout: number = 10000): Promise<T> {
   return Promise.race([
     fn(),
     new Promise<T>((_, reject) =>
@@ -248,12 +243,12 @@ export function validateToolResult(result: unknown): {
     return { valid: false, error: 'Result is not an object' };
   }
 
-  // @ts-ignore - TypeScript validation
+  // @ts-expect-error - TypeScript validation
   if (!result.content) {
     return { valid: false, error: 'Result missing content property' };
   }
 
-  // @ts-ignore
+  // @ts-expect-error - Checking content property type
   if (!Array.isArray(result.content)) {
     return { valid: false, error: 'Result content is not an array' };
   }

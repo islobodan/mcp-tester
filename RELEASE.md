@@ -222,7 +222,7 @@ npm install mcp-tester@latest
 ### 3. Update Documentation
 - Update README.md if needed
 - Update examples if API changed
-- Update agent.md with new features
+- Update AGENTS.md with new features
 
 ### 4. Announce Release
 - Create GitHub Discussion

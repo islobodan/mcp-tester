@@ -51,7 +51,9 @@ describe('MCPClient - Resources', () => {
   });
 
   it('should handle non-existent resource', async () => {
-    await expect(mockServer.handleResourceRead('unknown://resource')).rejects.toThrow('Unknown resource');
+    await expect(mockServer.handleResourceRead('unknown://resource')).rejects.toThrow(
+      'Unknown resource'
+    );
   });
 });
 
@@ -98,7 +100,9 @@ describe('MCPClient - Prompts', () => {
   });
 
   it('should handle non-existent prompt', async () => {
-    await expect(mockServer.handlePromptGet('unknown_prompt', {})).rejects.toThrow('Unknown prompt');
+    await expect(mockServer.handlePromptGet('unknown_prompt', {})).rejects.toThrow(
+      'Unknown prompt'
+    );
   });
 });
 

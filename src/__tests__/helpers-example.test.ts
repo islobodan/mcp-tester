@@ -5,69 +5,60 @@
  */
 
 import { MCPClient } from '../client/MCPClient.js';
-import {
-  createTestSuite,
-  createMockServerConfig,
-  callTool,
-} from './helpers.js';
-
-// Note: Custom matchers are auto-registered in matchers.ts
+import { createTestClient } from './helpers.js';
+import { MockMCPServer } from './fixtures/mock-server.js';
 import { toHaveTool, toHaveResource, toHavePrompt } from './matchers.js';
 
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 
+// Register custom matchers
+expect.extend({ toHaveTool, toHaveResource, toHavePrompt });
+
 describe('Example Test - Using Helpers and Matchers', () => {
-  const testSuite = createTestSuite(
-    createMockServerConfig(['./fixtures/mock-server.js'])
-  );
+  let mockServer: MockMCPServer;
 
-  beforeEach(async () => {
-    await testSuite.setup();
-  });
-
-  afterEach(async () => {
-    await testSuite.teardown();
+  beforeEach(() => {
+    mockServer = new MockMCPServer();
   });
 
   it('should list tools using helper', async () => {
-    const tools = await testSuite.client.listTools();
+    const result = await mockServer.handleToolsList();
 
-    expect(tools).toBeDefined();
-    expect(tools.length).toBeGreaterThan(0);
+    expect(result.tools).toBeDefined();
+    expect(result.tools.length).toBeGreaterThan(0);
 
-    // Using custom matcher (type assertion for demonstration)
-    // @ts-ignore - Custom matcher not recognized by TypeScript
-    expect(tools).toHaveTool('echo');
+    // Using custom matcher
+    // @ts-ignore - Custom matcher
+    expect(result.tools).toHaveTool('echo');
   });
 
   it('should list resources using helper', async () => {
-    const resources = await testSuite.client.listResources();
+    const result = await mockServer.handleResourcesList();
 
-    expect(resources).toBeDefined();
-    expect(resources.length).toBeGreaterThan(0);
+    expect(result.resources).toBeDefined();
+    expect(result.resources.length).toBeGreaterThan(0);
 
-    // Using custom matcher (type assertion for demonstration)
-    // @ts-ignore - Custom matcher not recognized by TypeScript
-    expect(resources).toHaveResource('text://example');
+    // Using custom matcher
+    // @ts-ignore - Custom matcher
+    expect(result.resources).toHaveResource('text://example');
   });
 
   it('should list prompts using helper', async () => {
-    const prompts = await testSuite.client.listPrompts();
+    const result = await mockServer.handlePromptsList();
 
-    expect(prompts).toBeDefined();
-    expect(prompts.length).toBeGreaterThan(0);
+    expect(result.prompts).toBeDefined();
+    expect(result.prompts.length).toBeGreaterThan(0);
 
-    // Using custom matcher (type assertion for demonstration)
-    // @ts-ignore - Custom matcher not recognized by TypeScript
-    expect(prompts).toHavePrompt('greeting');
+    // Using custom matcher
+    // @ts-ignore - Custom matcher
+    expect(result.prompts).toHavePrompt('greet');
   });
 
-  it('should call tool using helper', async () => {
-    const result = await callTool(testSuite.client, 'echo', {
-      message: 'test',
-    });
+  it('should call tool using mock server', async () => {
+    const result = await mockServer.handleToolCall('echo', { message: 'test' });
 
     expect(result).toBeDefined();
     expect(result.content).toBeDefined();
+    expect(result.content[0].text).toBe('Echo: test');
   });
 });

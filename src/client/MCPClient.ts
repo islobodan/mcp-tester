@@ -263,15 +263,17 @@ export class MCPClient {
     }
 
     try {
-      const result = await this.withRetry(
-        async () => this.client!.request(request, ListToolsResultSchema)
+      const result = await this.withRetry(async () =>
+        this.client!.request(request, ListToolsResultSchema)
       );
       const tools = result.tools || [];
       this.logger.debug(`Listed ${tools.length} tools`);
       return tools;
     } catch (error) {
       this.logger.error('Failed to list tools:', error);
-      throw new MCPServerError(`Failed to list tools: ${error instanceof Error ? error.message : String(error)}`);
+      throw new MCPServerError(
+        `Failed to list tools: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -295,8 +297,7 @@ export class MCPClient {
     try {
       const timeout = options.timeout ?? this.options.timeout;
       const result = await this.withRetry(
-        async () =>
-          this.client!.request(request, CallToolResultSchema, { timeout }),
+        async () => this.client!.request(request, CallToolResultSchema, { timeout }),
         options.retries
       );
       this.logger.debug(`Tool ${options.name} executed successfully`);
@@ -324,8 +325,8 @@ export class MCPClient {
     }
 
     try {
-      const result = await this.withRetry(
-        async () => this.client!.request(request, ListResourcesResultSchema)
+      const result = await this.withRetry(async () =>
+        this.client!.request(request, ListResourcesResultSchema)
       );
       const resources = result.resources || [];
       this.logger.debug(`Listed ${resources.length} resources`);
@@ -353,8 +354,8 @@ export class MCPClient {
     }
 
     try {
-      const result = await this.withRetry(
-        async () => this.client!.request(request, ReadResourceResultSchema)
+      const result = await this.withRetry(async () =>
+        this.client!.request(request, ReadResourceResultSchema)
       );
       this.logger.debug(`Resource ${uri} read successfully`);
       return result;
@@ -381,8 +382,8 @@ export class MCPClient {
     }
 
     try {
-      const result = await this.withRetry(
-        async () => this.client!.request(request, ListPromptsResultSchema)
+      const result = await this.withRetry(async () =>
+        this.client!.request(request, ListPromptsResultSchema)
       );
       const prompts = result.prompts || [];
       this.logger.debug(`Listed ${prompts.length} prompts`);
@@ -413,8 +414,8 @@ export class MCPClient {
     }
 
     try {
-      const result = await this.withRetry(
-        async () => this.client!.request(request, GetPromptResultSchema)
+      const result = await this.withRetry(async () =>
+        this.client!.request(request, GetPromptResultSchema)
       );
       this.logger.debug(`Prompt ${name} retrieved successfully`);
       return result;
@@ -436,15 +437,14 @@ export class MCPClient {
     }
 
     try {
-      const result = await this.withRetry(
-        async () =>
-          this.client!.request(
-            {
-              method: 'sampling/createMessage',
-              params: request,
-            },
-            CreateMessageResultSchema
-          )
+      const result = await this.withRetry(async () =>
+        this.client!.request(
+          {
+            method: 'sampling/createMessage',
+            params: request,
+          },
+          CreateMessageResultSchema
+        )
       );
       this.logger.debug('Sampling completed successfully');
       return result;
@@ -477,14 +477,12 @@ export class MCPClient {
 
   setLogLevel(level: LogLevel): void {
     this.options.logLevel = level;
-    this.logger = level === 'none' ? new NoOpLogger() : new ConsoleLogger({ level, prefix: 'MCPClient' });
+    this.logger =
+      level === 'none' ? new NoOpLogger() : new ConsoleLogger({ level, prefix: 'MCPClient' });
     this.logger.debug(`Log level changed to ${level}`);
   }
 
-  private async withRetry<T>(
-    operation: () => Promise<T>,
-    retries?: number
-  ): Promise<T> {
+  private async withRetry<T>(operation: () => Promise<T>, retries?: number): Promise<T> {
     const maxAttempts = retries !== undefined ? retries + 1 : this.retryOptions.maxAttempts;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {

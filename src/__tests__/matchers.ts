@@ -1,4 +1,3 @@
-import { MCPClient } from '../client/MCPClient.js';
 import { Tool, Resource, Prompt } from '@modelcontextprotocol/sdk/types.js';
 
 /**
@@ -9,6 +8,7 @@ import { Tool, Resource, Prompt } from '@modelcontextprotocol/sdk/types.js';
  * Check if MCP client is connected
  */
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace jest {
     interface Matchers<R> {
       toBeConnectedClient(): R;
@@ -43,9 +43,7 @@ export const toHaveTool = (received: Tool[], toolName: string) => {
     message: () =>
       hasTool
         ? `Expected tools to NOT have "${toolName}"`
-        : `Expected tools to have "${toolName}", found: ${received
-            .map((t) => t.name)
-            .join(', ')}`,
+        : `Expected tools to have "${toolName}", found: ${received.map((t) => t.name).join(', ')}`,
   };
 };
 
@@ -61,9 +59,7 @@ export const toHaveResource = (received: Resource[], uri: string) => {
     message: () =>
       hasResource
         ? `Expected resources to NOT have "${uri}"`
-        : `Expected resources to have "${uri}", found: ${received
-            .map((r) => r.uri)
-            .join(', ')}`,
+        : `Expected resources to have "${uri}", found: ${received.map((r) => r.uri).join(', ')}`,
   };
 };
 

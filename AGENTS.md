@@ -19,6 +19,7 @@ For planned improvements, features, and enhancements, see [TODO.md](./TODO.md). 
 - **Node.js Version**: >=18 (tested on 18, 20, 21)
 - **Package Manager**: npm
 - **Main SDK**: @modelcontextprotocol/sdk v1.25.2
+- **Status**: Production-ready
 
 ## Essential Commands
 
@@ -96,8 +97,17 @@ src/
     ├── client.test.ts               # Basic client operations tests
     ├── resources-prompts.test.ts    # Resources & prompts functionality tests
     ├── advanced.test.ts             # Advanced features tests
+    ├── real-server.test.ts          # Integration tests (stdio transport)
+    ├── helpers-example.test.ts      # Test helpers usage examples
+    ├── helpers.ts                   # Test utility functions
+    ├── matchers.ts                  # Custom Jest matchers
     └── fixtures/
-        └── mock-server.ts           # Mock MCP server for unit testing
+        └── mock-server.ts           # In-memory mock MCP server
+
+examples/
+├── basic-test.ts            # Basic usage example
+├── full-test.ts             # Full capabilities example
+└── mock-server.js           # Standalone MCP server for testing
 ```
 
 **Build Output**: `dist/` directory (JavaScript + TypeScript declaration files)
@@ -151,7 +161,12 @@ src/
 - **Framework**: Jest 29.7.0 with ts-jest
 - **Module System**: ESM support via `ts-jest/presets/default-esm`
 - **Test Timeout**: 30 seconds
+- **Test Mode**: Serial execution (`maxWorkers: 1`) to avoid worker crashes
 - **Coverage Threshold**: 80% for all metrics (branches, functions, lines, statements)
+
+### Jest Configuration Notes
+- Cache directory: `/tmp/mcp-tester-cache` (avoids temp folder issues)
+- Worker crashes (SIGSEGV) can occur with parallel execution; use `maxWorkers: 1`
 
 ### Test File Organization
 - All tests in `src/__tests__/` directory
@@ -219,7 +234,7 @@ it('should handle invalid tool', async () => {
 });
 ```
 
-#### 5. Using Mock Server
+#### 5. Using In-Memory Mock Server
 ```typescript
 import { MockMCPServer } from './fixtures/mock-server.js';
 
@@ -237,14 +252,44 @@ describe('Feature', () => {
 });
 ```
 
+#### 6. Using Real Server Process (stdio)
+```typescript
+import { MCPClient } from '../client/MCPClient.js';
+
+describe('Integration', () => {
+  let client: MCPClient;
+
+  beforeEach(async () => {
+    client = new MCPClient();
+    await client.start({
+      command: 'node',
+      args: ['./examples/mock-server.js'],
+    });
+  });
+
+  afterEach(async () => {
+    if (client.isConnected()) {
+      await client.stop();
+    }
+  });
+
+  it('should communicate via stdio', async () => {
+    const tools = await client.listTools();
+    expect(tools.length).toBeGreaterThan(0);
+  });
+});
+```
+
 ### Current Test Suite
-- **Total Tests**: 26 tests (all passing)
+- **Total Tests**: 43 tests (all passing)
 - **Test Categories**:
   - Basic Operations: 3 tests
-  - Tools: 11 tests
-  - Resources: 5 tests
-  - Prompts: 4 tests
-  - Advanced Features: 3 tests (sampling, elicitation)
+  - Tools (in-memory): 11 tests
+  - Resources (in-memory): 5 tests
+  - Prompts (in-memory): 4 tests
+  - Advanced Features: 3 tests
+  - Helpers Examples: 4 tests
+  - Real Server (stdio): 13 tests
 
 ## Important Gotchas & Non-Obvious Patterns
 
@@ -347,6 +392,28 @@ moduleNameMapper: {
 
 ### 10. Build Output Structure
 The `dist/` directory structure mirrors `src/` but with compiled JavaScript and separate `.d.ts` type declaration files. Always run `npm run build` before committing if you changed TypeScript files.
+
+### 11. @ts-ignore vs @ts-expect-error
+Use `@ts-expect-error` instead of `@ts-ignore` (ESLint requirement):
+```typescript
+// ✓ Correct
+// @ts-expect-error - Custom matcher not typed
+expect(tools).toHaveTool('echo');
+
+// ✗ Incorrect
+// @ts-ignore
+expect(tools).toHaveTool('echo');
+```
+
+### 12. Custom Jest Matchers
+Custom matchers need explicit registration with `expect.extend()`:
+```typescript
+import { toHaveTool, toHaveResource } from './matchers.js';
+
+beforeEach(() => {
+  expect.extend({ toHaveTool, toHaveResource });
+});
+```
 
 ## CI/CD Integration
 
@@ -454,7 +521,10 @@ chore: maintenance tasks
 | `src/utils/logger.ts` | Logging utility |
 | `src/utils/errors.ts` | Custom error classes |
 | `src/utils/env.ts` | Environment variable utilities |
-| `src/__tests__/fixtures/mock-server.ts` | Mock MCP server for testing |
+| `src/__tests__/fixtures/mock-server.ts` | In-memory mock server for unit tests |
+| `src/__tests__/helpers.ts` | Test utility functions |
+| `src/__tests__/matchers.ts` | Custom Jest matchers |
+| `examples/mock-server.js` | Standalone MCP server for integration tests |
 | `examples/basic-test.ts` | Basic usage example |
 | `examples/full-test.ts` | Comprehensive example |
 | `CHANGELOG.md` | Version history |
@@ -557,9 +627,25 @@ chore: maintenance tasks
 **Issue**: Build errors after TypeScript upgrade
 - **Solution**: Clean build directory: `rm -rf dist/ && npm run build`
 
+**Issue**: Worker process crashes (SIGSEGV)
+- **Solution**: Ensure `maxWorkers: 1` in jest.config.js
+
+**Issue**: Temp directory errors in Jest
+- **Solution**: Set `cacheDirectory: '/tmp/mcp-tester-cache'` in jest.config.js
+
 ### Getting Help
 - Check `README.md` for detailed usage examples
 - Review `examples/` directory for working code
 - Consult `CHANGELOG.md` for recent changes
 - See `RELEASE.md` for release procedures
 - Refer to official [MCP Specification](https://spec.modelcontextprotocol.io)
+
+## Project Statistics
+
+- **Total Lines of Code**: ~1,500 lines (excluding tests)
+- **Test Coverage**: >80% (all categories)
+- **Tests**: 43 (all passing)
+- **Build Time**: ~5 seconds
+- **Test Execution Time**: ~28 seconds
+- **Node.js Versions Tested**: 18, 20, 21
+- **SDK Version**: 1.25.2

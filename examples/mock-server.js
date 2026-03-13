@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { McpServer } from '@modelcontextprotocol/sdk/server/index.js';
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
   CallToolRequestSchema,
@@ -11,7 +11,7 @@ import {
   GetPromptRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 
-const server = new McpServer(
+const server = new Server(
   {
     name: 'mock-mcp-server',
     version: '1.0.0',
@@ -91,15 +91,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 
   if (name === 'add') {
-    const a = args?.a as number;
-    const b = args?.b as number;
+    const a = Number(args?.a);
+    const b = Number(args?.b);
     return {
       content: [{ type: 'text', text: `${a} + ${b} = ${a + b}` }],
     };
   }
 
   if (name === 'delay') {
-    const ms = args?.ms as number;
+    const ms = Number(args?.ms);
     await new Promise((resolve) => setTimeout(resolve, ms));
     return {
       content: [{ type: 'text', text: `Delayed for ${ms}ms` }],

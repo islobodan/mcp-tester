@@ -16,7 +16,7 @@ MCP Tester provides a complete testing framework for MCP server implementations,
 
 - **Full MCP Protocol Support** - Tools, Resources, Prompts, Sampling, Elicitation, Tasks, and Notifications
 - **Official SDK Integration** - Built on `@modelcontextprotocol/sdk` v1.25.2 for reliable, standards-compliant testing
-- **Jest Integration** - Complete test suite with 26 tests covering all major functionality
+- **Jest Integration** - Complete test suite with 43 tests covering all major functionality
 - **Mock Server Included** - Built-in mock MCP server for unit testing without external dependencies
 - **TypeScript Support** - Full type safety and IntelliSense with comprehensive TypeScript definitions
 - **CI/CD Ready** - GitHub Actions workflow included for automated testing
@@ -357,6 +357,9 @@ npx tsx examples/basic-test.ts
 
 # Full capabilities test
 npx tsx examples/full-test.ts
+
+# Run mock server standalone (for manual testing)
+node examples/mock-server.js
 ```
 
 ## 📚 API Reference
@@ -680,11 +683,15 @@ npm run lint
 
 ```
 src/__tests__/
-├── client.test.ts              # Basic client operations
+├── client.test.ts               # Basic client operations
 ├── resources-prompts.test.ts    # Resources and prompts functionality
-├── advanced.test.ts            # Advanced features (sampling, elicitation)
+├── advanced.test.ts             # Advanced features (sampling, elicitation)
+├── real-server.test.ts          # Integration tests (real server process via stdio)
+├── helpers-example.test.ts      # Test helpers usage examples
+├── helpers.ts                   # Test utility functions
+├── matchers.ts                  # Custom Jest matchers
 └── fixtures/
-    └── mock-server.ts           # Mock MCP server for unit testing
+    └── mock-server.ts           # In-memory mock MCP server for unit testing
 ```
 
 ### Writing Custom Tests
@@ -1387,26 +1394,30 @@ open coverage/lcov-report/index.html
 mcp-tester/
 ├── src/
 │   ├── client/
-│   │   ├── MCPClient.ts         # Main client wrapper class
-│   │   └── index.ts           # Client module exports
+│   │   ├── MCPClient.ts                 # Main client wrapper class
+│   │   └── index.ts                     # Client module exports
 │   ├── __tests__/
-│   │   ├── client.test.ts                # Basic client functionality tests
-│   │   ├── resources-prompts.test.ts     # Resources & prompts tests
-│   │   ├── advanced.test.ts               # Advanced features tests
+│   │   ├── client.test.ts               # Basic client operations tests
+│   │   ├── resources-prompts.test.ts    # Resources & prompts tests
+│   │   ├── advanced.test.ts             # Advanced features tests
+│   │   ├── real-server.test.ts          # Integration tests (stdio transport)
+│   │   ├── helpers-example.test.ts      # Test helpers usage examples
+│   │   ├── helpers.ts                   # Test utility functions
+│   │   ├── matchers.ts                  # Custom Jest matchers
 │   │   └── fixtures/
-│   │       └── mock-server.ts            # Mock MCP server
-│   └── index.ts                        # Library exports
+│   │       └── mock-server.ts           # In-memory mock MCP server
+│   └── index.ts                         # Library exports
 ├── examples/
-│   ├── basic-test.ts               # Basic usage example
-│   └── full-test.ts                # Full capabilities example
-├── dist/                             # Compiled JavaScript output
-├── mock-server.js                      # Standalone mock MCP server
+│   ├── basic-test.ts                    # Basic usage example
+│   ├── full-test.ts                     # Full capabilities example
+│   └── mock-server.js                   # Standalone MCP server for testing
+├── dist/                                # Compiled JavaScript output
 ├── package.json
 ├── tsconfig.json
 ├── jest.config.js
 ├── .eslintrc.json
 ├── .github/workflows/
-│   └── test.yml                        # CI/CD workflow
+│   └── test.yml                         # CI/CD workflow
 ├── .gitignore
 ├── LICENSE
 └── README.md
@@ -1445,15 +1456,17 @@ npx tsx --watch --clear-screen=false
 
 ## 📈 Test Coverage
 
-Current test suite: **26 tests**
+Current test suite: **43 tests**
 
 ```
 Test Categories:
-- Basic Operations    3 tests
-- Tools              11 tests
-- Resources          5 tests
-- Prompts            4 tests
-- Advanced Features   3 tests
+- Basic Operations       3 tests
+- Tools (in-memory)     11 tests
+- Resources (in-memory)  5 tests
+- Prompts (in-memory)    4 tests
+- Advanced Features      3 tests
+- Helpers Examples       4 tests
+- Real Server (stdio)   13 tests
 ```
 
 Coverage targets:
