@@ -5,7 +5,7 @@
 [![npm license](https://img.shields.io/npm/l/mcp-tester)](https://www.npmjs.com/package/mcp-tester)
 [![Node.js Version](https://img.shields.io/node/v/mcp-tester)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Test Status](https://img.shields.io/badge/tests-passing-brightgreen)](https://192.168.1.22:3000/Bwana/mcp-tester/actions/workflows/test.yml)
+[![Test Status](https://img.shields.io/badge/tests-passing-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)
 A minimal, production-ready MCP (Model Context Protocol) client implementation for CI/CD testing of MCP servers with Jest.
 
 ## 🎯 Purpose
@@ -27,6 +27,7 @@ MCP Tester provides a complete testing framework for MCP server implementations,
 
 ## 📋 Table of Contents
 
+- [For AI Agents](#for-ai-agents)
 - [Installation](#installation)
 - [Node.js Compatibility](#nodejs-compatibility)
 - [Quick Start](#quick-start)
@@ -37,7 +38,14 @@ MCP Tester provides a complete testing framework for MCP server implementations,
 - [Releases](#releases)
 - [Advanced Usage](#advanced-usage)
 - [Troubleshooting](#troubleshooting)
-|- [For AI Agents](#for-ai-agents)
+- [Project Structure](#project-structure)
+- [Development](#development)
+- [Test Coverage](#test-coverage)
+- [Security](#security)
+- [License](#license)
+- [Contributing](#contributing)
+- [Additional Resources](#additional-resources)
+- [Support](#support)
 
 
 ## 🤖 For AI Agents

@@ -46,12 +46,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+http://192.168.1.22:3000/Bwana/mcp-tester.git"
+    "url": "git+https://github.com/islobodan/mcp-tester.git"
   },
   "bugs": {
-    "url": "http://192.168.1.22:3000/Bwana/mcp-tester/issues"
+    "url": "https://github.com/islobodan/mcp-tester/issues"
   },
-  "homepage": "http://192.168.1.22:3000/Bwana/mcp-tester#readme",
+  "homepage": "https://github.com/islobodan/mcp-tester#readme",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.25.2"
   },
