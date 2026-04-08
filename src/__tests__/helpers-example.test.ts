@@ -28,7 +28,7 @@ describe('Example Test - Using Helpers and Matchers', () => {
     expect(result.tools.length).toBeGreaterThan(0);
 
     // Using custom matcher
-    // @ts-ignore - Custom matcher
+    // @ts-expect-error - Custom matcher
     expect(result.tools).toHaveTool('echo');
   });
 
@@ -39,7 +39,7 @@ describe('Example Test - Using Helpers and Matchers', () => {
     expect(result.resources.length).toBeGreaterThan(0);
 
     // Using custom matcher
-    // @ts-ignore - Custom matcher
+    // @ts-expect-error - Custom matcher
     expect(result.resources).toHaveResource('text://example');
   });
 
@@ -50,7 +50,7 @@ describe('Example Test - Using Helpers and Matchers', () => {
     expect(result.prompts.length).toBeGreaterThan(0);
 
     // Using custom matcher
-    // @ts-ignore - Custom matcher
+    // @ts-expect-error - Custom matcher
     expect(result.prompts).toHavePrompt('greet');
   });
 

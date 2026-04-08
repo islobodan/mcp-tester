@@ -15,7 +15,7 @@ MCP Tester provides a complete testing framework for MCP server implementations,
 ## ✨ Features
 
 - **Full MCP Protocol Support** - Tools, Resources, Prompts, Sampling, Elicitation, Tasks, and Notifications
-- **Official SDK Integration** - Built on `@modelcontextprotocol/sdk` v1.25.2 for reliable, standards-compliant testing
+- **Official SDK Integration** - Built on `@modelcontextprotocol/sdk` v1.29.0 for reliable, standards-compliant testing
 - **Jest Integration** - Complete test suite with 43 tests covering all major functionality
 - **Mock Server Included** - Built-in mock MCP server for unit testing without external dependencies
 - **TypeScript Support** - Full type safety and IntelliSense with comprehensive TypeScript definitions

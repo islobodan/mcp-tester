@@ -4,4 +4,5 @@ export type {
   MCPClientOptions,
   ToolCallOptions,
   NotificationHandler,
+  RetryOptions,
 } from './MCPClient.js';

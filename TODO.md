@@ -9,6 +9,121 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
+## Critical Bug Fixes
+
+### [x] 40. Fix Duplicate Process Spawn in MCPClient.start()
+**Description**: `start()` spawned the server process twice — once via `child_process.spawn()` and once via `StdioClientTransport`. The first process was orphaned (never connected to transport) and only used for stderr logging. This wasted resources and could cause port conflicts.
+
+**Tasks**:
+- [x] Remove manual `spawn()` call from `start()`
+- [x] Remove `ChildProcess` import and `serverProcess` field
+- [x] Update `stop()` to use `client.close()` + `transport.close()` instead of manual SIGTERM/SIGKILL
+- [x] Fix error cleanup in `start()` catch block to close transport instead of killing process
+- [x] Remove unused `MCPConnectionError` import
+- [x] Verify all 43 tests still pass
+
+**Impact**: Eliminates resource waste, prevents orphaned processes
+
+**Estimated Effort**: 1 hour
+
+---
+
+### [x] 41. Fix Broken Example Files
+**Description**: `examples/basic-test.ts` and `examples/full-test.ts` called `client.start({ command: 'node', args: [] })` without specifying a server file. They would fail immediately with a module error.
+
+**Tasks**:
+- [x] Update `basic-test.ts` to use `args: ['./examples/mock-server.js']`
+- [x] Update `full-test.ts` to use `args: ['./examples/mock-server.js']`
+
+**Impact**: Examples are now runnable
+
+**Estimated Effort**: 15 minutes
+
+---
+
+### [x] 42. Fix `@ts-ignore` Usage in Test Files
+**Description**: `helpers-example.test.ts` used `@ts-ignore` instead of `@ts-expect-error` (project convention per AGENTS.md).
+
+**Tasks**:
+- [x] Replace 3 instances of `@ts-ignore` with `@ts-expect-error` in helpers-example.test.ts
+
+**Impact**: Follows project conventions
+
+**Estimated Effort**: 5 minutes
+
+---
+
+## Code Quality Fixes
+
+### [x] 43. Fix `any` Types in resources-prompts.test.ts
+**Description**: `resources-prompts.test.ts` used `let client: any` in 4 describe blocks and had duplicate dynamic imports (`await import(...)`) alongside the static import.
+
+**Tasks**:
+- [x] Replace all `any` types with `MCPClient`
+- [x] Remove redundant dynamic imports in `beforeEach`
+- [x] Add custom matcher registration (`expect.extend`)
+- [x] Replace `some((t: any) => ...)` with custom matchers using `@ts-expect-error`
+
+**Impact**: Type safety, cleaner code
+
+**Estimated Effort**: 30 minutes
+
+---
+
+### [x] 44. Fix `setElicitationHandler` `any` Types
+**Description**: `setElicitationHandler` had signature `(request: any) => Promise<any>`, violating the "no any" principle.
+
+**Tasks**:
+- [x] Replace `any` with proper typed interface for elicitation request/response
+
+**Impact**: Type safety for elicitation API
+
+**Estimated Effort**: 15 minutes
+
+---
+
+### [x] 45. Improve Package Exports
+**Description**: The library's main `index.ts` only re-exported from `client/index.ts`. Error classes, logger types, and utility types were not accessible to consumers.
+
+**Tasks**:
+- [x] Export all error classes from `src/index.ts`
+- [x] Export `Logger`, `LoggerOptions`, `LogLevel` types
+- [x] Export `RetryOptions` type from client index
+
+**Impact**: Consumers can import error classes and types directly from `mcp-tester`
+
+**Estimated Effort**: 15 minutes
+
+---
+
+### [x] 46. Clean npm Package Contents
+**Description**: `npm pack` included 40 files, including test files from `dist/__tests__/` and their source maps. The published package should only contain the library code.
+
+**Tasks**:
+- [x] Update `files` field in package.json to explicitly include only `dist/client`, `dist/utils`, and `dist/index.*`
+- [x] Verify package size reduced (40 → 28 files)
+
+**Impact**: Smaller package, cleaner distribution
+
+**Estimated Effort**: 15 minutes
+
+---
+
+## Dependency Updates
+
+### [x] 47. Update MCP SDK Dependency
+**Description**: `@modelcontextprotocol/sdk` was pinned at `^1.25.2`. Dependabot had an open PR to update to `1.29.0`.
+
+**Tasks**:
+- [x] Update to `@modelcontextprotocol/sdk@^1.29.0`
+- [x] Verify build and all tests pass with new SDK version
+
+**Impact**: Latest protocol features and bug fixes
+
+**Estimated Effort**: 15 minutes
+
+---
+
 ## High Priority Improvements
 
 ### [x] 1. Add Jest Test Helpers/Matchers
@@ -27,15 +142,15 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 2. Add Pre-commit Hooks (Husky + lint-staged)
+### [x] 2. Add Pre-commit Hooks (Husky + lint-staged)
 **Description**: Automatically lint and format code before commits.
 
 **Tasks**:
-- Install husky and lint-staged as dev dependencies
-- Configure `.husky/pre-commit` hook
-- Add lint-staged configuration to package.json
-- Add `prepare` script to package.json
-- Test pre-commit hooks work correctly
+- [x] Install husky and lint-staged as dev dependencies
+- [x] Configure `.husky/pre-commit` hook to run `lint-staged`
+- [x] Add lint-staged configuration to package.json
+- [x] `prepare` script auto-added by `husky init`
+- [x] Configure lint-staged to run eslint + prettier on staged `.ts` files
 
 **Impact**: Ensures code quality on every commit
 
@@ -47,13 +162,14 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 **Description**: Publish package to npm registry for public use.
 
 **Tasks**:
-- Verify package.json has all required fields
-- Ensure README has installation instructions for npm
-- Test local installation from tarball: `npm pack && npm install ./mcp-tester-*.tgz`
-- Create npm account (if not exists)
-- Run `npm publish`
-- Verify package can be installed: `npm install mcp-tester`
+- [x] Verify package.json has all required fields
+- [x] Ensure README has installation instructions for npm
+- [x] Clean up npm package contents (exclude test files)
 - [x] Add npm badge to README (added: downloads, license, updated test status)
+- [ ] Test local installation from tarball: `npm pack && npm install ./mcp-tester-*.tgz`
+- [ ] Create npm account (if not exists)
+- [ ] Run `npm publish`
+- [ ] Verify package can be installed: `npm install mcp-tester`
 
 **Impact**: Enables public use, biggest improvement for adoption
 
@@ -144,6 +260,23 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 - Add troubleshooting examples to README
 
 **Impact**: Better developer experience when errors occur
+
+**Estimated Effort**: 2-3 hours
+
+---
+
+### [ ] 48. Triage Open Dependabot PRs
+**Description**: 14 Dependabot PRs are open and unmerged. Some contain major version bumps (ESLint 8→10, TypeScript 5→6) that need careful review.
+
+**Tasks**:
+- [ ] Review ESL 8→10 PR (breaking changes in config format)
+- [ ] Review TypeScript 5→6 PR (may require code changes)
+- [ ] Review `@typescript-eslint/*` 7→8 PRs
+- [ ] Review `@types/node` 20→25 PRs
+- [ ] Close/merge safe minor/patch PRs
+- [ ] Add breaking major bumps to roadmap with proper planning
+
+**Impact**: Security, up-to-date dependencies without broken builds
 
 **Estimated Effort**: 2-3 hours
 
@@ -242,11 +375,11 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 **Description**: Enhance mock server for more realistic testing scenarios.
 
 **Tasks**:
+- Replace `any` types with proper MCP SDK types in MockMCPServer
 - Add simulated delays (configurable)
 - Add random failures (for testing retry logic)
 - Add tools that return different results based on input
 - Add support for streaming responses
-- Add tool that throws errors for error testing
 - Add validation of input schemas
 - Document mock server capabilities
 
@@ -278,9 +411,9 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 **Description**: Add reference to AGENTS.md in README for AI agents.
 
 **Tasks**:
-- Add "For AI Agents" section to README
-- Link to AGENTS.md
-- Brief description of what AGENTS.md contains
+- [x] Add "For AI Agents" section to README
+- [x] Link to AGENTS.md
+- [x] Brief description of what AGENTS.md contains
 
 **Impact**: Helps AI agents work with the codebase
 
@@ -292,17 +425,14 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 **Description**: Create detailed documentation for AI agents and project roadmap.
 
 **Tasks**:
-- Create AGENTS.md (557 lines) with essential commands, patterns, conventions, gotchas
-- Document project overview, code organization, naming conventions
-- Add testing approach with examples and patterns
-- Document CI/CD integration, error handling, development workflow
-- Add key files reference, common tasks, environment variables
-- Create TODO.md (719 lines) with 38 improvement tasks
-- Organize tasks by priority (High, Medium, Low)
-- Add status indicators ([ ], [/], [x]) and progress tracking
-- Include task descriptions, subtasks, impact, effort estimates
-- Add quick wins summary and priority sections
-- Update AGENTS.md with Roadmap section linking to TODO.md
+- [x] Create AGENTS.md with essential commands, patterns, conventions, gotchas
+- [x] Document project overview, code organization, naming conventions
+- [x] Add testing approach with examples and patterns
+- [x] Document CI/CD integration, error handling, development workflow
+- [x] Add key files reference, common tasks, environment variables
+- [x] Create TODO.md with improvement tasks
+- [x] Organize tasks by priority
+- [x] Add status indicators and progress tracking
 
 **Impact**: Improves AI agent productivity, provides clear roadmap for improvements
 
@@ -536,11 +666,10 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 **Description**: Automated dependency updates.
 
 **Tasks**:
-- Create `.github/dependabot.yml`
-- Configure for production and dev dependencies
-- Set review rules
-- Test PR creation
-- Document dependency update process
+- [x] Create `.github/dependabot.yml`
+- [x] Configure for production and dev dependencies
+- [x] Set review rules
+- [x] Test PR creation
 
 **Impact**: Security, up-to-date dependencies
 
@@ -686,13 +815,21 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 The following tasks can be completed quickly and provide immediate value:
 
 - [x] Add npm badges to README (version, license, downloads)
+- [x] Fix duplicate process spawn bug
+- [x] Fix broken example files
+- [x] Fix `@ts-ignore` → `@ts-expect-error`
+- [x] Fix `any` types in test files
+- [x] Fix `any` types in `setElicitationHandler`
+- [x] Improve package exports (error classes, logger types)
+- [x] Clean npm package contents (exclude test files)
+- [x] Update MCP SDK dependency
+- [x] Add pre-commit hooks (Husky + lint-staged)
 - [ ] Add Codecov badge to README
 - [ ] Add Node.js compatibility badge
-- [ ] Add AGENTS.md mention to README
 - [ ] Add architecture diagram to README
 - [ ] Add VS Code snippets for test patterns
 - [ ] Add watch mode for development
-- [ ] Configure Dependabot
+- [ ] Triage open Dependabot PRs
 - [ ] Add property-based tests for critical paths
 - [ ] Add visual test reports
 
@@ -700,34 +837,43 @@ The following tasks can be completed quickly and provide immediate value:
 
 ## Priority Summary
 
+### Completed ✅
+1. ~~Add test helpers/matchers~~
+2. ~~Add pre-commit hooks~~
+3. ~~Fix duplicate process spawn bug~~
+4. ~~Fix broken examples~~
+5. ~~Fix type safety issues~~
+6. ~~Clean npm package~~
+7. ~~Update SDK dependency~~
+8. ~~Add Dependabot~~
+
 ### Must Have (High Impact, Low Effort)
 1. Publish to npm
 2. Add CLI tool
-3. Add pre-commit hooks
-4. Add test helpers/matchers
+3. Triage Dependabot PRs
 
 ### Should Have (Good Impact, Reasonable Effort)
-5. Add integration tests
-6. Improve error messages
-7. Add performance benchmarks
-8. Better mock server
+4. Add integration tests
+5. Improve error messages
+6. Add performance benchmarks
+7. Better mock server (remove `any` types)
 
 ### Nice to Have (Lower Priority)
-9. HTTP transport support
-10. TypeDoc API documentation
-11. Test code generator
-12. TypeScript types for tool schemas
+8. HTTP transport support
+9. TypeDoc API documentation
+10. Test code generator
+11. TypeScript types for tool schemas
 
 ---
 
 ## Progress Tracking
 
-**Total Items**: 39
-**Completed**: 4
-**In Progress**: 0
-**Not Started**: 35
+**Total Items**: 48
+**Completed**: 15
+**In Progress**: 1 (npm publishing)
+**Not Started**: 32
 
-**Completion Percentage**: 10.3%
+**Completion Percentage**: 31.3%
 
 ---
 
@@ -737,5 +883,6 @@ The following tasks can be completed quickly and provide immediate value:
 - Items can be implemented in any order based on needs
 - Community feedback may influence priority
 - This document will be updated regularly
+- Items 40-48 were added from code review / audit findings (2026-04-08)
 
 For more information on working with this codebase, see [AGENTS.md](./AGENTS.md).

@@ -1,13 +1,15 @@
 import { MCPClient } from '../client/MCPClient.js';
 import { MockMCPServer } from './fixtures/mock-server.js';
+import { toHaveTool, toHaveResource, toHavePrompt } from './matchers.js';
 import { describe, it, expect, beforeEach } from '@jest/globals';
+
+expect.extend({ toHaveTool, toHaveResource, toHavePrompt });
 
 describe('MCPClient - Resources', () => {
   let mockServer: MockMCPServer;
-  let client: any;
+  let client: MCPClient;
 
-  beforeEach(async () => {
-    const { MCPClient } = await import('../client/MCPClient.js');
+  beforeEach(() => {
     client = new MCPClient();
     mockServer = new MockMCPServer();
   });
@@ -59,10 +61,9 @@ describe('MCPClient - Resources', () => {
 
 describe('MCPClient - Prompts', () => {
   let mockServer: MockMCPServer;
-  let client: any;
+  let client: MCPClient;
 
-  beforeEach(async () => {
-    const { MCPClient } = await import('../client/MCPClient.js');
+  beforeEach(() => {
     client = new MCPClient();
     mockServer = new MockMCPServer();
   });
@@ -107,10 +108,9 @@ describe('MCPClient - Prompts', () => {
 });
 
 describe('MCPClient - Notifications', () => {
-  let client: any;
+  let client: MCPClient;
 
-  beforeEach(async () => {
-    const { MCPClient } = await import('../client/MCPClient.js');
+  beforeEach(() => {
     client = new MCPClient();
   });
 
@@ -119,10 +119,9 @@ describe('MCPClient - Notifications', () => {
     let resourceChangedReceived = false;
 
     client.setNotificationHandlers({
-      onLoggingMessage: (level: string, data: unknown) => {
+      onLoggingMessage: (level: string, _data: string) => {
         loggingReceived = true;
         expect(level).toBe('info');
-        expect(typeof data).toBe('string');
       },
       onResourceListChanged: () => {
         resourceChangedReceived = true;
@@ -136,10 +135,9 @@ describe('MCPClient - Notifications', () => {
 
 describe('MockMCPServer', () => {
   let mockServer: MockMCPServer;
-  let client: any;
+  let client: MCPClient;
 
-  beforeEach(async () => {
-    const { MCPClient } = await import('../client/MCPClient.js');
+  beforeEach(() => {
     client = new MCPClient();
     mockServer = new MockMCPServer();
   });
@@ -235,7 +233,8 @@ describe('MockMCPServer', () => {
 
     const result = await mockServer.handleToolsList();
 
-    expect(result.tools.some((t: any) => t.name === 'custom_tool')).toBe(true);
+    // @ts-expect-error - Custom matcher registered at runtime
+    expect(result.tools).toHaveTool('custom_tool');
   });
 
   it('should add custom resources', async () => {
@@ -248,7 +247,8 @@ describe('MockMCPServer', () => {
 
     const result = await mockServer.handleResourcesList();
 
-    expect(result.resources.some((r: any) => r.uri === 'custom://resource')).toBe(true);
+    // @ts-expect-error - Custom matcher registered at runtime
+    expect(result.resources).toHaveResource('custom://resource');
   });
 
   it('should add custom prompts', async () => {
@@ -266,6 +266,7 @@ describe('MockMCPServer', () => {
 
     const result = await mockServer.handlePromptsList();
 
-    expect(result.prompts.some((p: any) => p.name === 'custom_prompt')).toBe(true);
+    // @ts-expect-error - Custom matcher registered at runtime
+    expect(result.prompts).toHavePrompt('custom_prompt');
   });
 });

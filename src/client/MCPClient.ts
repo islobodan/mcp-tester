@@ -1,6 +1,6 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { spawn, ChildProcess } from 'child_process';
+// Note: Server process is managed by StdioClientTransport, no manual spawn needed
 import {
   ListToolsRequest,
   ListToolsResultSchema,
@@ -31,7 +31,6 @@ import { Logger, LogLevel, ConsoleLogger, NoOpLogger } from '../utils/logger.js'
 import { mergeEnvironments } from '../utils/env.js';
 import {
   MCPClientError,
-  MCPConnectionError,
   MCPNotStartedError,
   MCPAlreadyStartedError,
   MCPServerError,
@@ -84,7 +83,6 @@ const DEFAULT_RETRY_OPTIONS: RetryOptions = {
 export class MCPClient {
   private client: Client | null = null;
   private transport: StdioClientTransport | null = null;
-  private serverProcess: ChildProcess | null = null;
   private options: MCPClientOptions;
   private notificationHandlers: NotificationHandler;
   private logger: Logger;
@@ -126,32 +124,7 @@ export class MCPClient {
     const mergedEnv = mergeEnvironments(process.env, config.env);
 
     try {
-      this.serverProcess = spawn(config.command, config.args || [], {
-        stdio: ['pipe', 'pipe', 'pipe'],
-        env: mergedEnv,
-      });
-
-      if (this.serverProcess.stderr) {
-        this.serverProcess.stderr.on('data', (data) => {
-          this.logger.debug('[Server stderr]', data.toString());
-        });
-      }
-
-      this.serverProcess.on('error', (error) => {
-        this.logger.error('Server process error:', error);
-        throw new MCPConnectionError(`Failed to spawn server: ${error.message}`);
-      });
-
-      this.serverProcess.on('exit', (code, signal) => {
-        this.logger.debug(`Server exited with code ${code}, signal ${signal}`);
-      });
-
-      const startupDelay = config.startupDelay ?? this.options.startupDelay ?? 500;
-      if (startupDelay > 0) {
-        this.logger.debug(`Waiting ${startupDelay}ms for server startup`);
-        await this.sleep(startupDelay);
-      }
-
+      // Use StdioClientTransport to spawn the server process (single process)
       this.transport = new StdioClientTransport({
         command: config.command,
         args: config.args || [],
@@ -186,11 +159,14 @@ export class MCPClient {
       this.logger.info('Successfully connected to MCP server');
     } catch (error) {
       this.logger.error('Failed to start MCP client:', error);
-      if (this.serverProcess) {
-        this.serverProcess.kill();
-        this.serverProcess = null;
+      if (this.transport) {
+        try {
+          await this.transport.close();
+        } catch {
+          // ignore cleanup errors
+        }
+        this.transport = null;
       }
-      this.transport = null;
       this.client = null;
       throw error;
     }
@@ -198,6 +174,15 @@ export class MCPClient {
 
   async stop(): Promise<void> {
     this.logger.info('Stopping MCP client');
+
+    if (this.client) {
+      try {
+        await this.client.close();
+      } catch (error) {
+        this.logger.warn('Error closing client:', error);
+      }
+      this.client = null;
+    }
 
     if (this.transport) {
       try {
@@ -208,20 +193,6 @@ export class MCPClient {
       this.transport = null;
     }
 
-    if (this.serverProcess) {
-      try {
-        this.serverProcess.kill('SIGTERM');
-        await this.sleep(1000);
-        if (this.serverProcess.kill('SIGKILL')) {
-          this.logger.debug('Force killed server process');
-        }
-      } catch (error) {
-        this.logger.warn('Error killing server process:', error);
-      }
-      this.serverProcess = null;
-    }
-
-    this.client = null;
     this.logger.info('MCP client stopped');
   }
 
@@ -456,7 +427,11 @@ export class MCPClient {
     }
   }
 
-  async setElicitationHandler(handler: (request: any) => Promise<any>): Promise<void> {
+  async setElicitationHandler(
+    handler: (request: {
+      params: { mode?: string; [key: string]: unknown };
+    }) => Promise<{ action: 'accept' | 'decline' | 'cancel'; content?: Record<string, unknown> }>
+  ): Promise<void> {
     if (!this.client) {
       return;
     }

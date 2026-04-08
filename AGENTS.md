@@ -5,10 +5,12 @@ This guide helps AI agents work effectively in mcp-tester repository. It documen
 ## Roadmap
 
 For planned improvements, features, and enhancements, see [TODO.md](./TODO.md). The TODO.md file contains:
-- High, medium, and low priority improvement tasks
+- **48 tracked items** organized by priority (Critical, High, Medium, Low)
+- Critical bug fixes and code quality improvements (items 40-48)
 - Detailed task descriptions and effort estimates
 - Progress tracking with status indicators: `[ ]` (not started), `[/]` (in progress), `[x]` (completed)
 - Quick wins that can be completed in under 1 hour
+- Current completion: 31.3% (15 completed, 1 in progress)
 
 ## Project Overview
 
@@ -18,7 +20,7 @@ For planned improvements, features, and enhancements, see [TODO.md](./TODO.md). 
 - **Primary Purpose**: Test MCP server implementations in CI/CD pipelines
 - **Node.js Version**: >=18 (tested on 18, 20, 21)
 - **Package Manager**: npm
-- **Main SDK**: @modelcontextprotocol/sdk v1.25.2
+- **Main SDK**: @modelcontextprotocol/sdk v1.29.0
 - **Status**: Production-ready
 
 ## Essential Commands
@@ -87,7 +89,7 @@ npm run release:commit
 src/
 ├── index.ts                 # Library entry point, exports from client/
 ├── client/
-│   ├── MCPClient.ts         # Main client wrapper class (~430 lines)
+│   ├── MCPClient.ts         # Main client wrapper class (~400 lines)
 │   └── index.ts            # Client module exports
 ├── utils/
 │   ├── logger.ts            # Logger utility (ConsoleLogger, NoOpLogger)
@@ -317,11 +319,10 @@ await client.listTools();
 ```
 
 ### 3. Process Cleanup
-The client properly handles server process cleanup with SIGTERM followed by SIGKILL:
-- First sends SIGTERM for graceful shutdown
-- Waits 5 seconds
-- If still running, sends SIGKILL
-- This prevents zombie processes
+The `StdioClientTransport` manages the server process lifecycle. The client's `stop()` method:
+- Calls `client.close()` to gracefully close the MCP connection
+- Calls `transport.close()` to shut down the server process
+- This prevents zombie processes and ensures clean shutdown
 
 ### 4. Type Safety
 **Codebase strictly avoids `any` types** despite ESLint allowing it. All code uses proper TypeScript interfaces and types from the SDK.
@@ -572,7 +573,7 @@ chore: maintenance tasks
 ## Dependencies
 
 ### Production Dependencies
-- `@modelcontextprotocol/sdk@^1.25.2` - Official MCP SDK
+- `@modelcontextprotocol/sdk@^1.29.0` - Official MCP SDK
 
 ### Development Dependencies
 - `typescript@^5.3.0` - TypeScript compiler
@@ -645,7 +646,8 @@ chore: maintenance tasks
 - **Total Lines of Code**: ~1,500 lines (excluding tests)
 - **Test Coverage**: >80% (all categories)
 - **Tests**: 43 (all passing)
-- **Build Time**: ~5 seconds
-- **Test Execution Time**: ~28 seconds
+- **Build Time**: ~3 seconds
+- **Test Execution Time**: ~9 seconds
 - **Node.js Versions Tested**: 18, 20, 21
-- **SDK Version**: 1.25.2
+- **SDK Version**: 1.29.0
+- **Pre-commit Hooks**: Husky + lint-staged (eslint + prettier)

@@ -7,7 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Critical**: Removed duplicate process spawn in `MCPClient.start()` that spawned the server twice (once manually, once via StdioClientTransport). The transport now solely manages the server process lifecycle.
+- **Critical**: Fixed broken example files (`basic-test.ts`, `full-test.ts`) that called `client.start()` without specifying a server path
+- Fixed `MCPClient.stop()` to properly close client before transport, avoiding potential hanging connections
+- Fixed `@ts-ignore` usage in test files — replaced with `@ts-expect-error` per project conventions
+- Fixed `any` types in `resources-prompts.test.ts` — replaced with proper `MCPClient` type and removed duplicate dynamic imports
+- Fixed `setElicitationHandler()` to use proper TypeScript types instead of `any`
+
+### Changed
+- `MCPClient.stop()` now calls `client.close()` + `transport.close()` instead of manual SIGTERM/SIGKILL
+- Updated `@modelcontextprotocol/sdk` from `^1.25.2` to `^1.29.0`
+- Improved `src/index.ts` exports to include error classes, logger types, and `RetryOptions`
+- Updated `package.json` `files` field to exclude test files from npm package (40 → 28 files)
+- `resources-prompts.test.ts` now registers custom matchers via `expect.extend()`
+
 ### Added
+- Pre-commit hooks via Husky + lint-staged (runs `eslint --fix` and `prettier --write` on staged `.ts` files)
+- `RetryOptions` type exported from client index
+- Code review findings added to TODO.md as items 40-48
 - Configurable logging system with multiple log levels (debug, info, warn, error, none)
 - Custom error classes (MCPClientError, MCPTimeoutError, MCPConnectionError, MCPNotStartedError, MCPAlreadyStartedError, MCPServerError)
 - Retry logic with exponential backoff for failed requests

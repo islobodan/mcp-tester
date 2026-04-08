@@ -12,7 +12,7 @@ async function basicTest() {
     console.log('1. Starting MCP server...');
     await client.start({
       command: 'node',
-      args: [],
+      args: ['./examples/mock-server.js'],
       env: {
         NODE_ENV: 'test',
       },

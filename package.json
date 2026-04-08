@@ -13,7 +13,12 @@
     }
   },
   "files": [
-    "dist",
+    "dist/client",
+    "dist/utils",
+    "dist/index.js",
+    "dist/index.d.ts",
+    "dist/index.d.ts.map",
+    "dist/index.js.map",
     "LICENSE",
     "README.md",
     "CHANGELOG.md"
@@ -33,7 +38,8 @@
     "release:minor": "npm version minor && npm run build",
     "release:major": "npm version major && npm run build",
     "release:prerelease": "npm version prerelease && npm run build",
-    "release:commit": "git add package.json CHANGELOG.md && git commit -m \"chore: release $(node -p \"require('./package.json').version\")\""
+    "release:commit": "git add package.json CHANGELOG.md && git commit -m \"chore: release $(node -p \"require('./package.json').version\")\"",
+    "prepare": "husky"
   },
   "keywords": [
     "mcp",
@@ -53,7 +59,7 @@
   },
   "homepage": "https://github.com/islobodan/mcp-tester#readme",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.25.2"
+    "@modelcontextprotocol/sdk": "^1.29.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.0",
@@ -61,12 +67,20 @@
     "@typescript-eslint/eslint-plugin": "^8.58.0",
     "@typescript-eslint/parser": "^8.58.0",
     "eslint": "^8.56.0",
+    "husky": "^9.1.7",
     "jest": "^29.7.0",
+    "lint-staged": "^16.4.0",
     "prettier": "^3.8.1",
     "ts-jest": "^29.4.9",
     "typescript": "^5.3.0"
   },
   "engines": {
     "node": ">=18"
+  },
+  "lint-staged": {
+    "src/**/*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ]
   }
 }

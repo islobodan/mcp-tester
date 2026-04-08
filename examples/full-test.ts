@@ -15,7 +15,7 @@ async function fullTest() {
     console.log('1. Starting client with full capabilities...');
     await client.start({
       command: 'node',
-      args: [],
+      args: ['./examples/mock-server.js'],
     });
     console.log('✓ Client started\n');
 
