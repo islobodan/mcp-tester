@@ -6,12 +6,6 @@
   "types": "dist/index.d.ts",
   "type": "module",
   "sideEffects": false,
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    }
-  },
   "files": [
     "dist/client",
     "dist/utils",

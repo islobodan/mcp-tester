@@ -73,7 +73,7 @@ The AGENTS.md file is specifically designed to help AI agents understand the cod
 ### Install from npm
 
 ```bash
-npm install @slbdn/mcp-tester
+npm install @slbdn/mcp-tester --save-dev
 ```
 
 ### Install from git
