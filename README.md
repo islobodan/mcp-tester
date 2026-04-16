@@ -1,9 +1,9 @@
 # MCP Tester
 
-[![npm version](https://img.shields.io/npm/v/mcp-tester)](https://www.npmjs.com/package/mcp-tester)
-[![npm downloads](https://img.shields.io/npm/dm/mcp-tester)](https://www.npmjs.com/package/mcp-tester)
-[![npm license](https://img.shields.io/npm/l/mcp-tester)](https://www.npmjs.com/package/mcp-tester)
-[![Node.js Version](https://img.shields.io/node/v/mcp-tester)](https://nodejs.org)
+[![npm version](https://img.shields.io/npm/v/@slbdn/mcp-tester)](https://www.npmjs.com/package/@slbdn/mcp-tester)
+[![npm downloads](https://img.shields.io/npm/dm/@slbdn/mcp-tester)](https://www.npmjs.com/package/@slbdn/mcp-tester)
+[![npm license](https://img.shields.io/npm/l/@slbdn/mcp-tester)](https://www.npmjs.com/package/@slbdn/mcp-tester)
+[![Node.js Version](https://img.shields.io/node/v/@slbdn/mcp-tester)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Test Status](https://img.shields.io/badge/tests-passing-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)
 
