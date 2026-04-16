@@ -6,6 +6,7 @@
 [![Node.js Version](https://img.shields.io/node/v/mcp-tester)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Test Status](https://img.shields.io/badge/tests-passing-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)
+
 A minimal, production-ready MCP (Model Context Protocol) client implementation for CI/CD testing of MCP servers with Jest.
 
 ## 🎯 Purpose
@@ -73,13 +74,13 @@ The AGENTS.md file is specifically designed to help AI agents understand the cod
 ### Install from npm
 
 ```bash
-npm install mcp-tester
+npm install @slbdn/mcp-tester
 ```
 
 ### Install from git
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/islobodan/mcp-tester.git
 cd mcp-tester
 npm install
 ```
@@ -88,7 +89,7 @@ npm install
 
 ```bash
 # Clone the repository
-git clone <your-repo-url>
+git clone https://github.com/islobodan/mcp-tester.git
 cd mcp-tester
 
 # Install dependencies
@@ -1513,10 +1514,6 @@ Coverage targets:
 - Designed for Node.js servers (other runtimes may need adjustments)
 - Mock server is minimal (real servers may have different behavior)
 
-## 📝 License
-
-MIT License - see [LICENSE](LICENSE) for details.
-
 ## 🤝 Contributing
 
 Contributions are welcome! Please:
@@ -1560,6 +1557,10 @@ npm run lint --fix
 - **Issues:** [GitHub Issues](https://github.com/your-org/mcp-tester/issues)
 - **Discussions:** [GitHub Discussions](https://github.com/your-org/mcp-tester/discussions)
 - **Documentation:** [Project Wiki](https://github.com/your-org/mcp-tester/wiki)
+
+## 📝 License
+
+MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
