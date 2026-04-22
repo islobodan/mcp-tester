@@ -158,7 +158,7 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [/] 3. Publish to npm
+### [x] 3. Publish to npm
 **Description**: Publish package to npm registry for public use.
 
 **Tasks**:
@@ -166,10 +166,9 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 - [x] Ensure README has installation instructions for npm
 - [x] Clean up npm package contents (exclude test files)
 - [x] Add npm badge to README (added: downloads, license, updated test status)
-- [ ] Test local installation from tarball: `npm pack && npm install ./mcp-tester-*.tgz`
-- [ ] Create npm account (if not exists)
-- [ ] Run `npm publish`
-- [ ] Verify package can be installed: `npm install mcp-tester`
+- [x] Test local installation from tarball: `npm pack && npm install ./mcp-tester-*.tgz`
+- [x] Run `npm publish`
+- [x] Verify package can be installed: `npm install mcp-tester`
 
 **Impact**: Enables public use, biggest improvement for adoption
 
@@ -848,9 +847,9 @@ The following tasks can be completed quickly and provide immediate value:
 8. ~~Add Dependabot~~
 
 ### Must Have (High Impact, Low Effort)
-1. Publish to npm
+1. ~~Publish to npm~~ ✅
 2. Add CLI tool
-3. Triage Dependabot PRs
+3. ~~Triage Dependabot PRs~~ ✅
 
 ### Should Have (Good Impact, Reasonable Effort)
 4. Add integration tests
@@ -869,11 +868,11 @@ The following tasks can be completed quickly and provide immediate value:
 ## Progress Tracking
 
 **Total Items**: 48
-**Completed**: 15
-**In Progress**: 1 (npm publishing)
+**Completed**: 16
+**In Progress**: 0
 **Not Started**: 32
 
-**Completion Percentage**: 31.3%
+**Completion Percentage**: 33.3%
 
 ---
 
