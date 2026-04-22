@@ -149,6 +149,9 @@ npx tsx examples/basic-test.ts
 # Full capabilities test
 npx tsx examples/full-test.ts
 
+# Test against a real MCP server (server-everything)
+npx tsx examples/everything-server-test.ts
+
 # Run mock server standalone (for manual testing)
 node examples/mock-server.js
 ```

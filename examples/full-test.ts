@@ -1,4 +1,4 @@
-import { MCPClient } from '../index.js';
+import { MCPClient } from '../dist/index.js';
 
 async function fullTest() {
   console.log('=== Full MCP Capabilities Test ===\n');

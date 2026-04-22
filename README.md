@@ -162,6 +162,7 @@ mcp-tester/
 ├── examples/
 │   ├── basic-test.ts            # Basic usage example
 │   ├── full-test.ts             # Full capabilities example
+│   ├── everything-server-test.ts # Test against real MCP server
 │   └── mock-server.js           # Standalone MCP server
 └── docs/                        # Documentation
 ```

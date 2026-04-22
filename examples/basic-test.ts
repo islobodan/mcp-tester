@@ -1,4 +1,4 @@
-import { MCPClient } from '../index.js';
+import { MCPClient } from '../dist/index.js';
 
 async function basicTest() {
   console.log('=== Basic MCP Client Test ===\n');
