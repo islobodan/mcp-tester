@@ -215,18 +215,17 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 6. Add Integration Tests
+### [x] 6. Add Integration Tests
 **Description**: Test against real MCP servers, not just mock server.
 
 **Tasks**:
-- Create `src/__tests__/integration/` directory
-- Add test for `@modelcontextprotocol/server-filesystem`
-- Add test for `@modelcontextprotocol/server-github`
-- Create optional integration test suite (skip by default)
-- Document how to run integration tests
-- Add to CI (optional with flag)
+- [x] Add test for `@modelcontextprotocol/server-everything`
+- [x] Test all 16 tools (echo, get-sum, get-env, etc.)
+- [x] Test resources and prompts
+- [x] Test error handling
+- [x] Test multiple sequential operations
 
-**Impact**: Validates compatibility with real servers
+**Impact**: Validates library works with real MCP servers
 
 **Estimated Effort**: 4-6 hours
 
@@ -871,11 +870,11 @@ The following tasks can be completed quickly and provide immediate value:
 ## Progress Tracking
 
 **Total Items**: 48
-**Completed**: 17
+**Completed**: 18
 **In Progress**: 0
-**Not Started**: 31
+**Not Started**: 30
 
-**Completion Percentage**: 35.4%
+**Completion Percentage**: 37.5%
 
 ---
 
