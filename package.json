@@ -9,6 +9,7 @@
   "files": [
     "dist/client",
     "dist/utils",
+    "dist/cli",
     "dist/index.js",
     "dist/index.d.ts",
     "dist/index.d.ts.map",
@@ -35,6 +36,9 @@
     "release:commit": "git add package.json CHANGELOG.md && git commit -m \"chore: release $(node -p \"require('./package.json').version\")\"",
     "prepare": "husky"
   },
+  "bin": {
+    "mcp-tester": "./dist/cli/index.js"
+  },
   "keywords": [
     "mcp",
     "model-context-protocol",
@@ -53,7 +57,8 @@
   },
   "homepage": "https://github.com/islobodan/mcp-tester#readme",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0"
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "commander": "^14.0.3"
   },
   "devDependencies": {
     "@types/jest": "^29.5.0",

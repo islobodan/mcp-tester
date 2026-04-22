@@ -176,17 +176,20 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 4. Add CLI Tool for Quick Server Validation
+### [x] 4. Add CLI Tool for Quick Server Validation
 **Description**: Create command-line tool for quick MCP server testing.
 
 **Tasks**:
-- Create `src/cli.ts` with commander.js
-- Implement basic server connection test
-- Add options for timeout, verbosity
-- Add commands: `test`, `list-tools`, `call-tool`
-- Add to package.json `bin` field
-- Test CLI with various servers
-- Document CLI usage in README
+- [x] Create `src/cli/index.ts` with commander.js
+- [x] Implement basic server connection test (`test` command)
+- [x] Add options for timeout, verbosity, log-level
+- [x] Add `list-tools` / `lt` command
+- [x] Add `call-tool` / `ct` command
+- [x] Add `read-resource` / `rr` command
+- [x] Add `get-prompt` / `gp` command
+- [x] Add to package.json `bin` field
+- [x] Test CLI with mock server
+- [x] Document CLI usage in help text
 
 **Impact**: Quick testing without writing test files
 
@@ -848,7 +851,7 @@ The following tasks can be completed quickly and provide immediate value:
 
 ### Must Have (High Impact, Low Effort)
 1. ~~Publish to npm~~ ✅
-2. Add CLI tool
+2. ~~Add CLI tool~~ ✅
 3. ~~Triage Dependabot PRs~~ ✅
 
 ### Should Have (Good Impact, Reasonable Effort)
@@ -868,11 +871,11 @@ The following tasks can be completed quickly and provide immediate value:
 ## Progress Tracking
 
 **Total Items**: 48
-**Completed**: 16
+**Completed**: 17
 **In Progress**: 0
-**Not Started**: 32
+**Not Started**: 31
 
-**Completion Percentage**: 33.3%
+**Completion Percentage**: 35.4%
 
 ---
 

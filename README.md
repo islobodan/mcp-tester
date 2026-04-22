@@ -1431,6 +1431,50 @@ mcp-tester/
 └── README.md
 ```
 
+## 🔧 CLI Tool
+
+MCP Tester includes a command-line interface for quick server testing without writing code.
+
+### Quick Examples
+
+```bash
+# Test server connection and list capabilities
+mcp-tester test node ./server.js
+
+# List available tools
+mcp-tester list-tools node ./server.js
+mcp-tester lt node ./server.js  # short alias
+
+# Call a tool
+mcp-tester call-tool echo node ./server.js --params '{"message":"Hello"}'
+mcp-tester ct echo node ./server.js --params '{"message":"World"}'  # short alias
+
+# Read a resource
+mcp-tester read-resource text://example node ./server.js
+mcp-tester rr text://example node ./server.js  # short alias
+
+# Get a prompt
+mcp-tester get-prompt greet node ./server.js --args '{"name":"Alice"}'
+mcp-tester gp greet node ./server.js --args '{"name":"Bob"}'  # short alias
+
+# JSON output for scripting
+mcp-tester lt node ./server.js --json
+```
+
+### Installation (Global)
+
+```bash
+# Install globally via npx
+npx @slbdn/mcp-tester test node ./server.js
+
+# Or link after local install
+npm install @slbdn/mcp-tester
+npm link
+mcp-tester test node ./server.js
+```
+
+For full CLI documentation, see [CLI.md](./CLI.md).
+
 ## 🔧 Development
 
 ### Build
