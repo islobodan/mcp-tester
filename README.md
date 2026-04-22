@@ -153,9 +153,12 @@ mcp-tester/
 │   │   ├── logger.ts            # Logging
 │   │   └── env.ts               # Environment utilities
 │   └── __tests__/               # 115 tests
-│       ├── fixtures/mock-server.ts  # In-memory mock server
-│       ├── helpers.ts           # Test utilities
-│       └── matchers.ts          # Custom Jest matchers
+│       ├── everything-server.test.ts  # Integration tests (server-everything)
+│       ├── real-server.test.ts        # Integration tests (stdio transport)
+│       ├── cli.test.ts                # CLI tool tests
+│       ├── fixtures/mock-server.ts    # In-memory mock server
+│       ├── helpers.ts                 # Test utilities
+│       └── matchers.ts                # Custom Jest matchers
 ├── examples/
 │   ├── basic-test.ts            # Basic usage example
 │   ├── full-test.ts             # Full capabilities example
