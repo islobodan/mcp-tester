@@ -1,4 +1,40 @@
-export * from './client/index.js';
+/**
+ * MCP Tester - A minimal MCP client implementation for CI/CD testing.
+ *
+ * @packageDocumentation
+ *
+ * @example
+ * ```typescript
+ * import { MCPClient } from '@slbdn/mcp-tester';
+ *
+ * const client = new MCPClient({
+ *   name: 'test-client',
+ *   version: '1.0.0',
+ * });
+ *
+ * await client.start({
+ *   command: 'node',
+ *   args: ['./server.js'],
+ * });
+ *
+ * const tools = await client.listTools();
+ * const result = await client.callTool({
+ *   name: 'my-tool',
+ *   arguments: { input: 'test' },
+ * });
+ *
+ * await client.stop();
+ * ```
+ */
+
+export {
+  MCPClient,
+  type MCPServerConfig,
+  type MCPClientOptions,
+  type ToolCallOptions,
+  type NotificationHandler,
+  type RetryOptions,
+} from './client/index.js';
 export {
   MCPClientError,
   MCPTimeoutError,

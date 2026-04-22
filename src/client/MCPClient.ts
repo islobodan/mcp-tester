@@ -36,40 +36,137 @@ import {
   MCPServerError,
 } from '../utils/errors.js';
 
+/**
+ * Configuration for starting an MCP server connection.
+ */
 export interface MCPServerConfig {
+  /**
+   * The command to execute the MCP server (e.g., "node", "python").
+   */
   command: string;
+  /**
+   * Arguments to pass to the server command.
+   */
   args?: string[];
+  /**
+   * Environment variables for the server process.
+   */
   env?: Record<string, string | undefined>;
+  /**
+   * Delay in milliseconds to wait after starting the server before sending requests.
+   * @defaultValue 500
+   */
   startupDelay?: number;
 }
 
+/**
+ * Options for configuring the MCPClient instance.
+ */
 export interface MCPClientOptions {
+  /**
+   * Client name/identifier sent to the MCP server during initialization.
+   * @defaultValue "mcp-test-client"
+   */
   name?: string;
+  /**
+   * Client version sent to the MCP server during initialization.
+   * @defaultValue "1.0.0"
+   */
   version?: string;
+  /**
+   * Default timeout in milliseconds for all requests.
+   * @defaultValue 30000
+   */
   timeout?: number;
+  /**
+   * Log level for the client.
+   * @defaultValue "info"
+   * @see {@link LogLevel}
+   */
   logLevel?: LogLevel;
+  /**
+   * Enable protocol-level logging (JSON messages).
+   * @defaultValue false
+   */
   enableProtocolLogging?: boolean;
+  /**
+   * Number of retry attempts for failed requests.
+   * @defaultValue 0
+   */
   retries?: number;
+  /**
+   * Base delay in milliseconds between retry attempts.
+   * @defaultValue 1000
+   */
   retryDelay?: number;
+  /**
+   * Delay in milliseconds to wait after starting the server.
+   * @defaultValue 500
+   */
   startupDelay?: number;
 }
 
+/**
+ * Options for calling a tool.
+ */
 export interface ToolCallOptions {
+  /**
+   * Name of the tool to call.
+   */
   name: string;
+  /**
+   * Arguments to pass to the tool.
+   */
   arguments?: Record<string, unknown>;
+  /**
+   * Timeout in milliseconds for this specific call. Overrides the default timeout.
+   */
   timeout?: number;
+  /**
+   * Number of retries for this specific call. Overrides the default retries.
+   */
   retries?: number;
 }
 
+/**
+ * Handlers for server-initiated notifications.
+ */
 export interface NotificationHandler {
+  /**
+   * Handler for logging messages from the server.
+   * @param level - Log level (debug, info, warning, error)
+   * @param data - Log message content
+   */
   onLoggingMessage?: (level: string, data: string) => void;
+  /**
+   * Handler for resource list change notifications.
+   */
   onResourceListChanged?: () => void;
 }
 
+/**
+ * Options for retry behavior with exponential backoff.
+ */
 export interface RetryOptions {
+  /**
+   * Maximum number of retry attempts.
+   * @defaultValue 3
+   */
   maxAttempts: number;
+  /**
+   * Initial delay in milliseconds between retries.
+   * @defaultValue 1000
+   */
   baseDelay: number;
+  /**
+   * Maximum delay in milliseconds between retries.
+   * @defaultValue 10000
+   */
   maxDelay: number;
+  /**
+   * Multiplier for exponential backoff.
+   * @defaultValue 2
+   */
   backoffMultiplier: number;
 }
 
@@ -80,6 +177,37 @@ const DEFAULT_RETRY_OPTIONS: RetryOptions = {
   backoffMultiplier: 2,
 };
 
+/**
+ * MCPClient is a wrapper around the Model Context Protocol SDK client.
+ *
+ * It provides a simplified API for testing MCP servers in CI/CD environments.
+ * The client manages the lifecycle of the server process and provides methods
+ * for calling tools, reading resources, and managing prompts.
+ *
+ * @example
+ * ```typescript
+ * const client = new MCPClient({
+ *   name: 'my-test-client',
+ *   version: '1.0.0',
+ *   timeout: 30000,
+ * });
+ *
+ * await client.start({
+ *   command: 'node',
+ *   args: ['./server.js'],
+ * });
+ *
+ * const tools = await client.listTools();
+ * const result = await client.callTool({
+ *   name: 'my-tool',
+ *   arguments: { param: 'value' },
+ * });
+ *
+ * await client.stop();
+ * ```
+ *
+ * @see {@link https://spec.modelcontextprotocol.io | MCP Specification}
+ */
 export class MCPClient {
   private client: Client | null = null;
   private transport: StdioClientTransport | null = null;
@@ -88,6 +216,20 @@ export class MCPClient {
   private logger: Logger;
   private retryOptions: RetryOptions;
 
+  /**
+   * Creates a new MCPClient instance.
+   *
+   * @param options - Configuration options for the client
+   * @example
+   * ```typescript
+   * const client = new MCPClient({
+   *   name: 'test-client',
+   *   version: '1.0.0',
+   *   timeout: 60000,
+   *   logLevel: 'debug',
+   * });
+   * ```
+   */
   constructor(options: MCPClientOptions = {}) {
     this.options = {
       name: options.name || 'mcp-test-client',
@@ -113,6 +255,24 @@ export class MCPClient {
         : new ConsoleLogger({ level: this.options.logLevel, prefix: 'MCPClient' });
   }
 
+  /**
+   * Starts the client and connects to the MCP server.
+   *
+   * Spawns the server process and establishes the MCP connection.
+   * The server process lifecycle is managed by StdioClientTransport.
+   *
+   * @param config - Server configuration including command and arguments
+   * @throws {@link MCPAlreadyStartedError} if client is already started
+   * @throws Error if server fails to start
+   * @example
+   * ```typescript
+   * await client.start({
+   *   command: 'node',
+   *   args: ['./server.js', '--production'],
+   *   env: { NODE_ENV: 'production' },
+   * });
+   * ```
+   */
   async start(config: MCPServerConfig): Promise<void> {
     if (this.client) {
       throw new MCPAlreadyStartedError();
@@ -172,6 +332,17 @@ export class MCPClient {
     }
   }
 
+  /**
+   * Stops the client and disconnects from the MCP server.
+   *
+   * Closes the MCP connection and terminates the server process.
+   * Safe to call even if the client is not connected.
+   *
+   * @example
+   * ```typescript
+   * await client.stop();
+   * ```
+   */
   async stop(): Promise<void> {
     this.logger.info('Stopping MCP client');
 
@@ -219,6 +390,17 @@ export class MCPClient {
     });
   }
 
+  /**
+   * Lists all available tools from the MCP server.
+   *
+   * @returns Promise resolving to an array of Tool objects
+   * @throws {@link MCPNotStartedError} if client is not started
+   * @example
+   * ```typescript
+   * const tools = await client.listTools();
+   * console.log(tools.map(t => t.name)); // ['echo', 'add', 'calculate']
+   * ```
+   */
   async listTools(): Promise<Tool[]> {
     if (!this.client) {
       throw new MCPNotStartedError();
@@ -248,6 +430,23 @@ export class MCPClient {
     }
   }
 
+  /**
+   * Calls a tool on the MCP server with optional arguments.
+   *
+   * @param options - Tool call options including name and arguments
+   * @returns Promise resolving to the tool result
+   * @throws {@link MCPNotStartedError} if client is not started
+   * @throws {@link MCPServerError} if the tool call fails
+   * @example
+   * ```typescript
+   * const result = await client.callTool({
+   *   name: 'calculator',
+   *   arguments: { a: 5, b: 3 },
+   *   timeout: 10000,
+   * });
+   * console.log(result.content[0].text);
+   * ```
+   */
   async callTool(options: ToolCallOptions): Promise<CallToolResult> {
     if (!this.client) {
       throw new MCPNotStartedError();
@@ -281,6 +480,17 @@ export class MCPClient {
     }
   }
 
+  /**
+   * Lists all available resources from the MCP server.
+   *
+   * @returns Promise resolving to an array of Resource objects
+   * @throws {@link MCPNotStartedError} if client is not started
+   * @example
+   * ```typescript
+   * const resources = await client.listResources();
+   * console.log(resources.map(r => r.uri)); // ['config://settings', 'data://users']
+   * ```
+   */
   async listResources(): Promise<Resource[]> {
     if (!this.client) {
       throw new MCPNotStartedError();
@@ -310,6 +520,19 @@ export class MCPClient {
     }
   }
 
+  /**
+   * Reads a specific resource by its URI.
+   *
+   * @param uri - The URI of the resource to read
+   * @returns Promise resolving to the resource contents
+   * @throws {@link MCPNotStartedError} if client is not started
+   * @throws Error if the resource is not found or cannot be read
+   * @example
+   * ```typescript
+   * const result = await client.readResource('config://settings');
+   * console.log(result.contents[0].text);
+   * ```
+   */
   async readResource(uri: string): Promise<ReadResourceResult> {
     if (!this.client) {
       throw new MCPNotStartedError();
@@ -338,6 +561,17 @@ export class MCPClient {
     }
   }
 
+  /**
+   * Lists all available prompts from the MCP server.
+   *
+   * @returns Promise resolving to an array of Prompt objects
+   * @throws {@link MCPNotStartedError} if client is not started
+   * @example
+   * ```typescript
+   * const prompts = await client.listPrompts();
+   * console.log(prompts.map(p => p.name)); // ['greet', 'summarize']
+   * ```
+   */
   async listPrompts(): Promise<Prompt[]> {
     if (!this.client) {
       throw new MCPNotStartedError();
@@ -367,6 +601,20 @@ export class MCPClient {
     }
   }
 
+  /**
+   * Gets a prompt template from the MCP server with optional arguments.
+   *
+   * @param name - Name of the prompt to retrieve
+   * @param args - Optional arguments for the prompt template
+   * @returns Promise resolving to the prompt messages
+   * @throws {@link MCPNotStartedError} if client is not started
+   * @throws Error if the prompt is not found
+   * @example
+   * ```typescript
+   * const messages = await client.getPrompt('greet', { name: 'Alice' });
+   * console.log(messages[0].content.text); // 'Hello Alice!'
+   * ```
+   */
   async getPrompt(name: string, args?: Record<string, string>): Promise<GetPromptResult> {
     if (!this.client) {
       throw new MCPNotStartedError();
@@ -398,6 +646,22 @@ export class MCPClient {
     }
   }
 
+  /**
+   * Requests LLM sampling from the MCP server.
+   *
+   * @param request - Sampling request parameters including messages
+   * @returns Promise resolving to the sampling result
+   * @throws {@link MCPNotStartedError} if client is not started
+   * @throws Error if sampling is not supported or fails
+   * @example
+   * ```typescript
+   * const result = await client.requestSampling({
+   *   messages: [{ role: 'user', content: { type: 'text', text: 'Hello' } }],
+   *   maxTokens: 100,
+   * });
+   * console.log(result.content.text);
+   * ```
+   */
   async requestSampling(request: CreateMessageRequestParams): Promise<CreateMessageResult> {
     if (!this.client) {
       throw new MCPNotStartedError();
@@ -427,6 +691,21 @@ export class MCPClient {
     }
   }
 
+  /**
+   * Configures a handler for server elicitation requests.
+   *
+   * Elicitation requests are sent when the server needs user input.
+   *
+   * @param handler - Async function that handles elicitation requests
+   * @throws {@link MCPNotStartedError} if client is not started
+   * @example
+   * ```typescript
+   * await client.setElicitationHandler(async (request) => {
+   *   console.log('Elicitation request:', request.params);
+   *   return { action: 'accept', content: { userInput: 'test' } };
+   * });
+   * ```
+   */
   async setElicitationHandler(
     handler: (request: {
       params: { mode?: string; [key: string]: unknown };
@@ -440,16 +719,52 @@ export class MCPClient {
     this.logger.debug('Elicitation handler configured');
   }
 
+  /**
+   * Configures handlers for server-initiated notifications.
+   *
+   * @param handlers - Object containing notification handlers
+   * @example
+   * ```typescript
+   * client.setNotificationHandlers({
+   *   onLoggingMessage: (level, data) => {
+   *     console.log(`[${level}] ${data}`);
+   *   },
+   *   onResourceListChanged: () => {
+   *     console.log('Resources updated');
+   *   },
+   * });
+   * ```
+   */
   setNotificationHandlers(handlers: NotificationHandler): void {
     this.notificationHandlers = handlers;
     this.setupNotificationHandlers();
     this.logger.debug('Notification handlers updated');
   }
 
+  /**
+   * Checks if the client is currently connected to an MCP server.
+   *
+   * @returns true if connected, false otherwise
+   * @example
+   * ```typescript
+   * if (client.isConnected()) {
+   *   console.log('Client is connected');
+   * }
+   * ```
+   */
   isConnected(): boolean {
     return this.client !== null && this.transport !== null;
   }
 
+  /**
+   * Sets the logging level for the client.
+   *
+   * @param level - The log level to set
+   * @example
+   * ```typescript
+   * client.setLogLevel('debug');
+   * ```
+   */
   setLogLevel(level: LogLevel): void {
     this.options.logLevel = level;
     this.logger =

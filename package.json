@@ -20,6 +20,7 @@
   ],
   "scripts": {
     "build": "tsc",
+    "docs": "typedoc",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -28,7 +29,7 @@
     "format:check": "prettier --check \"src/**/*.ts\"",
     "audit": "npm audit",
     "audit:fix": "npm audit fix",
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "npm run build && npm run docs",
     "release:patch": "npm version patch && npm run build",
     "release:minor": "npm version minor && npm run build",
     "release:major": "npm version major && npm run build",
@@ -72,6 +73,8 @@
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.1",
     "ts-jest": "^29.4.9",
+    "typedoc": "^0.28.19",
+    "typedoc-plugin-markdown": "^4.11.0",
     "typescript": "^5.3.0"
   },
   "engines": {

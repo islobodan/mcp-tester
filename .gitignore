@@ -49,3 +49,4 @@ pids
 # Temporary folders
 tmp/
 temp/
+docs/api

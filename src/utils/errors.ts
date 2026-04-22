@@ -1,4 +1,27 @@
+/**
+ * Error classes for MCPClient operations.
+ *
+ * All errors include a descriptive message, error code, and proper stack trace.
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   await client.callTool({ name: 'invalid-tool', arguments: {} });
+ * } catch (error) {
+ *   if (error instanceof MCPServerError) {
+ *     console.error(`Server error: ${error.message}`);
+ *   } else if (error instanceof MCPTimeoutError) {
+ *     console.error(`Timeout after ${error.timeout}ms`);
+ *   }
+ * }
+ * ```
+ */
+
+/**
+ * Base error class for all MCP client errors.
+ */
 export class MCPClientError extends Error {
+  /** Error code for programmatic error handling. */
   public readonly code: string;
 
   constructor(message: string, code: string = 'MCP_CLIENT_ERROR') {
@@ -9,7 +32,11 @@ export class MCPClientError extends Error {
   }
 }
 
+/**
+ * Error thrown when a request times out.
+ */
 export class MCPTimeoutError extends MCPClientError {
+  /** The timeout value in milliseconds. */
   public readonly timeout: number;
 
   constructor(message: string, timeout: number) {
@@ -20,6 +47,9 @@ export class MCPTimeoutError extends MCPClientError {
   }
 }
 
+/**
+ * Error thrown when the client fails to connect to the MCP server.
+ */
 export class MCPConnectionError extends MCPClientError {
   constructor(message: string) {
     super(message, 'MCP_CONNECTION_ERROR');
@@ -28,6 +58,9 @@ export class MCPConnectionError extends MCPClientError {
   }
 }
 
+/**
+ * Error thrown when a client method is called before start().
+ */
 export class MCPNotStartedError extends MCPClientError {
   constructor() {
     super('Client not started. Call start() before using client methods.', 'MCP_NOT_STARTED');
@@ -36,6 +69,9 @@ export class MCPNotStartedError extends MCPClientError {
   }
 }
 
+/**
+ * Error thrown when start() is called on an already-started client.
+ */
 export class MCPAlreadyStartedError extends MCPClientError {
   constructor() {
     super('Client already started. Call stop() before starting again.', 'MCP_ALREADY_STARTED');
@@ -44,6 +80,9 @@ export class MCPAlreadyStartedError extends MCPClientError {
   }
 }
 
+/**
+ * Error thrown when the MCP server returns an error response.
+ */
 export class MCPServerError extends MCPClientError {
   constructor(message: string) {
     super(message, 'MCP_SERVER_ERROR');

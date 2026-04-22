@@ -1,0 +1,32 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": [
+    "src/index.ts",
+    "src/client/MCPClient.ts",
+    "src/utils/errors.ts",
+    "src/utils/logger.ts",
+    "src/cli/index.ts"
+  ],
+  "entryPointStrategy": "expand",
+  "out": "docs/api",
+  "name": "MCP Tester",
+  "readme": "README.md",
+  "exclude": [
+    "**/__tests__/**",
+    "**/__tests__/fixtures/**",
+    "**/fixtures/**",
+    "**/examples/**",
+    "**/dist/**"
+  ],
+  "plugin": [
+    "typedoc-plugin-markdown"
+  ],
+  "lightHighlightTheme": "github-light",
+  "darkHighlightTheme": "github-dark",
+  "includeVersion": true,
+  "excludePrivate": false,
+  "excludeProtected": false,
+  "skipErrorChecking": false,
+  "tsconfig": "./tsconfig.json",
+  "sourceLinkTemplate": "https://github.com/islobodan/mcp-tester/blob/main/{path}#L{line}"
+}

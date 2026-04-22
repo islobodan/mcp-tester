@@ -285,17 +285,18 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ## Low Priority / Nice to Have
 
-### [ ] 9. Add TypeDoc API Documentation
+### [x] 9. Add TypeDoc API Documentation
 **Description**: Generate comprehensive API documentation.
 
 **Tasks**:
-- Install typedoc as dev dependency
-- Configure typedoc options
-- Add script to package.json: `"docs": "typedoc --out docs src"`
-- Ensure all public APIs have JSDoc comments
-- Generate documentation
-- Add link to docs in README
-- Optionally deploy docs to GitHub Pages
+- [x] Install typedoc and typedoc-plugin-markdown
+- [x] Add JSDoc comments to MCPClient class and methods
+- [x] Add JSDoc to utility classes (errors, logger)
+- [x] Add JSDoc to index.ts
+- [x] Create typedoc.json configuration
+- [x] Add `docs` script to package.json
+- [x] Generate API documentation in docs/api/
+- [x] Update README.md with API docs link
 
 **Impact**: Better API reference for users
 
@@ -870,11 +871,11 @@ The following tasks can be completed quickly and provide immediate value:
 ## Progress Tracking
 
 **Total Items**: 48
-**Completed**: 18
+**Completed**: 19
 **In Progress**: 0
-**Not Started**: 30
+**Not Started**: 29
 
-**Completion Percentage**: 37.5%
+**Completion Percentage**: 39.6%
 
 ---
 

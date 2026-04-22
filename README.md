@@ -1588,6 +1588,8 @@ npm run lint --fix
 
 ## 📚 Additional Resources
 - [AGENTS.md](./AGENTS.md) - Documentation for AI agents working with this codebase
+- [CLI.md](./CLI.md) - CLI tool documentation
+- [API Documentation](./docs/api/README.md) - Generated TypeDoc API reference
 
 - [MCP Specification](https://spec.modelcontextprotocol.io) - Official MCP protocol specification
 - [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) - Official SDK documentation
