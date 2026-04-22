@@ -100,6 +100,8 @@ src/
     ├── resources-prompts.test.ts    # Resources & prompts functionality tests
     ├── advanced.test.ts             # Advanced features tests
     ├── real-server.test.ts          # Integration tests (stdio transport)
+    ├── everything-server.test.ts    # Full integration tests (server-everything)
+    ├── cli.test.ts                  # CLI tool tests
     ├── helpers-example.test.ts      # Test helpers usage examples
     ├── helpers.ts                   # Test utility functions
     ├── matchers.ts                  # Custom Jest matchers
@@ -283,7 +285,7 @@ describe('Integration', () => {
 ```
 
 ### Current Test Suite
-- **Total Tests**: 43 tests (all passing)
+- **Total Tests**: 115 tests (all passing)
 - **Test Categories**:
   - Basic Operations: 3 tests
   - Tools (in-memory): 11 tests
@@ -292,6 +294,8 @@ describe('Integration', () => {
   - Advanced Features: 3 tests
   - Helpers Examples: 4 tests
   - Real Server (stdio): 13 tests
+  - Everything Server: 37 tests
+  - CLI Tool: 35 tests
 
 ## Important Gotchas & Non-Obvious Patterns
 
@@ -645,9 +649,9 @@ chore: maintenance tasks
 
 - **Total Lines of Code**: ~1,500 lines (excluding tests)
 - **Test Coverage**: >80% (all categories)
-- **Tests**: 43 (all passing)
+- **Tests**: 115 (all passing)
 - **Build Time**: ~3 seconds
-- **Test Execution Time**: ~9 seconds
+- **Test Execution Time**: ~97 seconds
 - **Node.js Versions Tested**: 18, 20, 21
 - **SDK Version**: 1.29.0
 - **Pre-commit Hooks**: Husky + lint-staged (eslint + prettier)

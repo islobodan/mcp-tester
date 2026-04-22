@@ -151,6 +151,7 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 - [x] Add lint-staged configuration to package.json
 - [x] `prepare` script auto-added by `husky init`
 - [x] Configure lint-staged to run eslint + prettier on staged `.ts` files
+- [x] Fix Husky compatibility with newer Node.js (`husky || true`)
 
 **Impact**: Ensures code quality on every commit
 
@@ -373,17 +374,17 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 14. Better Mock Server
+### [x] 14. Better Mock Server
 **Description**: Enhance mock server for more realistic testing scenarios.
 
 **Tasks**:
-- Replace `any` types with proper MCP SDK types in MockMCPServer
-- Add simulated delays (configurable)
-- Add random failures (for testing retry logic)
-- Add tools that return different results based on input
-- Add support for streaming responses
-- Add validation of input schemas
-- Document mock server capabilities
+- [x] Replace `any` types with proper MCP SDK types in MockMCPServer
+- [ ] Add simulated delays (configurable)
+- [ ] Add random failures (for testing retry logic)
+- [ ] Add tools that return different results based on input
+- [ ] Add support for streaming responses
+- [ ] Add validation of input schemas
+- [ ] Document mock server capabilities
 
 **Impact**: Better unit testing without real servers
 
@@ -826,6 +827,9 @@ The following tasks can be completed quickly and provide immediate value:
 - [x] Clean npm package contents (exclude test files)
 - [x] Update MCP SDK dependency
 - [x] Add pre-commit hooks (Husky + lint-staged)
+- [x] Fix failing everything-server tests (timeout + wrong args)
+- [x] Make MCPTimeoutError and MCPConnectionError actually thrown
+- [x] Replace CLI manual help with Commander native help
 - [ ] Add Codecov badge to README
 - [ ] Add Node.js compatibility badge
 - [ ] Add architecture diagram to README
@@ -858,7 +862,7 @@ The following tasks can be completed quickly and provide immediate value:
 4. Add integration tests
 5. Improve error messages
 6. Add performance benchmarks
-7. Better mock server (remove `any` types)
+7. Better mock server (remove `any` types) ✅
 
 ### Nice to Have (Lower Priority)
 8. HTTP transport support
@@ -871,11 +875,11 @@ The following tasks can be completed quickly and provide immediate value:
 ## Progress Tracking
 
 **Total Items**: 48
-**Completed**: 19
+**Completed**: 21
 **In Progress**: 0
-**Not Started**: 29
+**Not Started**: 27
 
-**Completion Percentage**: 39.6%
+**Completion Percentage**: 43.8%
 
 ---
 

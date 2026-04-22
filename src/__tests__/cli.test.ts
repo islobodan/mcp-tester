@@ -28,12 +28,12 @@ describe('CLI Tool', () => {
   describe('--version', () => {
     it('should show version with -V flag', async () => {
       const { stdout } = await execAsync(`node ${CLI_PATH} -V`);
-      expect(stdout.trim()).toBe('mcp-tester v1.0.0');
+      expect(stdout.trim()).toBe('1.0.0');
     });
 
     it('should show version with --version flag', async () => {
       const { stdout } = await execAsync(`node ${CLI_PATH} --version`);
-      expect(stdout.trim()).toBe('mcp-tester v1.0.0');
+      expect(stdout.trim()).toBe('1.0.0');
     });
   });
 

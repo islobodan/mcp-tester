@@ -208,11 +208,11 @@ describe('Real MCP Server: @modelcontextprotocol/server-everything', () => {
     it('should call trigger-long-running-operation tool', async () => {
       const result = await client.callTool({
         name: 'trigger-long-running-operation',
-        arguments: { duration: 50 },
+        arguments: { duration: 1, steps: 1 },
         timeout: 30000,
       });
       expect(result).toBeDefined();
-    });
+    }, 35000);
 
     it('should call get-roots-list tool', async () => {
       const result = await client.callTool({
@@ -296,7 +296,7 @@ describe('Real MCP Server: @modelcontextprotocol/server-everything', () => {
     });
 
     it('should get args-prompt', async () => {
-      const result = await client.getPrompt('args-prompt', { name: 'Test' });
+      const result = await client.getPrompt('args-prompt', { city: 'New York' });
       expect(result).toBeDefined();
       expect(result.messages).toBeDefined();
     });

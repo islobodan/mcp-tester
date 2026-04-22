@@ -18,10 +18,11 @@ export const DEFAULT_TEST_CLIENT_OPTIONS: MCPClientOptions = {
 
 /**
  * Default test server configuration
+ * Uses the standalone mock server from examples/
  */
 export const DEFAULT_TEST_SERVER_CONFIG: MCPServerConfig = {
   command: 'node',
-  args: ['./dist/__tests__/fixtures/mock-server.js'],
+  args: ['./examples/mock-server.js'],
   env: {
     NODE_ENV: 'test',
   },
@@ -154,7 +155,7 @@ export function waitForClientState(
  * @returns MCPServerConfig
  */
 export function createMockServerConfig(
-  args: string[] = ['./dist/__tests__/fixtures/mock-server.js']
+  args: string[] = ['./examples/mock-server.js']
 ): MCPServerConfig {
   return {
     command: 'node',

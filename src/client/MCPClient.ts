@@ -33,6 +33,8 @@ import {
   MCPClientError,
   MCPNotStartedError,
   MCPAlreadyStartedError,
+  MCPConnectionError,
+  MCPTimeoutError,
   MCPServerError,
 } from '../utils/errors.js';
 
@@ -328,7 +330,12 @@ export class MCPClient {
         this.transport = null;
       }
       this.client = null;
-      throw error;
+      if (error instanceof MCPClientError) {
+        throw error;
+      }
+      throw new MCPConnectionError(
+        `Failed to connect to MCP server: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -424,9 +431,7 @@ export class MCPClient {
       return tools;
     } catch (error) {
       this.logger.error('Failed to list tools:', error);
-      throw new MCPServerError(
-        `Failed to list tools: ${error instanceof Error ? error.message : String(error)}`
-      );
+      this.wrapError(error, 'List tools');
     }
   }
 
@@ -474,9 +479,7 @@ export class MCPClient {
       return result;
     } catch (error) {
       this.logger.error(`Failed to call tool ${options.name}:`, error);
-      throw new MCPServerError(
-        `Failed to call tool ${options.name}: ${error instanceof Error ? error.message : String(error)}`
-      );
+      this.wrapError(error, `Call tool ${options.name}`, options.timeout ?? this.options.timeout);
     }
   }
 
@@ -514,9 +517,7 @@ export class MCPClient {
       return resources;
     } catch (error) {
       this.logger.error('Failed to list resources:', error);
-      throw new MCPServerError(
-        `Failed to list resources: ${error instanceof Error ? error.message : String(error)}`
-      );
+      this.wrapError(error, 'List resources');
     }
   }
 
@@ -555,9 +556,7 @@ export class MCPClient {
       return result;
     } catch (error) {
       this.logger.error(`Failed to read resource ${uri}:`, error);
-      throw new MCPServerError(
-        `Failed to read resource ${uri}: ${error instanceof Error ? error.message : String(error)}`
-      );
+      this.wrapError(error, `Read resource ${uri}`);
     }
   }
 
@@ -595,9 +594,7 @@ export class MCPClient {
       return prompts;
     } catch (error) {
       this.logger.error('Failed to list prompts:', error);
-      throw new MCPServerError(
-        `Failed to list prompts: ${error instanceof Error ? error.message : String(error)}`
-      );
+      this.wrapError(error, 'List prompts');
     }
   }
 
@@ -640,9 +637,7 @@ export class MCPClient {
       return result;
     } catch (error) {
       this.logger.error(`Failed to get prompt ${name}:`, error);
-      throw new MCPServerError(
-        `Failed to get prompt ${name}: ${error instanceof Error ? error.message : String(error)}`
-      );
+      this.wrapError(error, `Get prompt ${name}`);
     }
   }
 
@@ -685,9 +680,7 @@ export class MCPClient {
       return result;
     } catch (error) {
       this.logger.error('Failed to request sampling:', error);
-      throw new MCPServerError(
-        `Failed to request sampling: ${error instanceof Error ? error.message : String(error)}`
-      );
+      this.wrapError(error, 'Request sampling');
     }
   }
 
@@ -770,6 +763,20 @@ export class MCPClient {
     this.logger =
       level === 'none' ? new NoOpLogger() : new ConsoleLogger({ level, prefix: 'MCPClient' });
     this.logger.debug(`Log level changed to ${level}`);
+  }
+
+  private wrapError(error: unknown, operation: string, timeout?: number): never {
+    if (error instanceof MCPClientError) {
+      throw error;
+    }
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.toLowerCase().includes('timeout') || message.toLowerCase().includes('timed out')) {
+      throw new MCPTimeoutError(
+        `${operation} timed out: ${message}`,
+        timeout ?? this.options.timeout ?? 30000
+      );
+    }
+    throw new MCPServerError(`${operation} failed: ${message}`);
   }
 
   private async withRetry<T>(operation: () => Promise<T>, retries?: number): Promise<T> {

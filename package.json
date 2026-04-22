@@ -35,7 +35,7 @@
     "release:major": "npm version major && npm run build",
     "release:prerelease": "npm version prerelease && npm run build",
     "release:commit": "git add package.json CHANGELOG.md && git commit -m \"chore: release $(node -p \"require('./package.json').version\")\"",
-    "prepare": "husky"
+    "prepare": "husky || true"
   },
   "bin": {
     "mcp-tester": "./dist/cli/index.js"

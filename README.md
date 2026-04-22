@@ -1508,7 +1508,7 @@ npx tsx --watch --clear-screen=false
 
 ## 📈 Test Coverage
 
-Current test suite: **43 tests**
+Current test suite: **115 tests**
 
 ```
 Test Categories:
@@ -1519,13 +1519,15 @@ Test Categories:
 - Advanced Features      3 tests
 - Helpers Examples       4 tests
 - Real Server (stdio)   13 tests
+- Everything Server      37 tests
+- CLI Tool              35 tests
 ```
 
 Coverage targets:
-- **Branches:** 70%
-- **Functions:** 70%
-- **Lines:** 70%
-- **Statements:** 70%
+- **Branches:** 80%
+- **Functions:** 80%
+- **Lines:** 80%
+- **Statements:** 80%
 
 ## 🔐 Security
 

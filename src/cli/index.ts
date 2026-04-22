@@ -5,7 +5,10 @@ import { MCPConnectionError, MCPTimeoutError, MCPServerError } from '../utils/er
 
 const program = new Command();
 
-program.name('mcp-tester').description('CLI tool for testing MCP servers').version('1.0.0');
+program
+  .name('mcp-tester')
+  .description('CLI tool for testing MCP servers')
+  .version('1.0.0', '-V, --version');
 
 // Global options - use string type since commander passes strings
 program
@@ -322,40 +325,25 @@ program
     }
   );
 
-// Handle --help manually for better formatting
-const args = process.argv.slice(2);
-if (args.includes('--help') || args.includes('-h') || args.length === 0) {
-  console.log(`
-mcp-tester - CLI tool for testing MCP servers
-
-Usage:
-  mcp-tester test <command> [args...]          Test server connection
-  mcp-tester list-tools <command> [args...]     List available tools (alias: lt)
-  mcp-tester call-tool <name> <command> [args...]  Call a tool (alias: ct)
-  mcp-tester read-resource <uri> <command> [args...]  Read a resource (alias: rr)
-  mcp-tester get-prompt <name> <command> [args...]  Get a prompt (alias: gp)
-
-Global Options:
-  -t, --timeout <ms>   Request timeout in milliseconds (default: 30000)
-  -v, --verbose        Enable verbose output
-  -l, --log-level      Log level: debug|info|warn|error (default: info)
-
+// Add custom help with examples using Commander's built-in help system
+program.addHelpText(
+  'after',
+  `
 Examples:
   mcp-tester test node ./server.js
   mcp-tester list-tools node ./server.js --json
   mcp-tester call-tool echo node ./server.js --params '{"message":"Hello"}'
   mcp-tester read-resource text://example node ./server.js
   mcp-tester get-prompt greet node ./server.js --args '{"name":"World"}'
-  mcp-tester lt node ./server.js  # short alias
-  mcp-tester ct echo node ./server.js --params '{}'  # short alias
+  mcp-tester lt node ./server.js                          # short alias for list-tools
+  mcp-tester ct echo node ./server.js --params '{}'       # short alias for call-tool
+`
+);
 
-Type 'mcp-tester <command> --help' for more options on a specific command.
-`);
-  process.exit(0);
-}
-
-if (args.includes('--version') || args.includes('-V')) {
-  console.log('mcp-tester v1.0.0');
+// Show help when invoked with no arguments
+const args = process.argv.slice(2);
+if (args.length === 0) {
+  program.outputHelp();
   process.exit(0);
 }
 
