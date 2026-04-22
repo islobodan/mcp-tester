@@ -40,24 +40,28 @@ export class ConsoleLogger implements Logger {
 
   debug(...args: unknown[]): void {
     if (this.shouldLog('debug')) {
-      console.debug(...this.format('debug', args));
+      // eslint-disable-next-line no-console
+      console.error(...this.format('debug', args));
     }
   }
 
   info(...args: unknown[]): void {
     if (this.shouldLog('info')) {
-      console.info(...this.format('info', args));
+      // eslint-disable-next-line no-console
+      console.error(...this.format('info', args));
     }
   }
 
   warn(...args: unknown[]): void {
     if (this.shouldLog('warn')) {
-      console.warn(...this.format('warn', args));
+      // eslint-disable-next-line no-console
+      console.error(...this.format('warn', args));
     }
   }
 
   error(...args: unknown[]): void {
     if (this.shouldLog('error')) {
+      // eslint-disable-next-line no-console
       console.error(...this.format('error', args));
     }
   }

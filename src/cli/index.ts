@@ -179,9 +179,11 @@ program
       try {
         await client.start({ command, args: serverArgs });
 
-        console.log(`🔧 Calling tool: ${toolName}`);
-        if (Object.keys(toolArgs).length > 0) {
-          console.log(`   Parameters: ${JSON.stringify(toolArgs)}`);
+        if (!opts['json']) {
+          console.log(`🔧 Calling tool: ${toolName}`);
+          if (Object.keys(toolArgs).length > 0) {
+            console.log(`   Parameters: ${JSON.stringify(toolArgs)}`);
+          }
         }
 
         const result = await client.callTool({
@@ -231,7 +233,10 @@ program
       try {
         await client.start({ command, args: serverArgs });
 
-        console.log(`📖 Reading resource: ${uri}`);
+        if (!opts['json']) {
+          console.log(`📖 Reading resource: ${uri}`);
+        }
+
         const result = await client.readResource(uri);
 
         if (opts['json']) {
@@ -291,7 +296,10 @@ program
       try {
         await client.start({ command, args: serverArgs });
 
-        console.log(`💬 Getting prompt: ${promptName}`);
+        if (!opts['json']) {
+          console.log(`💬 Getting prompt: ${promptName}`);
+        }
+
         const result = await client.getPrompt(promptName, promptArgs);
 
         if (opts['json']) {
