@@ -58,6 +58,7 @@
   "homepage": "https://github.com/islobodan/mcp-tester#readme",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/server-everything": "^2026.1.26",
     "commander": "^14.0.3"
   },
   "devDependencies": {
