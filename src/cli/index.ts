@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 // CLI entry point - run with: node dist/cli/index.js
 import { Command } from 'commander';
 import { MCPClient } from '../client/MCPClient.js';
