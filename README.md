@@ -179,6 +179,45 @@ No extra config needed. Just `Promise.all` and go.
 
 See [API Reference](./docs/api-reference.md) for full details including types, options, and error classes.
 
+## Custom Jest Matchers
+
+Built-in matchers so your assertions read like English:
+
+```typescript
+import { toHaveTool, toHaveResource, toHavePrompt } from '@slbdn/mcp-tester';
+
+expect.extend({ toHaveTool, toHaveResource, toHavePrompt });
+
+it('should have the tools we expect', async () => {
+  const tools = await client.listTools();
+  // @ts-expect-error - custom matcher
+  expect(tools).toHaveTool('echo');
+  // @ts-expect-error - custom matcher
+  expect(tools).toHaveToolWithSchema('echo');
+});
+
+it('should have the right resources', async () => {
+  const resources = await client.listResources();
+  // @ts-expect-error - custom matcher
+  expect(resources).toHaveResource('config://settings');
+});
+
+it('should have the prompts we need', async () => {
+  const prompts = await client.listPrompts();
+  // @ts-expect-error - custom matcher
+  expect(prompts).toHavePrompt('greet');
+});
+```
+
+| Matcher | Description |
+|---------|-------------|
+| `toHaveTool(name)` | Assert a tool exists by name |
+| `toHaveToolWithSchema(name)` | Assert a tool exists and has an input schema |
+| `toHaveResource(uri)` | Assert a resource exists by URI |
+| `toHavePrompt(name)` | Assert a prompt exists by name |
+
+See [Testing Guide](./docs/testing.md) for full testing patterns.
+
 ## Documentation
 
 | Doc | Description |
