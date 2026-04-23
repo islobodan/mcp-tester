@@ -197,7 +197,7 @@ When you push a version tag (e.g., `v1.0.1`), the release workflow:
 
 After pushing the tag:
 
-1. Go to: `https://github.com/your-username/mcp-tester/actions`
+1. Go to: `https://github.com/islobodan/mcp-tester/actions`
 2. Click on the "Release" workflow run
 3. Monitor the progress through each step
 
@@ -208,14 +208,14 @@ Expected duration: ~5-8 minutes
 ### 1. Verify on npm
 ```bash
 # Check if package is available
-npm view mcp-tester
+npm view @slbdn/mcp-tester
 
 # Install and test
-npm install mcp-tester@latest
+npm install @slbdn/mcp-tester@latest
 ```
 
 ### 2. Verify GitHub Release
-- Go to: `https://github.com/your-username/mcp-tester/releases`
+- Go to: `https://github.com/islobodan/mcp-tester/releases`
 - Check release notes are correct
 - Verify release assets are attached
 
@@ -263,7 +263,7 @@ git push origin v1.0.1
 npm whoami
 
 # Check if version exists
-npm view mcp-tester@1.0.1
+npm view @slbdn/mcp-tester@1.0.1
 
 # If version exists, increment it
 npm version patch
@@ -306,7 +306,7 @@ If you need to rollback a release:
 
 ### 1. Yank NPM Version
 ```bash
-npm deprecate mcp-tester@1.0.1 "Release rollback due to bug"
+npm deprecate @slbdn/mcp-tester@1.0.1 "Release rollback due to bug"
 ```
 
 ### 2. Delete GitHub Release
@@ -390,7 +390,7 @@ git tag v$VERSION
 git push origin main --tags
 
 # 7. Monitor release at:
-# https://github.com/your-username/mcp-tester/actions
+# https://github.com/islobodan/mcp-tester/actions
 ```
 
 ## Additional Resources

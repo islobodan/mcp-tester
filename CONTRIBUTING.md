@@ -22,7 +22,7 @@ Thank you for your interest in contributing to MCP Tester! This document provide
 1. Fork the repository
 2. Clone your fork:
    ```bash
-   git clone https://github.com/your-username/mcp-tester.git
+   git clone https://github.com/islobodan/mcp-tester.git
    cd mcp-tester
    ```
 3. Install dependencies:
@@ -148,19 +148,23 @@ npm run test:coverage
 
 Example:
 ```typescript
+import { MCPClient, setupJestMatchers } from '@slbdn/mcp-tester';
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from '@jest/globals';
+
+beforeAll(() => setupJestMatchers());
+
 describe('MCPClient', () => {
   describe('listTools', () => {
     it('should return list of tools', async () => {
       // Arrange
       const client = new MCPClient();
-      await client.start({ command: 'node', args: ['server.js'] });
+      await client.start({ command: 'node', args: ['./server.js'] });
 
       // Act
       const tools = await client.listTools();
 
       // Assert
-      expect(Array.isArray(tools)).toBe(true);
-      expect(tools.length).toBeGreaterThan(0);
+      expect(tools).toHaveTool('echo');
     });
   });
 });
@@ -229,11 +233,15 @@ Include in your PR description:
 mcp-tester/
 ├── src/
 │   ├── client/          # Main client implementation
+│   ├── cli/             # CLI tool
+│   ├── assert.ts        # Assertion utilities
+│   ├── matchers.ts      # Jest/Vitest matchers
 │   ├── utils/           # Utility functions
 │   └── __tests__/       # Test files
 ├── examples/           # Usage examples
-├── dist/              # Compiled output
-└── .github/           # GitHub Actions workflows
+├── docs/               # Documentation
+├── dist/               # Compiled output
+└── .github/            # GitHub Actions workflows
 ```
 
 ## Issue Reporting

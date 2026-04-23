@@ -130,9 +130,9 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 **Description**: Reduce boilerplate in test files with custom Jest matchers and helper functions.
 
 **Tasks**:
-- [x] Create `src/__tests__/matchers.ts` with custom matchers
+- [x] Create `src/matchers.ts` with custom matchers (moved from `src/__tests__/`)
 - [x] Add `toBeConnectedClient` matcher
-- [x] Create `src/__tests__/helpers.ts` with test utilities
+- [x] ~~Create helpers.ts with test utilities~~ (removed — use `assert` module instead)
 - [x] Add `createTestSuite()` helper for common setup patterns
 - [x] Document usage in README
 
