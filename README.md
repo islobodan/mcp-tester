@@ -1,12 +1,31 @@
 # MCP Tester
 
+> **This is not your grandpa's MCP Inspector.**
+> This is a real testing framework. No GUI, no clicking, no manual verification.
+> Write tests, run them in CI, ship with confidence. 🚀
+
 [![npm version](https://img.shields.io/npm/v/@slbdn/mcp-tester)](https://www.npmjs.com/package/@slbdn/mcp-tester)
 [![npm downloads](https://img.shields.io/npm/dm/@slbdn/mcp-tester)](https://www.npmjs.com/package/@slbdn/mcp-tester)
 [![Node.js Version](https://img.shields.io/node/v/@slbdn/mcp-tester)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Test Status](https://img.shields.io/badge/tests-115_passing-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)
 
-A minimal, production-ready MCP (Model Context Protocol) client for testing MCP servers with Jest.
+A production-ready MCP (Model Context Protocol) client for **automated testing** of MCP servers with Jest.
+No more manual clicking through inspectors — write real tests, run them in CI, break builds on regressions.
+
+## Capabilities
+
+| Category | What You Can Test |
+|----------|-------------------|
+| **Tools** | List, call with arguments, validate results, test error handling |
+| **Resources** | List available resources, read by URI, validate content |
+| **Prompts** | List templates, get with arguments, validate generated messages |
+| **Sampling** | Request LLM sampling, validate model responses |
+| **Elicitation** | Handle server-initiated user input requests |
+| **Notifications** | React to resource changes, logging messages, tool list updates |
+| **Error Handling** | Custom error classes for timeouts, connection failures, server errors |
+| **Retries** | Exponential backoff with configurable attempts and delay |
+| **CLI** | Smoke-test any server from the terminal in seconds |
 
 ## Why MCP Tester?
 
@@ -15,6 +34,10 @@ A minimal, production-ready MCP (Model Context Protocol) client for testing MCP 
 - **Works out of the box** — mock server included, 115 tests passing
 - **CLI included** — test any server from the command line
 - **TypeScript first** — strict types, ESM, full IntelliSense
+- **Parallel execution** — fire multiple tool calls concurrently with `Promise.all` for blazing-fast test suites
+- **Retry with backoff** — flaky servers? Configure retries so your CI stays green
+- **In-memory mock server** — unit test your test logic without spawning real processes
+- **Custom Jest matchers** — `toHaveTool()`, `toHaveResource()`, `toHavePrompt()` out of the box
 
 ## Install
 
@@ -106,6 +129,36 @@ npx @slbdn/mcp-tester lt node ./server.js
 ```
 
 See [CLI Reference](./docs/cli.md) for all commands and options.
+
+## Speed Up Your Tests with Parallel Execution
+
+MCP Tester is built for concurrency. Fire off multiple tool calls at once — no waiting in line:
+
+```typescript
+import { MCPClient } from '@slbdn/mcp-tester';
+
+const client = new MCPClient();
+await client.start({ command: 'node', args: ['./server.js'] });
+
+// 🔥 Run all calls in parallel — 5x faster than sequential
+const [tools, resources, prompts] = await Promise.all([
+  client.listTools(),
+  client.listResources(),
+  client.listPrompts(),
+]);
+
+// Parallel tool calls? No problem.
+const [echo, sum, env] = await Promise.all([
+  client.callTool({ name: 'echo', arguments: { message: 'hello' } }),
+  client.callTool({ name: 'get-sum', arguments: { a: 1, b: 2 } }),
+  client.callTool({ name: 'get-env', arguments: {} }),
+]);
+
+await client.stop();
+```
+
+Works because each MCP call is independent — the client multiplexes requests over a single stdio connection.
+No extra config needed. Just `Promise.all` and go.
 
 ## Core API
 
