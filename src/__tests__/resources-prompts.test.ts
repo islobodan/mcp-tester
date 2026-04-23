@@ -1,6 +1,6 @@
 import { MCPClient } from '../client/MCPClient.js';
 import { MockMCPServer } from './fixtures/mock-server.js';
-import { toHaveTool, toHaveResource, toHavePrompt } from './matchers.js';
+import { toHaveTool, toHaveResource, toHavePrompt } from '../matchers.js';
 import { describe, it, expect, beforeEach } from '@jest/globals';
 
 expect.extend({ toHaveTool, toHaveResource, toHavePrompt });

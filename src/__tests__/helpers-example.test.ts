@@ -7,7 +7,7 @@
 import { MCPClient } from '../client/MCPClient.js';
 import { createTestClient } from './helpers.js';
 import { MockMCPServer } from './fixtures/mock-server.js';
-import { toHaveTool, toHaveResource, toHavePrompt } from './matchers.js';
+import { toHaveTool, toHaveResource, toHavePrompt } from '../matchers.js';
 
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 

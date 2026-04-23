@@ -285,6 +285,8 @@ mcp-tester/
 ├── src/
 │   ├── client/MCPClient.ts      # Main client class
 │   ├── cli/index.ts             # CLI tool
+│   ├── assert.ts               # Assertion utilities
+│   ├── matchers.ts             # Custom Jest matchers
 │   ├── utils/
 │   │   ├── errors.ts            # Error classes
 │   │   ├── logger.ts            # Logging
@@ -294,8 +296,7 @@ mcp-tester/
 │       ├── real-server.test.ts        # Integration tests (stdio transport)
 │       ├── cli.test.ts                # CLI tool tests
 │       ├── fixtures/mock-server.ts    # In-memory mock server
-│       ├── helpers.ts                 # Test utilities
-│       └── matchers.ts                # Custom Jest matchers
+│       └── helpers.ts                 # Test utilities
 ├── examples/
 │   ├── basic-test.ts            # Basic usage example
 │   ├── full-test.ts             # Full capabilities example

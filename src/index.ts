@@ -46,3 +46,11 @@ export {
 export type { Logger, LoggerOptions, LogLevel } from './utils/logger.js';
 export * as assert from './assert.js';
 export { AssertionError } from './assert.js';
+export {
+  toHaveTool,
+  toHaveResource,
+  toHavePrompt,
+  toHaveToolWithSchema,
+  toBeConnectedClient,
+  setupCustomMatchers,
+} from './matchers.js';
