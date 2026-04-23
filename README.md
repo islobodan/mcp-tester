@@ -8,7 +8,7 @@
 [![npm downloads](https://img.shields.io/npm/dm/@slbdn/mcp-tester)](https://www.npmjs.com/package/@slbdn/mcp-tester)
 [![Node.js Version](https://img.shields.io/node/v/@slbdn/mcp-tester)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Test Status](https://img.shields.io/badge/tests-111_passing-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)
+[![Test Status](https://img.shields.io/badge/tests-227_passing-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)
 
 A production-ready MCP (Model Context Protocol) client for **automated testing** of MCP servers with Jest.
 No more manual clicking through inspectors — write real tests, run them in CI, break builds on regressions.
@@ -31,7 +31,7 @@ No more manual clicking through inspectors — write real tests, run them in CI,
 
 - **Full protocol support** — tools, resources, prompts, sampling, elicitation, notifications
 - **Built on the official SDK** — `@modelcontextprotocol/sdk` v1.29.0
-- **Works out of the box** — mock server included, 111 tests passing
+- **Works out of the box** — mock server included, 227 tests passing
 - **CLI included** — test any server from the command line
 - **TypeScript first** — strict types, ESM, full IntelliSense
 - **Parallel execution** — fire multiple tool calls concurrently with `Promise.all` for blazing-fast test suites
@@ -317,7 +317,7 @@ mcp-tester/
 │   │   ├── errors.ts            # Error classes
 │   │   ├── logger.ts            # Logging
 │   │   └── env.ts               # Environment utilities
-│   └── __tests__/               # 111 tests
+│   └── __tests__/               # 227 tests
 │       ├── everything-server.test.ts  # Integration tests (server-everything)
 │       ├── real-server.test.ts        # Integration tests (stdio transport)
 │       ├── cli.test.ts                # CLI tool tests
@@ -337,7 +337,7 @@ mcp-tester/
 ```bash
 npm install          # Install dependencies
 npm run build        # Compile TypeScript
-npm test             # Run tests (111 tests)
+npm test             # Run tests (227 tests)
 npm run lint         # Lint code
 npm run format       # Format with Prettier
 ```

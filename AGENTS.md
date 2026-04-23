@@ -289,7 +289,7 @@ describe('Integration', () => {
 ```
 
 ### Current Test Suite
-- **Total Tests**: 111 tests (all passing)
+- **Total Tests**: 227 tests (all passing)
 - **Test Categories**:
   - Basic Operations: 3 tests
   - Tools (in-memory): 11 tests

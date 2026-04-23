@@ -164,10 +164,13 @@ export function matches(str: string, regex: RegExp, msg?: string): void {
 
 // ─── MCP Tool Assertions ────────────────────────────────────────────────────
 
-/** Assert tool result text equals expected string exactly. */
-export function toolTextEquals(result: CallToolResult, expected: string, msg?: string): void {
+/** Assert tool result text equals expected string exactly. If expected omitted, just checks for text content. */
+export function toolTextEquals(result: CallToolResult, expected?: string, msg?: string): void {
   const text = extractText(result);
-  if (text !== expected) {
+  if (text === undefined) {
+    fail(msg ?? 'Expected tool result to have text content');
+  }
+  if (expected !== undefined && text !== expected) {
     fail(msg ?? `Expected tool text "${expected}", got "${text}"`);
   }
 }
