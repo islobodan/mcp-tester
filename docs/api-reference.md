@@ -296,38 +296,143 @@ try {
 
 ## Assertion Module
 
-Framework-agnostic assertions that throw `AssertionError` on failure. Works with any test runner.
+Framework-agnostic assertions that throw `AssertionError` on failure. Works with any test runner — Jest, Vitest, Node.js `assert`, or custom harnesses.
 
 ```typescript
 import { assert, AssertionError } from '@slbdn/mcp-tester';
 
 const result = await client.callTool({ name: 'echo', arguments: { message: 'hello' } });
 assert.toolTextContains(result, 'hello');
-assert.toolNumEquals(result, 42);
 assert.equal(tools.length, 4);
 ```
 
-Full list in the [Testing Guide](./testing.md#assertion-module-framework-agnostic).
+### Value Assertions
+
+| Assertion | Description |
+|-----------|------------|
+| `equal(a, b)` | Strict equality (`===`) |
+| `notEqual(a, b)` | Strict inequality (`!==`) |
+| `deepEqual(a, b)` | JSON deep equality |
+| `ok(val)` | Value is truthy |
+| `notOk(val)` | Value is falsy |
+| `throws(fn)` | Async function throws (returns the error) |
+| `doesNotThrow(fn)` | Async function does not throw |
+
+### Numeric Assertions
+
+| Assertion | Description |
+|-----------|------------|
+| `equalNum(a, b)` | Number equality |
+| `greaterThan(a, b)` | `a > b` |
+| `atLeast(a, b)` | `a >= b` |
+| `lessThan(a, b)` | `a < b` |
+| `closeTo(a, b, eps?)` | `|a - b| <= eps` (default epsilon 0.001) |
+
+### String Assertions
+
+| Assertion | Description |
+|-----------|------------|
+| `contains(str, sub)` | String contains substring |
+| `notContains(str, sub)` | String does not contain substring |
+| `matches(str, regex)` | String matches regex |
+
+### Tool Result Assertions
+
+| Assertion | Description |
+|-----------|------------|
+| `toolTextEquals(r, str)` | Tool text equals string exactly |
+| `toolTextContains(r, str)` | Tool text contains substring |
+| `toolNumEquals(r, num)` | Parse tool text as number, exact compare |
+| `toolNumCloseTo(r, num, eps?)` | Parse tool text as number, approximate compare |
+| `toolJsonEquals(r, obj)` | Parse tool text as JSON, deep compare |
+| `toolIsError(r)` | Tool result `isError === true` or text contains "error" |
+| `toolIsOk(r)` | Tool result is successful (not error) |
+| `toolHasContent(r, n?)` | Tool result has at least `n` content items (default 1) |
+| `toolHasImage(r)` | Tool result contains an image content item |
+
+### Resource Result Assertions
+
+| Assertion | Description |
+|-----------|------------|
+| `resourceHasContent(r, n?)` | Resource result has at least `n` contents (default 1) |
+| `resourceTextContains(r, str)` | First resource text contains substring |
+
+### Prompt Result Assertions
+
+| Assertion | Description |
+|-----------|------------|
+| `promptHasMessages(r, n?)` | Prompt result has at least `n` messages (default 1) |
+| `promptTextContains(r, str)` | First prompt message text contains substring |
 
 ---
 
-## Custom Matchers
+## Custom Matchers (Jest & Vitest)
 
-Jest and Vitest matchers for MCP-specific assertions.
+Register all matchers with one call:
 
 ```typescript
-import { setupJestMatchers, setupVitestMatchers } from '@slbdn/mcp-tester';
-
 // Jest
-import { beforeAll } from '@jest/globals';
+import { setupJestMatchers } from '@slbdn/mcp-tester';
 beforeAll(() => setupJestMatchers());
 
 // Vitest
+import { setupVitestMatchers } from '@slbdn/mcp-tester';
 import { beforeAll } from 'vitest';
+/// <reference types="@slbdn/mcp-tester/vitest" />
 beforeAll(() => setupVitestMatchers());
-```
+`` `
 
-Full list in the [Testing Guide](./testing.md#all-matchers).
+`setupCustomMatchers()` is available as a backward-compatible alias for `setupJestMatchers()`.
+
+### Collection Matchers
+
+Apply to arrays returned by `listTools()`, `listResources()`, `listPrompts()`.
+
+| Matcher | Description |
+|---------|-------------|
+| `toHaveTool(name)` | Assert a tool exists by name |
+| `toHaveToolWithSchema(name)` | Assert a tool has an `inputSchema` |
+| `toHaveToolCount(n)` | Assert exact number of tools |
+| `toHaveResource(uri)` | Assert a resource exists by URI |
+| `toHaveResourceByName(name)` | Assert a resource exists by display name |
+| `toHaveResourceCount(n)` | Assert exact number of resources |
+| `toHavePrompt(name)` | Assert a prompt exists by name |
+| `toHavePromptWithArgs(name)` | Assert a prompt has defined arguments |
+| `toHavePromptCount(n)` | Assert exact number of prompts |
+
+### Tool Result Matchers
+
+Apply to `CallToolResult` returned by `callTool()`.
+
+| Matcher | Description |
+|---------|-------------|
+| `toReturnText(expected?)` | Tool text equals string (or just has text if omitted) |
+| `toReturnTextContaining(sub)` | Tool text contains substring |
+| `toReturnError()` | Tool result is an error |
+| `toReturnOk()` | Tool result is successful |
+| `toReturnJson(obj)` | Parse tool text as JSON, deep compare |
+| `toReturnContentCount(n)` | Tool has exactly `n` content items |
+| `toReturnImage()` | Tool result contains an image |
+
+### Resource Result Matchers
+
+Apply to `ReadResourceResult` returned by `readResource()`.
+
+| Matcher | Description |
+|---------|-------------|
+| `toReturnResourceText(expected?)` | Resource text equals string (or just has text) |
+| `toReturnResourceTextContaining(sub)` | Resource text contains substring |
+
+### Prompt Result Matchers
+
+Apply to `GetPromptResult` returned by `getPrompt()`.
+
+| Matcher | Description |
+|---------|-------------|
+| `toReturnPromptTextContaining(sub)` | First prompt message text contains substring |
+| `toReturnPromptMessageCount(n)` | Prompt has exactly `n` messages |
+
+All matchers support `.not` negation and work identically in Jest and Vitest.
 
 ---
 
