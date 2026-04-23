@@ -37,7 +37,7 @@ No more manual clicking through inspectors — write real tests, run them in CI,
 - **Parallel execution** — fire multiple tool calls concurrently with `Promise.all` for blazing-fast test suites
 - **Retry with backoff** — flaky servers? Configure retries so your CI stays green
 - **In-memory mock server** — unit test your test logic without spawning real processes
-- **Custom Jest matchers** — `toHaveTool()`, `toHaveResource()`, `toHavePrompt()` out of the box
+- **Custom Jest matchers** — `toHaveTool()`, `toHaveResource()`, `toHavePrompt()` — and Vitest support
 
 ## Install
 
@@ -187,10 +187,10 @@ Built-in matchers so your assertions read like English:
 import {
   toHaveTool, toHaveResource, toHavePrompt,
   toReturnText, toReturnError, toReturnJson,
-  setupCustomMatchers,
+  setupJestMatchers,
 } from '@slbdn/mcp-tester';
 
-beforeAll(() => setupCustomMatchers());
+beforeAll(() => setupJestMatchers());
 
 // Collection matchers
 expect(tools).toHaveTool('echo');
@@ -205,6 +205,19 @@ expect(result).toReturnError();
 expect(result).toReturnJson({ status: 'ok' });
 expect(result).toReturnContentCount(2);
 ```
+
+### Vitest Setup
+
+```typescript
+import { setupVitestMatchers } from '@slbdn/mcp-tester';
+import { beforeAll } from 'vitest';
+// Add vitest.d.ts to your tsconfig for type safety
+// /// <reference types="@slbdn/mcp-tester/vitest" />
+
+beforeAll(() => setupVitestMatchers());
+```
+
+Works identically — same matchers, same `{ pass, message }` format, just `setupVitestMatchers()` instead.
 
 | Matcher | Description |
 |---------|-------------|

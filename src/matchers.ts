@@ -499,13 +499,64 @@ export const toReturnPromptMessageCount = (received: GetPromptResult, count: num
  * Register all custom matchers with Jest.
  * Call once in test setup:
  *
- *   import { setupCustomMatchers } from '@slbdn/mcp-tester';
- *   beforeAll(() => setupCustomMatchers());
+ *   import { setupJestMatchers } from '@slbdn/mcp-tester';
+ *   beforeAll(() => setupJestMatchers());
  *
  * Or add to jest.setup.js for global availability.
+ *
+ * Also works as `setupCustomMatchers()` (alias kept for backward compat).
  */
-export const setupCustomMatchers = () => {
+export const setupJestMatchers = () => {
   expect.extend({
+    // Collection
+    toHaveTool,
+    toHaveResource,
+    toHavePrompt,
+    toHaveToolWithSchema,
+    toHaveToolCount,
+    toHaveResourceCount,
+    toHavePromptCount,
+    toHaveResourceByName,
+    toHavePromptWithArgs,
+    // Tool results
+    toReturnText,
+    toReturnTextContaining,
+    toReturnError,
+    toReturnOk,
+    toReturnJson,
+    toReturnContentCount,
+    toReturnImage,
+    // Resource results
+    toReturnResourceText,
+    toReturnResourceTextContaining,
+    // Prompt results
+    toReturnPromptTextContaining,
+    toReturnPromptMessageCount,
+  });
+};
+
+/** @deprecated Use setupJestMatchers() instead */
+export const setupCustomMatchers = setupJestMatchers;
+
+/**
+ * Register all custom matchers with Vitest.
+ * Call once in test setup:
+ *
+ *   import { setupVitestMatchers } from '@slbdn/mcp-tester';
+ *   import { beforeAll } from 'vitest';
+ *   beforeAll(() => setupVitestMatchers());
+ */
+export const setupVitestMatchers = () => {
+  // Vitest's expect.extend is compatible with Jest's format
+  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any
+  const vitestExpect = (globalThis as any).expect;
+  if (!vitestExpect || typeof vitestExpect.extend !== 'function') {
+    throw new Error(
+      'setupVitestMatchers() must be called in a Vitest environment. ' +
+        'Make sure vitest is imported before calling this.'
+    );
+  }
+  vitestExpect.extend({
     // Collection
     toHaveTool,
     toHaveResource,
@@ -535,7 +586,7 @@ export const setupCustomMatchers = () => {
 
 // Auto-setup for Jest environments (no-op outside Jest)
 if (typeof expect !== 'undefined' && typeof expect.extend === 'function') {
-  setupCustomMatchers();
+  setupJestMatchers();
 }
 
 // ─── Standalone Assertion Wrappers ──────────────────────────────────────────

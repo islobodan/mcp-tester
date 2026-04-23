@@ -67,6 +67,8 @@ export {
   toReturnResourceTextContaining,
   toReturnPromptTextContaining,
   toReturnPromptMessageCount,
+  setupJestMatchers,
+  setupVitestMatchers,
   setupCustomMatchers,
   assertToolText,
   assertToolTextContains,
