@@ -21,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Tool results: `toReturnText`, `toReturnTextContaining`, `toReturnError`, `toReturnOk`, `toReturnJson`, `toReturnContentCount`, `toReturnImage`
   - Resources: `toReturnResourceText`, `toReturnResourceTextContaining`
   - Prompts: `toReturnPromptTextContaining`, `toReturnPromptMessageCount`
+- **Vitest support** — all matchers work with Vitest via `setupVitestMatchers()`:
+  - `vitest.d.ts` type declarations included in package
+  - `setupJestMatchers()` (renamed from `setupCustomMatchers`, kept as alias)
+  - `setupVitestMatchers()` for Vitest environments
+  - Same `{ pass, message }` format, works identically in both frameworks
 - **Standalone assertion wrappers** in `matchers.ts` for non-Jest usage: `assertHasTool`, `assertHasResource`, `assertHasPrompt`, `assertToolText`, `assertToolTextContains`
 - **CLI tool** with shebang (`#!/usr/bin/env node`) for proper `npx` support
 - **Examples** added to `examples/`:

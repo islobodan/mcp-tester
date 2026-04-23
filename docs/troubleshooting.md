@@ -97,3 +97,23 @@ Coverage thresholds: **80%** for branches, functions, lines, and statements.
 - Only supports **stdio** transport (HTTP not yet implemented)
 - Designed for **Node.js** servers (other runtimes may need adjustments)
 - Mock server is minimal (real servers may behave differently)
+
+## Vitest
+
+Custom matchers work with Vitest. Use `setupVitestMatchers()` and add the type declarations:
+
+```typescript
+import { setupVitestMatchers } from '@slbdn/mcp-tester';
+import { beforeAll } from 'vitest';
+// /// <reference types="@slbdn/mcp-tester/vitest" />
+
+beforeAll(() => setupVitestMatchers());
+```
+
+If you get TypeScript errors with custom matchers, make sure your `tsconfig.json` includes the `vitest.d.ts` from the package:
+
+```json
+{
+  "include": ["node_modules/@slbdn/mcp-tester/vitest.d.ts"]
+}
+```

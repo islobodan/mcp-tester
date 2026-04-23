@@ -88,9 +88,13 @@ npm run release:commit
 ```
 src/
 ├── index.ts                 # Library entry point, exports from client/
+├── assert.ts                 # Assertion utilities (framework-agnostic)
+├── matchers.ts               # Custom Jest/Vitest matchers
 ├── client/
 │   ├── MCPClient.ts         # Main client wrapper class (~400 lines)
 │   └── index.ts            # Client module exports
+├── cli/
+│   └── index.ts             # CLI tool
 ├── utils/
 │   ├── logger.ts            # Logger utility (ConsoleLogger, NoOpLogger)
 │   ├── errors.ts            # Custom error classes (MCPClientError, etc.)
@@ -409,15 +413,33 @@ expect(tools).toHaveTool('echo');
 expect(tools).toHaveTool('echo');
 ```
 
-### 12. Custom Jest Matchers
-Custom matchers need explicit registration with `expect.extend()`:
-```typescript
-import { toHaveTool, toHaveResource } from './matchers.js';
+### 12. Custom Matchers (Jest & Vitest)
+Custom matchers are exported from `@slbdn/mcp-tester`. Register them once in test setup:
 
-beforeEach(() => {
-  expect.extend({ toHaveTool, toHaveResource });
-});
+**Jest:**
+```typescript
+import { setupJestMatchers } from '@slbdn/mcp-tester';
+beforeAll(() => setupJestMatchers());
 ```
+
+**Vitest:**
+```typescript
+import { setupVitestMatchers } from '@slbdn/mcp-tester';
+import { beforeAll } from 'vitest';
+/// <reference types="@slbdn/mcp-tester/vitest" />
+beforeAll(() => setupVitestMatchers());
+```
+
+**Any test runner (assert module):**
+```typescript
+import { assert } from '@slbdn/mcp-tester';
+assert.toolTextContains(result, 'hello');
+assert.equal(tools.length, 4);
+```
+
+20 matchers available (see README for full list). Also 30+ assert utility functions.
+
+`setupCustomMatchers()` is available as a backward-compatible alias for `setupJestMatchers()`.
 
 ## CI/CD Integration
 
@@ -525,8 +547,10 @@ chore: maintenance tasks
 | `src/utils/logger.ts` | Logging utility |
 | `src/utils/errors.ts` | Custom error classes |
 | `src/utils/env.ts` | Environment variable utilities |
+| `src/assert.ts` | Assertion utilities (framework-agnostic) |
+| `src/matchers.ts` | Custom Jest/Vitest matchers |
+| `vitest.d.ts` | Vitest type declarations for matchers |
 | `src/__tests__/fixtures/mock-server.ts` | In-memory mock server for unit tests |
-| `src/matchers.ts` | Custom Jest matchers |
 | `examples/mock-server.js` | Standalone MCP server for integration tests |
 | `examples/basic-test.ts` | Basic usage example |
 | `examples/full-test.ts` | Comprehensive example |

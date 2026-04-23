@@ -27,7 +27,7 @@ src/__tests__/
 
 ## Writing Tests
 
-### Basic Test Template
+### Jest
 
 ```typescript
 import { MCPClient } from '@slbdn/mcp-tester';
@@ -60,7 +60,52 @@ describe('My MCP Server', () => {
 });
 ```
 
-### Testing Patterns
+### Vitest
+
+```typescript
+import { MCPClient, setupVitestMatchers } from '@slbdn/mcp-tester';
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
+// /// <reference types="@slbdn/mcp-tester/vitest" />
+
+beforeAll(() => setupVitestMatchers());
+
+describe('My MCP Server', () => {
+  let client: MCPClient;
+
+  beforeEach(async () => {
+    client = new MCPClient({ name: 'test-client', version: '1.0.0' });
+    await client.start({ command: 'node', args: ['./my-server.js'] });
+  });
+
+  afterEach(async () => {
+    if (client.isConnected()) await client.stop();
+  });
+
+  it('should list tools', async () => {
+    const tools = await client.listTools();
+    expect(tools).toHaveTool('echo');
+  });
+});
+```
+
+### Custom Test Runner (assert module)
+
+For any test runner — no framework dependency:
+
+```typescript
+import { MCPClient, assert } from '@slbdn/mcp-tester';
+
+const client = new MCPClient();
+await client.start({ command: 'node', args: ['./server.js'] });
+
+const result = await client.callTool({ name: 'echo', arguments: { message: 'hello' } });
+assert.toolTextContains(result, 'hello');
+assert.equal(tools.length, 4);
+```
+
+See [Examples](./examples.md) for full assert usage.
+
+## Testing Patterns
 
 **Always use async/await:**
 
@@ -103,60 +148,88 @@ it('should throw timeout error', async () => {
 });
 ```
 
-### Using the Assert Module
-
-For custom test runners (not Jest), use the `assert` module:
-
-```typescript
-import { MCPClient, assert } from '@slbdn/mcp-tester';
-
-const client = new MCPClient();
-await client.start({ command: 'node', args: ['./server.js'] });
-
-const result = await client.callTool({ name: 'echo', arguments: { message: 'hello' } });
-assert.toolTextContains(result, 'hello');
-assert.toolNumEquals(yourResult, 42);
-assert.toolIsOk(result);
-
-// Value assertions
-assert.equal(tools.length, 4);
-assert.greaterThan(resources.length, 0);
-```
-
-See [Examples](./examples.md) for full assert usage examples.
-
 ## Custom Matchers
 
-```typescript
-import { toHaveTool, toHaveResource, toHavePrompt } from '@slbdn/mcp-tester';
+### Jest Setup
 
-expect.extend({ toHaveTool, toHaveResource, toHavePrompt });
+```typescript
+import { setupJestMatchers } from '@slbdn/mcp-tester';
+beforeAll(() => setupJestMatchers());
 ```
+
+### Vitest Setup
+
+```typescript
+import { setupVitestMatchers } from '@slbdn/mcp-tester';
+import { beforeAll } from 'vitest';
+// /// <reference types="@slbdn/mcp-tester/vitest" />
+beforeAll(() => setupVitestMatchers());
+```
+
+### All Matchers
 
 | Matcher | Description |
 |---------|-------------|
-| `toHaveTool(name)` | Checks if tool exists |
-| `toHaveResource(uri)` | Checks if resource exists |
-| `toHavePrompt(name)` | Checks if prompt exists |
-| `toHaveToolWithSchema(name)` | Checks if tool has input schema |
+| **Collection** | |
+| `toHaveTool(name)` | Assert a tool exists by name |
+| `toHaveToolWithSchema(name)` | Assert a tool exists and has an input schema |
+| `toHaveToolCount(n)` | Assert exact number of tools |
+| `toHaveResource(uri)` | Assert a resource exists by URI |
+| `toHaveResourceByName(name)` | Assert a resource exists by display name |
+| `toHaveResourceCount(n)` | Assert exact number of resources |
+| `toHavePrompt(name)` | Assert a prompt exists by name |
+| `toHavePromptWithArgs(name)` | Assert a prompt exists and has arguments |
+| `toHavePromptCount(n)` | Assert exact number of prompts |
+| **Tool Results** | |
+| `toReturnText(expected?)` | Tool text exact match (or just has text) |
+| `toReturnTextContaining(sub)` | Tool text contains substring |
+| `toReturnError()` | Tool result is an error |
+| `toReturnOk()` | Tool result is successful |
+| `toReturnJson(obj)` | Parse tool text as JSON, deep compare |
+| `toReturnContentCount(n)` | Tool has N content items |
+| `toReturnImage()` | Tool result contains an image |
+| **Resource Results** | |
+| `toReturnResourceText(expected?)` | Resource text exact match (or just has text) |
+| `toReturnResourceTextContaining(sub)` | Resource text contains substring |
+| **Prompt Results** | |
+| `toReturnPromptTextContaining(sub)` | Prompt message text contains substring |
+| `toReturnPromptMessageCount(n)` | Prompt has N messages |
 
-**Example:**
+All matchers support `.not` negation and work identically in Jest and Vitest.
 
-```typescript
-it('should have expected tools', async () => {
-  const tools = await client.listTools();
-  // @ts-expect-error - Custom matcher
-  expect(tools).toHaveTool('echo');
-  // @ts-expect-error - Custom matcher
-  expect(tools).toHaveToolWithSchema('echo');
-});
+## Assertion Module (Framework-Agnostic)
 
-it('should have expected resources', async () => {
-  const resources = await client.listResources();
-  // @ts-expect-error - Custom matcher
-  expect(resources).toHaveResource('text://example');
-});
-```
+For custom test runners or simple scripts — throws `AssertionError` on failure:
+
+| Assertion | Description |
+|-----------|-------------|
+| **Value** | |
+| `equal(a, b)` / `notEqual(a, b)` | Strict equality |
+| `deepEqual(a, b)` | JSON deep equality |
+| `ok(val)` / `notOk(val)` | Truthy / falsy |
+| `throws(fn)` / `doesNotThrow(fn)` | Async error checks |
+| **Numeric** | |
+| `equalNum(a, b)` | Number equality |
+| `greaterThan(a, b)` / `atLeast(a, b)` / `lessThan(a, b)` | Comparisons |
+| `closeTo(a, b, eps?)` | Approximate equality |
+| **String** | |
+| `contains(str, sub)` / `notContains(str, sub)` | Substring checks |
+| `matches(str, regex)` | Regex match |
+| **Tool Results** | |
+| `toolTextEquals(r, str)` | Tool text exact match |
+| `toolTextContains(r, str)` | Tool text contains substring |
+| `toolNumEquals(r, num)` | Parse tool text as number, compare |
+| `toolNumCloseTo(r, num, eps?)` | Numeric approximate match |
+| `toolJsonEquals(r, obj)` | Parse tool text as JSON, deep compare |
+| `toolIsError(r)` / `toolIsOk(r)` | Error/success check |
+| `toolHasContent(r, n?)` | Has N content items |
+| `toolHasImage(r)` | Contains image content |
+| **Resources** | |
+| `resourceHasContent(r, n?)` | Has N resource contents |
+| `resourceTextContains(r, str)` | Resource text contains |
+| **Prompts** | |
+| `promptHasMessages(r, n?)` | Has N messages |
+| `promptTextContains(r, str)` | Prompt text contains |
 
 ## Mock Server
 

@@ -294,6 +294,43 @@ try {
 
 ---
 
+## Assertion Module
+
+Framework-agnostic assertions that throw `AssertionError` on failure. Works with any test runner.
+
+```typescript
+import { assert, AssertionError } from '@slbdn/mcp-tester';
+
+const result = await client.callTool({ name: 'echo', arguments: { message: 'hello' } });
+assert.toolTextContains(result, 'hello');
+assert.toolNumEquals(result, 42);
+assert.equal(tools.length, 4);
+```
+
+Full list in the [Testing Guide](./testing.md#assertion-module-framework-agnostic).
+
+---
+
+## Custom Matchers
+
+Jest and Vitest matchers for MCP-specific assertions.
+
+```typescript
+import { setupJestMatchers, setupVitestMatchers } from '@slbdn/mcp-tester';
+
+// Jest
+import { beforeAll } from '@jest/globals';
+beforeAll(() => setupJestMatchers());
+
+// Vitest
+import { beforeAll } from 'vitest';
+beforeAll(() => setupVitestMatchers());
+```
+
+Full list in the [Testing Guide](./testing.md#all-matchers).
+
+---
+
 ## Types
 
 ### MCPServerConfig

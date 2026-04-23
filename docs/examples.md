@@ -5,7 +5,7 @@ Practical code examples for common MCP Tester use cases.
 ## Basic Tool Testing
 
 ```typescript
-import { MCPClient } from 'mcp-tester';
+import { MCPClient } from '@slbdn/mcp-tester';
 
 async function testTool() {
   const client = new MCPClient();
@@ -38,7 +38,7 @@ testTool();
 ## Resource Reading
 
 ```typescript
-import { MCPClient } from 'mcp-tester';
+import { MCPClient } from '@slbdn/mcp-tester';
 
 async function readConfiguration() {
   const client = new MCPClient();
@@ -65,7 +65,7 @@ readConfiguration();
 ## Using Prompts
 
 ```typescript
-import { MCPClient } from 'mcp-tester';
+import { MCPClient } from '@slbdn/mcp-tester';
 
 async function usePrompt() {
   const client = new MCPClient();
@@ -89,55 +89,120 @@ usePrompt();
 ## Complete Jest Test Suite
 
 ```typescript
-import { MCPClient } from 'mcp-tester';
+import { MCPClient, setupJestMatchers } from '@slbdn/mcp-tester';
+import { beforeAll, beforeEach, afterEach, describe, it, expect } from '@jest/globals';
+
+beforeAll(() => setupJestMatchers());
 
 describe('My MCP Server', () => {
   let client: MCPClient;
 
   beforeEach(async () => {
     client = new MCPClient();
-    await client.start({
-      command: 'node',
-      args: ['./server.js'],
-    });
+    await client.start({ command: 'node', args: ['./server.js'] });
   });
 
   afterEach(async () => {
-    if (client.isConnected()) {
-      await client.stop();
-    }
+    if (client.isConnected()) await client.stop();
   });
 
-  it('should list tools correctly', async () => {
+  it('should have expected tools', async () => {
     const tools = await client.listTools();
-    expect(tools).toHaveLength(5);
+    expect(tools).toHaveTool('echo');
+    expect(tools).toHaveToolCount(5);
   });
 
-  it('should execute tool with correct arguments', async () => {
+  it('should call tool and check result', async () => {
     const result = await client.callTool({
       name: 'calculate',
       arguments: { operation: 'add', values: [10, 20] },
     });
-    expect(result.content[0].text).toBe('30');
+    expect(result).toReturnText('30');
   });
 
-  it('should handle tool errors gracefully', async () => {
-    await expect(
-      client.callTool({ name: 'invalid-tool', arguments: {} })
-    ).rejects.toThrow();
-  });
-
-  it('should read resources correctly', async () => {
-    const resources = await client.listResources();
-    expect(resources.length).toBeGreaterThan(0);
-  });
-
-  it('should handle timeouts', async () => {
-    await expect(
-      client.callTool({ name: 'slow-tool', arguments: {}, timeout: 1 })
-    ).rejects.toThrow();
+  it('should handle errors', async () => {
+    const result = await client.callTool({
+      name: 'fail-tool',
+      arguments: {},
+    });
+    expect(result).toReturnError();
   });
 });
+```
+
+## Complete Vitest Test Suite
+
+```typescript
+import { MCPClient, setupVitestMatchers } from '@slbdn/mcp-tester';
+import { beforeAll, beforeEach, afterEach, describe, it, expect } from 'vitest';
+// /// <reference types="@slbdn/mcp-tester/vitest" />
+
+beforeAll(() => setupVitestMatchers());
+
+describe('My MCP Server', () => {
+  let client: MCPClient;
+
+  beforeEach(async () => {
+    client = new MCPClient();
+    await client.start({ command: 'node', args: ['./server.js'] });
+  });
+
+  afterEach(async () => {
+    if (client.isConnected()) await client.stop();
+  });
+
+  it('should have expected tools', async () => {
+    const tools = await client.listTools();
+    expect(tools).toHaveTool('echo');
+    expect(tools).toHaveToolCount(5);
+  });
+
+  it('should call tool and check result', async () => {
+    const result = await client.callTool({
+      name: 'calculate',
+      arguments: { operation: 'add', values: [10, 20] },
+    });
+    expect(result).toReturnText('30');
+  });
+});
+```
+
+## Using Assert Utilities (Any Test Runner)
+
+```typescript
+import { MCPClient, assert } from '@slbdn/mcp-tester';
+
+async function runTest(name: string, fn: () => Promise<void>) {
+  try {
+    await fn();
+    console.log(`✓ ${name}`);
+  } catch (error) {
+    console.error(`✗ ${name}: ${error instanceof Error ? error.message : error}`);
+  }
+}
+
+const client = new MCPClient();
+await client.start({ command: 'node', args: ['./server.js'] });
+
+await runTest('echo returns correct text', async () => {
+  const result = await client.callTool({ name: 'echo', arguments: { message: 'hello' } });
+  assert.toolTextEquals(result, 'Echo: hello');
+  assert.toolTextContains(result, 'hello');
+  assert.toolIsOk(result);
+});
+
+await runTest('add computes sum', async () => {
+  const result = await client.callTool({ name: 'add', arguments: { a: 3, b: 7 } });
+  assert.toolTextContains(result, '10');
+});
+
+await runTest('config is valid JSON', async () => {
+  const result = await client.readResource('config://settings');
+  assert.resourceHasContent(result);
+  assert.resourceTextContains(result, 'setting1');
+});
+
+await client.stop();
 ```
 
 ## Running the Examples
