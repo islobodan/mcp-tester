@@ -184,37 +184,50 @@ See [API Reference](./docs/api-reference.md) for full details including types, o
 Built-in matchers so your assertions read like English:
 
 ```typescript
-import { toHaveTool, toHaveResource, toHavePrompt } from '@slbdn/mcp-tester';
+import {
+  toHaveTool, toHaveResource, toHavePrompt,
+  toReturnText, toReturnError, toReturnJson,
+  setupCustomMatchers,
+} from '@slbdn/mcp-tester';
 
-expect.extend({ toHaveTool, toHaveResource, toHavePrompt });
+beforeAll(() => setupCustomMatchers());
 
-it('should have the tools we expect', async () => {
-  const tools = await client.listTools();
-  // @ts-expect-error - custom matcher
-  expect(tools).toHaveTool('echo');
-  // @ts-expect-error - custom matcher
-  expect(tools).toHaveToolWithSchema('echo');
-});
+// Collection matchers
+expect(tools).toHaveTool('echo');
+expect(resources).toHaveResource('config://settings');
+expect(prompts).toHavePrompt('greet');
+expect(tools).toHaveToolCount(5);
 
-it('should have the right resources', async () => {
-  const resources = await client.listResources();
-  // @ts-expect-error - custom matcher
-  expect(resources).toHaveResource('config://settings');
-});
-
-it('should have the prompts we need', async () => {
-  const prompts = await client.listPrompts();
-  // @ts-expect-error - custom matcher
-  expect(prompts).toHavePrompt('greet');
-});
+// Tool result matchers
+expect(result).toReturnText('Hello World');
+expect(result).toReturnTextContaining('hello');
+expect(result).toReturnError();
+expect(result).toReturnJson({ status: 'ok' });
+expect(result).toReturnContentCount(2);
 ```
 
 | Matcher | Description |
 |---------|-------------|
 | `toHaveTool(name)` | Assert a tool exists by name |
 | `toHaveToolWithSchema(name)` | Assert a tool exists and has an input schema |
+| `toHaveToolCount(n)` | Assert exact number of tools |
 | `toHaveResource(uri)` | Assert a resource exists by URI |
+| `toHaveResourceByName(name)` | Assert a resource exists by display name |
+| `toHaveResourceCount(n)` | Assert exact number of resources |
 | `toHavePrompt(name)` | Assert a prompt exists by name |
+| `toHavePromptWithArgs(name)` | Assert a prompt exists and has arguments |
+| `toHavePromptCount(n)` | Assert exact number of prompts |
+| `toReturnText(expected?)` | Tool text exact match (or just has text) |
+| `toReturnTextContaining(sub)` | Tool text contains substring |
+| `toReturnError()` | Tool result is an error |
+| `toReturnOk()` | Tool result is successful |
+| `toReturnJson(obj)` | Parse tool text as JSON, deep compare |
+| `toReturnContentCount(n)` | Tool has N content items |
+| `toReturnImage()` | Tool result contains an image |
+| `toReturnResourceText(expected?)` | Resource text exact match (or just has text) |
+| `toReturnResourceTextContaining(sub)` | Resource text contains substring |
+| `toReturnPromptTextContaining(sub)` | Prompt message text contains substring |
+| `toReturnPromptMessageCount(n)` | Prompt has N messages |
 
 See [Testing Guide](./docs/testing.md) for full testing patterns.
 

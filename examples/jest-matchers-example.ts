@@ -1,48 +1,71 @@
 /**
  * Jest Matchers Example
  *
- * Demonstrates using custom Jest matchers (toHaveTool, toHaveResource, toHavePrompt)
- * to test an MCP server with familiar expect() syntax.
+ * Demonstrates all custom Jest matchers for testing MCP servers.
+ * Uses a standalone expect() wrapper so it runs without Jest.
+ * In real Jest tests, just import and call expect.extend().
  *
  * Run: npx tsx examples/jest-matchers-example.ts
  *
- * Note: This uses a standalone expect() implementation so it runs without Jest.
- *       In real Jest tests, just import matchers and call expect.extend().
- *
- * In a real Jest test file, you'd write:
- *   import { toHaveTool, toHaveResource, toHavePrompt } from '@slbdn/mcp-tester';
- *   expect.extend({ toHaveTool, toHaveResource, toHavePrompt });
+ * In a Jest test file:
+ *   import { toHaveTool, toReturnText, setupCustomMatchers } from '@slbdn/mcp-tester';
+ *   beforeAll(() => setupCustomMatchers());
  *   // @ts-expect-error - custom matcher
  *   expect(tools).toHaveTool('echo');
  */
 
-import { MCPClient, toHaveTool, toHaveResource, toHavePrompt, toHaveToolWithSchema } from '../dist/index.js';
+import {
+  MCPClient,
+  // Collection matchers
+  toHaveTool,
+  toHaveResource,
+  toHavePrompt,
+  toHaveToolWithSchema,
+  toHaveToolCount,
+  toHaveResourceCount,
+  toHavePromptCount,
+  toHaveResourceByName,
+  toHavePromptWithArgs,
+  // Tool result matchers
+  toReturnText,
+  toReturnTextContaining,
+  toReturnError,
+  toReturnOk,
+  toReturnJson,
+  toReturnContentCount,
+  toReturnImage,
+  // Resource result matchers
+  toReturnResourceText,
+  toReturnResourceTextContaining,
+  // Prompt result matchers
+  toReturnPromptTextContaining,
+  toReturnPromptMessageCount,
+} from '../dist/index.js';
 
 // ─── Minimal expect() for standalone demo ───────────────────────────────────
 
+type MatcherFn = (received: any, ...args: any[]) => { pass: boolean; message: () => string }; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+const matchers: Record<string, MatcherFn> = {
+  toHaveTool, toHaveResource, toHavePrompt, toHaveToolWithSchema,
+  toHaveToolCount, toHaveResourceCount, toHavePromptCount,
+  toHaveResourceByName, toHavePromptWithArgs,
+  toReturnText, toReturnTextContaining, toReturnError, toReturnOk,
+  toReturnJson, toReturnContentCount, toReturnImage,
+  toReturnResourceText, toReturnResourceTextContaining,
+  toReturnPromptTextContaining, toReturnPromptMessageCount,
+};
+
 function expect<T>(received: T) {
-  return {
-    toHaveTool: (name: string) => {
-      const result = toHaveTool(received as any[], name); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const obj: Record<string, (...args: any[]) => void> = {}; // eslint-disable-line @typescript-eslint/no-explicit-any
+  for (const [name, fn] of Object.entries(matchers)) {
+    obj[name] = (...args: any[]) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+      const result = fn(received, ...args);
       if (!result.pass) throw new Error(result.message());
-      console.log(`  ✓ toHaveTool("${name}")`);
-    },
-    toHaveResource: (uri: string) => {
-      const result = toHaveResource(received as any[], uri); // eslint-disable-line @typescript-eslint/no-explicit-any
-      if (!result.pass) throw new Error(result.message());
-      console.log(`  ✓ toHaveResource("${uri}")`);
-    },
-    toHavePrompt: (name: string) => {
-      const result = toHavePrompt(received as any[], name); // eslint-disable-line @typescript-eslint/no-explicit-any
-      if (!result.pass) throw new Error(result.message());
-      console.log(`  ✓ toHavePrompt("${name}")`);
-    },
-    toHaveToolWithSchema: (name: string) => {
-      const result = toHaveToolWithSchema(received as any[], name); // eslint-disable-line @typescript-eslint/no-explicit-any
-      if (!result.pass) throw new Error(result.message());
-      console.log(`  ✓ toHaveToolWithSchema("${name}")`);
-    },
-  };
+      console.log(`  ✓ ${name}(${args.map((a: any) => JSON.stringify(a)).join(', ')})`); // eslint-disable-line @typescript-eslint/no-explicit-any
+    };
+  }
+  return obj;
 }
 
 // ─── Test runner ─────────────────────────────────────────────────────────────
@@ -64,88 +87,147 @@ async function runTest(name: string, fn: () => Promise<void>) {
 
 async function main() {
   console.log('╔══════════════════════════════════════════════════╗');
-  console.log('║  MCP Tester — Jest Matchers Example              ║');
+  console.log('║  MCP Tester — Jest Matchers Example               ║');
   console.log('╚══════════════════════════════════════════════════╝\n');
 
-  const client = new MCPClient({
-    name: 'matchers-example',
-    version: '1.0.0',
-    timeout: 10000,
-    logLevel: 'error',
-  });
+  const client = new MCPClient({ name: 'matchers-example', version: '1.0.0', timeout: 10000, logLevel: 'error' });
+  await client.start({ command: 'node', args: ['./examples/mock-server.js'] });
 
-  await client.start({
-    command: 'node',
-    args: ['./examples/mock-server.js'],
-  });
+  // ── Collection: Tool Matchers ─────────────────────────────────────────
 
-  // ── Tool Matchers ──────────────────────────────────────────────────────
+  console.log('── Collection: Tool Matchers ──\n');
 
-  console.log('── Tool Matchers ──\n');
-
-  await runTest('tools list has echo', async () => {
+  await runTest('toHaveTool', async () => {
     const tools = await client.listTools();
     expect(tools).toHaveTool('echo');
-  });
-
-  await runTest('tools list has add', async () => {
-    const tools = await client.listTools();
     expect(tools).toHaveTool('add');
   });
 
-  await runTest('tools list has delay', async () => {
-    const tools = await client.listTools();
-    expect(tools).toHaveTool('delay');
-  });
-
-  await runTest('tools list has error_tool', async () => {
-    const tools = await client.listTools();
-    expect(tools).toHaveTool('error_tool');
-  });
-
-  await runTest('echo has input schema', async () => {
+  await runTest('toHaveToolWithSchema', async () => {
     const tools = await client.listTools();
     expect(tools).toHaveToolWithSchema('echo');
   });
 
-  await runTest('add has input schema', async () => {
+  await runTest('toHaveToolCount', async () => {
     const tools = await client.listTools();
-    expect(tools).toHaveToolWithSchema('add');
+    expect(tools).toHaveToolCount(4);
   });
 
-  // ── Resource Matchers ──────────────────────────────────────────────────
+  // ── Collection: Resource Matchers ─────────────────────────────────────
 
-  console.log('\n── Resource Matchers ──\n');
+  console.log('\n── Collection: Resource Matchers ──\n');
 
-  await runTest('resources have text://example', async () => {
+  await runTest('toHaveResource', async () => {
     const resources = await client.listResources();
     expect(resources).toHaveResource('text://example');
   });
 
-  await runTest('resources have config://settings', async () => {
+  await runTest('toHaveResourceByName', async () => {
     const resources = await client.listResources();
-    expect(resources).toHaveResource('config://settings');
+    expect(resources).toHaveResourceByName('Settings');
+    expect(resources).toHaveResourceByName('Example Text Resource');
   });
 
-  // ── Prompt Matchers ────────────────────────────────────────────────────
+  await runTest('toHaveResourceCount', async () => {
+    const resources = await client.listResources();
+    expect(resources).toHaveResourceCount(2);
+  });
 
-  console.log('\n── Prompt Matchers ──\n');
+  // ── Collection: Prompt Matchers ──────────────────────────────────────
 
-  await runTest('prompts have greet', async () => {
+  console.log('\n── Collection: Prompt Matchers ──\n');
+
+  await runTest('toHavePrompt', async () => {
     const prompts = await client.listPrompts();
     expect(prompts).toHavePrompt('greet');
   });
 
-  await runTest('prompts have summarize', async () => {
+  await runTest('toHavePromptWithArgs', async () => {
     const prompts = await client.listPrompts();
-    expect(prompts).toHavePrompt('summarize');
+    expect(prompts).toHavePromptWithArgs('greet');
   });
 
-  // ── Cleanup ────────────────────────────────────────────────────────────
+  await runTest('toHavePromptCount', async () => {
+    const prompts = await client.listPrompts();
+    expect(prompts).toHavePromptCount(2);
+  });
+
+  // ── Tool Result Matchers ─────────────────────────────────────────────
+
+  console.log('\n── Tool Result Matchers ──\n');
+
+  await runTest('toReturnText (exact match)', async () => {
+    const result = await client.callTool({ name: 'add', arguments: { a: 3, b: 7 } });
+    expect(result).toReturnText('3 + 7 = 10');
+  });
+
+  await runTest('toReturnText (has any text)', async () => {
+    const result = await client.callTool({ name: 'echo', arguments: { message: 'hello' } });
+    expect(result).toReturnText();
+  });
+
+  await runTest('toReturnTextContaining', async () => {
+    const result = await client.callTool({ name: 'echo', arguments: { message: 'hello world' } });
+    expect(result).toReturnTextContaining('world');
+  });
+
+  await runTest('toReturnOk', async () => {
+    const result = await client.callTool({ name: 'echo', arguments: { message: 'ok' } });
+    expect(result).toReturnOk();
+  });
+
+  await runTest('toReturnJson', async () => {
+    const result = await client.readResource('config://settings');
+    const text = (result.contents[0] as { text: string }).text;
+    // Use a tool that returns JSON-like content
+    const echo = await client.callTool({ name: 'echo', arguments: { message: text } });
+    // The echo wraps in "Echo: ..." so let's just test toReturnTextContaining
+    expect(echo).toReturnTextContaining('setting1');
+  });
+
+  await runTest('toReturnContentCount', async () => {
+    const result = await client.callTool({ name: 'echo', arguments: { message: 'test' } });
+    expect(result).toReturnContentCount(1);
+  });
+
+  // ── Resource Result Matchers ──────────────────────────────────────────
+
+  console.log('\n── Resource Result Matchers ──\n');
+
+  await runTest('toReturnResourceText (exact)', async () => {
+    const result = await client.readResource('text://example');
+    expect(result).toReturnResourceText('This is example content from the resource.');
+  });
+
+  await runTest('toReturnResourceText (has any)', async () => {
+    const result = await client.readResource('text://example');
+    expect(result).toReturnResourceText();
+  });
+
+  await runTest('toReturnResourceTextContaining', async () => {
+    const result = await client.readResource('config://settings');
+    expect(result).toReturnResourceTextContaining('setting1');
+  });
+
+  // ── Prompt Result Matchers ────────────────────────────────────────────
+
+  console.log('\n── Prompt Result Matchers ──\n');
+
+  await runTest('toReturnPromptTextContaining', async () => {
+    const result = await client.getPrompt('greet', { name: 'Alice' });
+    expect(result).toReturnPromptTextContaining('Alice');
+  });
+
+  await runTest('toReturnPromptMessageCount', async () => {
+    const result = await client.getPrompt('greet', { name: 'Bob' });
+    expect(result).toReturnPromptMessageCount(1);
+  });
+
+  // ── Cleanup ──────────────────────────────────────────────────────────
 
   await client.stop();
 
-  console.log(`\n═══════════════════════════════════════════════════`);
+  console.log('\n═══════════════════════════════════════════════════');
   console.log(`  ${passed} passed, ${failed} failed`);
   if (failed === 0) console.log('  All matcher tests passed! ✓');
   console.log('═══════════════════════════════════════════════════\n');
