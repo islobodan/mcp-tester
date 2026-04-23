@@ -556,7 +556,7 @@ chore: maintenance tasks
 | `examples/full-test.ts` | Comprehensive example |
 | `CHANGELOG.md` | Version history |
 | `CONTRIBUTING.md` | Contribution guidelines |
-| `RELEASE.md` | Release process documentation |
+| `docs/releases.md` | Release process documentation |
 
 ## Common Tasks
 
@@ -664,7 +664,7 @@ chore: maintenance tasks
 - Check `README.md` for detailed usage examples
 - Review `examples/` directory for working code
 - Consult `CHANGELOG.md` for recent changes
-- See `RELEASE.md` for release procedures
+- See `docs/releases.md` for release procedures
 - Refer to official [MCP Specification](https://spec.modelcontextprotocol.io)
 
 ## Project Statistics

@@ -50,3 +50,6 @@ pids
 tmp/
 temp/
 docs/api
+
+# Crush (local AI tool)
+.crush/

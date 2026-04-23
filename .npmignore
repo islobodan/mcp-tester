@@ -77,5 +77,7 @@ RELEASE.md
 # Config files (not needed by consumers)
 tsconfig.json
 jest.config.js
+typedoc.json
 .eslintrc.json
 .prettierrc.json
+.husky/
