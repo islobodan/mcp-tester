@@ -102,15 +102,15 @@ src/
     ├── real-server.test.ts          # Integration tests (stdio transport)
     ├── everything-server.test.ts    # Full integration tests (server-everything)
     ├── cli.test.ts                  # CLI tool tests
-    ├── helpers-example.test.ts      # Test helpers usage examples
-    ├── helpers.ts                   # Test utility functions
-    ├── matchers.ts                  # Custom Jest matchers
     └── fixtures/
         └── mock-server.ts           # In-memory mock MCP server
 
 examples/
 ├── basic-test.ts            # Basic usage example
 ├── full-test.ts             # Full capabilities example
+├── jest-matchers-example.ts # Jest matchers usage
+├── assert-example.ts        # Assert utilities usage
+├── everything-server-test.ts # Test against real MCP server
 └── mock-server.js           # Standalone MCP server for testing
 ```
 
@@ -285,14 +285,13 @@ describe('Integration', () => {
 ```
 
 ### Current Test Suite
-- **Total Tests**: 115 tests (all passing)
+- **Total Tests**: 111 tests (all passing)
 - **Test Categories**:
   - Basic Operations: 3 tests
   - Tools (in-memory): 11 tests
   - Resources (in-memory): 5 tests
   - Prompts (in-memory): 4 tests
   - Advanced Features: 3 tests
-  - Helpers Examples: 4 tests
   - Real Server (stdio): 13 tests
   - Everything Server: 37 tests
   - CLI Tool: 35 tests
@@ -527,8 +526,7 @@ chore: maintenance tasks
 | `src/utils/errors.ts` | Custom error classes |
 | `src/utils/env.ts` | Environment variable utilities |
 | `src/__tests__/fixtures/mock-server.ts` | In-memory mock server for unit tests |
-| `src/__tests__/helpers.ts` | Test utility functions |
-| `src/__tests__/matchers.ts` | Custom Jest matchers |
+| `src/matchers.ts` | Custom Jest matchers |
 | `examples/mock-server.js` | Standalone MCP server for integration tests |
 | `examples/basic-test.ts` | Basic usage example |
 | `examples/full-test.ts` | Comprehensive example |
@@ -649,7 +647,7 @@ chore: maintenance tasks
 
 - **Total Lines of Code**: ~1,500 lines (excluding tests)
 - **Test Coverage**: >80% (all categories)
-- **Tests**: 115 (all passing)
+- **Tests**: 111 (all passing)
 - **Build Time**: ~3 seconds
 - **Test Execution Time**: ~97 seconds
 - **Node.js Versions Tested**: 18, 20, 21

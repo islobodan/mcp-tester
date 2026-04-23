@@ -21,9 +21,6 @@ src/__tests__/
 ├── real-server.test.ts          # Integration tests (stdio transport)
 ├── everything-server.test.ts    # Full integration (server-everything)
 ├── cli.test.ts                  # CLI tool tests
-├── helpers-example.test.ts      # Test helpers usage examples
-├── helpers.ts                   # Test utility functions
-├── matchers.ts                  # Custom Jest matchers
 └── fixtures/
     └── mock-server.ts           # In-memory mock MCP server
 ```
@@ -33,7 +30,7 @@ src/__tests__/
 ### Basic Test Template
 
 ```typescript
-import { MCPClient } from '../client/MCPClient.js';
+import { MCPClient } from '@slbdn/mcp-tester';
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 
 describe('My MCP Server', () => {
@@ -106,45 +103,32 @@ it('should throw timeout error', async () => {
 });
 ```
 
-## Test Helpers
+### Using the Assert Module
 
-Import helpers to reduce boilerplate:
-
-```typescript
-import { createTestClient, createTestSuite, createMockServerConfig } from './helpers.js';
-```
-
-| Helper | Description |
-|--------|-------------|
-| `createTestClient(options?)` | Creates client with sensible test defaults |
-| `createTestSuite(serverConfig, options?)` | Creates suite with auto setup/teardown |
-| `setupTestServer(config, options?)` | Manual server setup, returns client |
-| `teardownTestServer(client)` | Manual server cleanup |
-| `createMockServerConfig(args?)` | Creates config pointing to mock server |
-| `waitForClientState(client, state, timeout?)` | Waits for connection state change |
-| `runWithTimeout(fn, timeout?)` | Runs function with timeout |
-| `retryUntil(fn, attempts?, delay?)` | Retries until success |
-| `callTool(client, name, args?)` | Quick tool call helper |
-| `validateToolResult(result)` | Validates tool result shape |
-
-### Using createTestSuite
+For custom test runners (not Jest), use the `assert` module:
 
 ```typescript
-const testSuite = createTestSuite(createMockServerConfig());
+import { MCPClient, assert } from '@slbdn/mcp-tester';
 
-beforeEach(async () => await testSuite.setup());
-afterEach(async () => await testSuite.teardown());
+const client = new MCPClient();
+await client.start({ command: 'node', args: ['./server.js'] });
 
-it('should list tools', async () => {
-  const tools = await testSuite.client.listTools();
-  expect(tools.length).toBeGreaterThan(0);
-});
+const result = await client.callTool({ name: 'echo', arguments: { message: 'hello' } });
+assert.toolTextContains(result, 'hello');
+assert.toolNumEquals(yourResult, 42);
+assert.toolIsOk(result);
+
+// Value assertions
+assert.equal(tools.length, 4);
+assert.greaterThan(resources.length, 0);
 ```
+
+See [Examples](./examples.md) for full assert usage examples.
 
 ## Custom Matchers
 
 ```typescript
-import { toHaveTool, toHaveResource, toHavePrompt } from './matchers.js';
+import { toHaveTool, toHaveResource, toHavePrompt } from '@slbdn/mcp-tester';
 
 expect.extend({ toHaveTool, toHaveResource, toHavePrompt });
 ```
