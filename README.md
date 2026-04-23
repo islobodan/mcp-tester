@@ -218,6 +218,51 @@ it('should have the prompts we need', async () => {
 
 See [Testing Guide](./docs/testing.md) for full testing patterns.
 
+## Assertion Utilities
+
+Not using Jest? Running tests with a custom `runTest()` harness? The built-in `assert` module throws descriptive errors on failure — works with any runner:
+
+```typescript
+import { MCPClient, assert } from '@slbdn/mcp-tester';
+
+const client = new MCPClient();
+await client.start({ command: 'node', args: ['./server.js'] });
+
+await runTest("Get constant: c (speed of light)", async () => {
+  const result = await client.callTool({
+    name: "get_constant",
+    arguments: { name: "c" },
+  });
+  assert.toolNumEquals(result, 299792458);
+});
+
+await runTest("Echo returns input", async () => {
+  const result = await client.callTool({
+    name: "echo",
+    arguments: { message: "hello" },
+  });
+  assert.toolTextContains(result, "hello");
+});
+```
+
+| Assertion | Description |
+|-----------|-------------|
+| `equal(a, b)` / `notEqual(a, b)` | Strict equality checks |
+| `deepEqual(a, b)` | JSON deep equality |
+| `ok(val)` / `notOk(val)` | Truthy / falsy |
+| `throws(fn)` / `doesNotThrow(fn)` | Async error checks |
+| `greaterThan(a, b)` / `lessThan(a, b)` / `closeTo(a, b, eps?)` | Numeric comparisons |
+| `contains(str, sub)` / `matches(str, regex)` | String checks |
+| `toolTextEquals(r, str)` | Tool text exact match |
+| `toolTextContains(r, str)` | Tool text contains |
+| `toolNumEquals(r, num)` | Parse tool text as number, compare |
+| `toolNumCloseTo(r, num, eps?)` | Numeric approximate match |
+| `toolJsonEquals(r, obj)` | Parse tool text as JSON, deep compare |
+| `toolIsError(r)` / `toolIsOk(r)` | Error/success check |
+| `toolHasImage(r)` | Check for image content |
+| `resourceTextContains(r, str)` | Resource text contains |
+| `promptTextContains(r, str)` | Prompt text contains |
+
 ## Documentation
 
 | Doc | Description |

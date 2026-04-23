@@ -44,3 +44,5 @@ export {
   MCPServerError,
 } from './utils/errors.js';
 export type { Logger, LoggerOptions, LogLevel } from './utils/logger.js';
+export * as assert from './assert.js';
+export { AssertionError } from './assert.js';
