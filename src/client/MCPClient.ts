@@ -264,7 +264,7 @@ export class MCPClient {
    * The server process lifecycle is managed by StdioClientTransport.
    *
    * @param config - Server configuration including command and arguments
-   * @throws {@link MCPAlreadyStartedError} if client is already started
+   * @throws `MCPAlreadyStartedError` if client is already started
    * @throws Error if server fails to start
    * @example
    * ```typescript
@@ -401,7 +401,7 @@ export class MCPClient {
    * Lists all available tools from the MCP server.
    *
    * @returns Promise resolving to an array of Tool objects
-   * @throws {@link MCPNotStartedError} if client is not started
+   * @throws `MCPNotStartedError` if client is not started
    * @example
    * ```typescript
    * const tools = await client.listTools();
@@ -440,8 +440,8 @@ export class MCPClient {
    *
    * @param options - Tool call options including name and arguments
    * @returns Promise resolving to the tool result
-   * @throws {@link MCPNotStartedError} if client is not started
-   * @throws {@link MCPServerError} if the tool call fails
+   * @throws `MCPNotStartedError` if client is not started
+   * @throws `MCPServerError` if the tool call fails
    * @example
    * ```typescript
    * const result = await client.callTool({
@@ -487,7 +487,7 @@ export class MCPClient {
    * Lists all available resources from the MCP server.
    *
    * @returns Promise resolving to an array of Resource objects
-   * @throws {@link MCPNotStartedError} if client is not started
+   * @throws `MCPNotStartedError` if client is not started
    * @example
    * ```typescript
    * const resources = await client.listResources();
@@ -526,7 +526,7 @@ export class MCPClient {
    *
    * @param uri - The URI of the resource to read
    * @returns Promise resolving to the resource contents
-   * @throws {@link MCPNotStartedError} if client is not started
+   * @throws `MCPNotStartedError` if client is not started
    * @throws Error if the resource is not found or cannot be read
    * @example
    * ```typescript
@@ -564,7 +564,7 @@ export class MCPClient {
    * Lists all available prompts from the MCP server.
    *
    * @returns Promise resolving to an array of Prompt objects
-   * @throws {@link MCPNotStartedError} if client is not started
+   * @throws `MCPNotStartedError` if client is not started
    * @example
    * ```typescript
    * const prompts = await client.listPrompts();
@@ -604,7 +604,7 @@ export class MCPClient {
    * @param name - Name of the prompt to retrieve
    * @param args - Optional arguments for the prompt template
    * @returns Promise resolving to the prompt messages
-   * @throws {@link MCPNotStartedError} if client is not started
+   * @throws `MCPNotStartedError` if client is not started
    * @throws Error if the prompt is not found
    * @example
    * ```typescript
@@ -646,7 +646,7 @@ export class MCPClient {
    *
    * @param request - Sampling request parameters including messages
    * @returns Promise resolving to the sampling result
-   * @throws {@link MCPNotStartedError} if client is not started
+   * @throws `MCPNotStartedError` if client is not started
    * @throws Error if sampling is not supported or fails
    * @example
    * ```typescript
@@ -690,7 +690,7 @@ export class MCPClient {
    * Elicitation requests are sent when the server needs user input.
    *
    * @param handler - Async function that handles elicitation requests
-   * @throws {@link MCPNotStartedError} if client is not started
+   * @throws `MCPNotStartedError` if client is not started
    * @example
    * ```typescript
    * await client.setElicitationHandler(async (request) => {
