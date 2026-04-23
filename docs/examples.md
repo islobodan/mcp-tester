@@ -149,6 +149,12 @@ npx tsx examples/basic-test.ts
 # Full capabilities test
 npx tsx examples/full-test.ts
 
+# Jest matchers example
+npx tsx examples/jest-matchers-example.ts
+
+# Assert utilities example
+npx tsx examples/assert-example.ts
+
 # Test against a real MCP server (server-everything)
 npx tsx examples/everything-server-test.ts
 

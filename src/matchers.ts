@@ -120,5 +120,7 @@ export const setupCustomMatchers = () => {
   });
 };
 
-// Auto-setup for convenience
-setupCustomMatchers();
+// Auto-setup for Jest environments (no-op outside Jest)
+if (typeof expect !== 'undefined' && typeof expect.extend === 'function') {
+  setupCustomMatchers();
+}
