@@ -52,9 +52,18 @@
   "keywords": [
     "mcp",
     "model-context-protocol",
+    "mcp-tester",
+    "mcp-client",
     "testing",
+    "test",
     "jest",
-    "ci-cd"
+    "vitest",
+    "assert",
+    "matchers",
+    "ci-cd",
+    "cli",
+    "typescript",
+    "esm"
   ],
   "author": "Slobodan Ivkovic",
   "license": "MIT",
