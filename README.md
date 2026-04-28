@@ -26,6 +26,7 @@ No more manual clicking through inspectors — write real tests, run them in CI,
 | **Notifications** | React to resource changes, logging messages, tool list updates |
 | **Error Handling** | Custom error classes for timeouts, connection failures, server errors |
 | **Retries** | Exponential backoff with configurable attempts and delay |
+| **Benchmarks** | Measure latency, throughput, and payload performance with `npm run benchmark` |
 | **CLI** | Smoke-test any server from the terminal in seconds |
 
 ## Why MCP Tester?
