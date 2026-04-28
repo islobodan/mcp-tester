@@ -6,9 +6,10 @@
 
 [![npm version](https://img.shields.io/npm/v/@slbdn/mcp-tester)](https://www.npmjs.com/package/@slbdn/mcp-tester)
 [![npm downloads](https://img.shields.io/npm/dm/@slbdn/mcp-tester)](https://www.npmjs.com/package/@slbdn/mcp-tester)
-[![Node.js Version](https://img.shields.io/node/v/@slbdn/mcp-tester)](https://nodejs.org)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Test Status](https://img.shields.io/badge/tests-227_passing-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)
+[![Test Status](https://img.shields.io/badge/tests-227%20passing-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)
+[![Coverage](https://img.shields.io/badge/coverage-77%2F57%2F64%2F76-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)  <!-- statements/branches/functions/lines -->
 
 A production-ready MCP (Model Context Protocol) client for **automated testing** of MCP servers with Jest.
 No more manual clicking through inspectors — write real tests, run them in CI, break builds on regressions.
@@ -38,6 +39,18 @@ No more manual clicking through inspectors — write real tests, run them in CI,
 - **Retry with backoff** — flaky servers? Configure retries so your CI stays green
 - **In-memory mock server** — unit test your test logic without spawning real processes
 - **Custom Jest matchers** — `toHaveTool()`, `toHaveResource()`, `toHavePrompt()` — and Vitest support
+
+## Test Coverage
+
+| Metric | Coverage |
+|--------|----------|
+| Statements | 76.77% |
+| Branches | 57.26% |
+| Functions | 64.48% |
+| Lines | 76.19% |
+| Tests | 227 passing |
+
+Per-file coverage thresholds are set in `jest.config.js` to catch regressions while avoiding CI noise. Run `npm run test:coverage` to see the full breakdown by file.
 
 ## Install
 
