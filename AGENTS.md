@@ -31,6 +31,9 @@ For planned improvements, features, and enhancements, see [TODO.md](./TODO.md). 
 # Build TypeScript to JavaScript
 npm run build
 
+# Watch mode — auto-rebuild on source changes
+npm run dev
+
 # Run all tests
 npm test
 

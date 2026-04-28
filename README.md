@@ -389,6 +389,7 @@ mcp-tester/
 ```bash
 npm install          # Install dependencies
 npm run build        # Compile TypeScript
+npm run dev          # Watch mode — auto-rebuild on source changes
 npm test             # Run tests (257 tests)
 npm run lint         # Lint code
 npm run format       # Format with Prettier

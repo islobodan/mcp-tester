@@ -555,17 +555,14 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 22. Add Watch Mode for Development
+### [x] 22. Add Watch Mode for Development
 **Description**: Hot-reload development mode.
 
 **Tasks**:
-- Install tsx and nodemon
-- Add `dev` script to package.json
-- Configure nodemon to watch src/
-- Document watch mode usage
-- Add to README development section
+- [x] Add `dev` script to package.json (`tsc --watch`)
+- [x] Document watch mode in README and AGENTS.md essential commands
 
-**Impact**: Faster development cycle
+**Impact**: Faster development cycle — no manual `npm run build` after edits
 
 **Estimated Effort**: 1 hour
 
@@ -918,11 +915,11 @@ The following tasks can be completed quickly and provide immediate value:
 ## Progress Tracking
 
 **Total Items**: 48
-**Completed**: 25
+**Completed**: 26
 **In Progress**: 0
-**Not Started**: 23
+**Not Started**: 22
 
-**Completion Percentage**: 52.1%
+**Completion Percentage**: 54.2%
 
 ---
 
