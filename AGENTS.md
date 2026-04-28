@@ -39,6 +39,9 @@ npm run test:watch
 
 # Run tests with coverage
 npm run test:coverage
+
+# Run performance benchmarks (50 runs per benchmark, 3 warmup runs)
+npm run benchmark
 ```
 
 ### Code Quality
