@@ -560,9 +560,15 @@ chore: maintenance tasks
 | `src/matchers.ts` | Custom Jest/Vitest matchers |
 | `vitest.d.ts` | Vitest type declarations for matchers |
 | `src/__tests__/fixtures/mock-server.ts` | In-memory mock server for unit tests |
-| `examples/mock-server.js` | Standalone MCP server for integration tests |
+| `examples/mock-server.js` | Basic standalone MCP server (echo, add, delay, error_tool) |
+| `examples/simple-server.ts` | Minimal TypeScript MCP server (greet, version, welcome) |
+| `examples/stateful-server.ts` | Stateful MCP server (counter + todos with notifications) |
 | `examples/basic-test.ts` | Basic usage example |
 | `examples/full-test.ts` | Comprehensive example |
+| `examples/everything-server-test.ts` | Test against real MCP server |
+| `examples/stateful-server-test.ts` | Stateful server testing patterns |
+| `examples/jest-matchers-example.ts` | Jest matchers usage |
+| `examples/assert-example.ts` | Assert utilities usage |
 | `CHANGELOG.md` | Version history |
 | `CONTRIBUTING.md` | Contribution guidelines |
 | `docs/releases.md` | Release process documentation |

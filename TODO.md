@@ -426,17 +426,24 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 15. Add Example MCP Servers
+### [x] 15. Add Example MCP Servers
 **Description**: Include example MCP servers for testing.
 
 **Tasks**:
-- Create `examples/simple-server.js` (minimal implementation)
-- Create `examples/advanced-server.ts` (full-featured)
-- Document how to run each example
-- Add tests for example servers
-- Include examples in README quick start
+- [x] Create `examples/simple-server.ts` (minimal TypeScript server — greet tool, version resource, welcome prompt)
+- [x] Create `examples/stateful-server.ts` (counter + todo list with mutable state and notifications)
+- [x] Create `examples/stateful-server-test.ts` (testing patterns for stateful servers)
+- [x] Update `docs/examples.md` with server descriptions and run commands
+- [x] Update README project structure and AGENTS.md key files table
 
-**Impact**: Better learning materials
+**Example Servers**:
+| Server | Description |
+|--------|-------------|
+| `mock-server.js` | Basic JS server: echo, add, delay, error_tool + 2 resources + 2 prompts |
+| `simple-server.ts` | Minimal TS server: greet tool, version resource, welcome prompt |
+| `stateful-server.ts` | Stateful server: counter (increment/get/reset), todos (add/list/complete) + notifications |
+
+**Impact**: Better learning materials, realistic testing patterns
 
 **Estimated Effort**: 3-4 hours
 
@@ -911,11 +918,11 @@ The following tasks can be completed quickly and provide immediate value:
 ## Progress Tracking
 
 **Total Items**: 48
-**Completed**: 24
+**Completed**: 25
 **In Progress**: 0
-**Not Started**: 24
+**Not Started**: 23
 
-**Completion Percentage**: 50%
+**Completion Percentage**: 52.1%
 
 ---
 

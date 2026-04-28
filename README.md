@@ -377,7 +377,10 @@ mcp-tester/
 │   ├── jest-matchers-example.ts # Jest matchers usage
 │   ├── assert-example.ts        # Assert utilities usage
 │   ├── everything-server-test.ts # Test against real MCP server
-│   └── mock-server.js           # Standalone MCP server
+│   ├── stateful-server-test.ts  # Stateful server testing pattern
+│   ├── mock-server.js           # Basic standalone MCP server
+│   ├── simple-server.ts         # Minimal TypeScript MCP server
+│   └── stateful-server.ts        # Stateful MCP server (counter + todos)
 └── docs/                        # Documentation
 ```
 

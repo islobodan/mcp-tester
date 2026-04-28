@@ -2,6 +2,33 @@
 
 Practical code examples for common MCP Tester use cases.
 
+## Example MCP Servers
+
+The `examples/` directory includes ready-to-run MCP servers for testing and learning:
+
+| Server | Description |
+|--------|-------------|
+| `mock-server.js` | Basic server with echo, add, delay, error_tool + 2 resources + 2 prompts |
+| `simple-server.ts` | Minimal TypeScript server — greet tool, version resource, welcome prompt |
+| `stateful-server.ts` | Server with mutable state — counter (increment/get/reset) and todo list (add/list/complete) |
+
+Run any server standalone:
+
+```bash
+# JavaScript (no build needed)
+node examples/mock-server.js
+
+# TypeScript (uses tsx)
+npx tsx examples/simple-server.ts
+npx tsx examples/stateful-server.ts
+```
+
+Test against them:
+
+```bash
+npx @slbdn/mcp-tester test -- node --loader tsx examples/simple-server.ts
+```
+
 ## Basic Tool Testing
 
 ```typescript
@@ -223,6 +250,15 @@ npx tsx examples/assert-example.ts
 # Test against a real MCP server (server-everything)
 npx tsx examples/everything-server-test.ts
 
+# Test stateful server patterns
+npx tsx examples/stateful-server-test.ts
+
 # Run mock server standalone (for manual testing)
 node examples/mock-server.js
+
+# Run simple TypeScript server (for learning)
+npx tsx examples/simple-server.ts
+
+# Run stateful server (counter + todos)
+npx tsx examples/stateful-server.ts
 ```
