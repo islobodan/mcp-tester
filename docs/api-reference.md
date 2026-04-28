@@ -258,16 +258,17 @@ client.setLogLevel('debug');
 
 ## Error Classes
 
-All errors extend `MCPClientError` and include a `code` property.
+All errors extend `MCPClientError` and include a `code` property. Errors provide
+contextual information and actionable suggestions for debugging.
 
-| Error | Code | When |
-|-------|------|------|
-| `MCPClientError` | `MCP_CLIENT_ERROR` | Base error class |
-| `MCPTimeoutError` | `MCP_TIMEOUT_ERROR` | Request exceeds timeout (has `.timeout` property) |
-| `MCPConnectionError` | `MCP_CONNECTION_ERROR` | Server fails to start or connect |
-| `MCPNotStartedError` | `MCP_NOT_STARTED` | Method called before `start()` |
-| `MCPAlreadyStartedError` | `MCP_ALREADY_STARTED` | `start()` called on running client |
-| `MCPServerError` | `MCP_SERVER_ERROR` | Server returns an error response |
+| Error | Code | Properties | When |
+|-------|------|------------|------|
+| `MCPClientError` | `MCP_CLIENT_ERROR` | `code` | Base error class |
+| `MCPTimeoutError` | `MCP_TIMEOUT_ERROR` | `code`, `.timeout`, `.operation`, `.suggestions` | Request exceeds timeout |
+| `MCPConnectionError` | `MCP_CONNECTION_ERROR` | `code`, `.command`, `.suggestions` | Server fails to start or connect |
+| `MCPNotStartedError` | `MCP_NOT_STARTED` | `code`, `.method` | Method called before `start()` |
+| `MCPAlreadyStartedError` | `MCP_ALREADY_STARTED` | `code` | `start()` called on running client |
+| `MCPServerError` | `MCP_SERVER_ERROR` | `code`, `.operation`, `.serverCode` | Server returns an error response |
 
 **Usage:**
 
@@ -283,11 +284,16 @@ try {
   await client.callTool({ name: 'tool', arguments: {} });
 } catch (error) {
   if (error instanceof MCPTimeoutError) {
-    console.error(`Timeout after ${error.timeout}ms`);
+    console.error(`Timeout on ${error.operation} after ${error.timeout}ms`);
+    console.error('Suggestions:', error.suggestions);
   } else if (error instanceof MCPConnectionError) {
-    console.error('Connection failed');
+    console.error(`Connection failed, command: ${error.command}`);
+    console.error('Suggestions:', error.suggestions);
   } else if (error instanceof MCPServerError) {
-    console.error('Server error:', error.message);
+    console.error(`Server error in ${error.operation}: ${error.message}`);
+    if (error.serverCode) console.error(`Server code: ${error.serverCode}`);
+  } else if (error instanceof MCPClientError) {
+    console.error('Client error:', error.message);
   }
 }
 ```

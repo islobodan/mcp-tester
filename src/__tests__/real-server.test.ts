@@ -5,6 +5,7 @@
  */
 
 import { MCPClient } from '../client/MCPClient.js';
+import { MCPAlreadyStartedError } from '../utils/errors.js';
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 
 describe('MCPClient - Real Server Process (stdio)', () => {
@@ -53,6 +54,26 @@ describe('MCPClient - Real Server Process (stdio)', () => {
       await expect(
         client.start({ command: 'node', args: ['./examples/mock-server.js'] })
       ).rejects.toThrow('already started');
+
+      await client.stop();
+    });
+
+    it('should throw MCPAlreadyStartedError with actionable message', async () => {
+      const { MCPAlreadyStartedError } = await import('../utils/errors.js');
+      await client.start({
+        command: 'node',
+        args: ['./examples/mock-server.js'],
+      });
+
+      try {
+        await client.start({ command: 'node', args: ['./examples/mock-server.js'] });
+      } catch (error) {
+        expect(error).toBeInstanceOf(MCPAlreadyStartedError);
+        expect((error as MCPAlreadyStartedError).message).toContain('stop()');
+        expect((error as MCPAlreadyStartedError).message).toContain('new MCPClient');
+      }
+
+      await client.stop();
     });
   });
 

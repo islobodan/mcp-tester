@@ -273,16 +273,27 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 8. Improve Error Messages
+### [x] 8. Improve Error Messages
 **Description**: Add contextual error information and actionable suggestions.
 
 **Tasks**:
-- Enhance `MCPTimeoutError` with operation context and timeout increase suggestion
-- Improve `MCPConnectionError` with common failure reasons
-- Add stack trace hints for debugging
-- Include server startup logs in error context when available
-- Document all error codes in README
-- Add troubleshooting examples to README
+- [x] Enhance `MCPTimeoutError` with operation context, timeout value in message, and actionable suggestions
+- [x] Improve `MCPConnectionError` with server command and command-specific suggestions (node/python/npx)
+- [x] Enhance `MCPServerError` with operation context and `serverCode` property (extracts MCP error code)
+- [x] Improve `MCPNotStartedError` to include which method was called
+- [x] Improve `MCPAlreadyStartedError` with actionable message ("Call stop() or create new MCPClient")
+- [x] Add 28 tests for error classes in `errors.test.ts`
+- [x] Update `docs/api-reference.md` with full error property documentation
+- [x] Update README test count (227 → 257)
+
+**Resulting Error Properties**:
+| Error | New Properties |
+|-------|---------------|
+| `MCPTimeoutError` | `.timeout`, `.operation`, `.suggestions[]` |
+| `MCPConnectionError` | `.command`, `.suggestions[]` |
+| `MCPNotStartedError` | `.method` (which method was called) |
+| `MCPAlreadyStartedError` | `.message` now includes "Call stop()" and "new MCPClient" |
+| `MCPServerError` | `.operation`, `.serverCode` (extracted from MCP error) |
 
 **Impact**: Better developer experience when errors occur
 
@@ -898,11 +909,11 @@ The following tasks can be completed quickly and provide immediate value:
 ## Progress Tracking
 
 **Total Items**: 48
-**Completed**: 22
+**Completed**: 23
 **In Progress**: 0
-**Not Started**: 26
+**Not Started**: 25
 
-**Completion Percentage**: 45.8%
+**Completion Percentage**: 47.9%
 
 ---
 

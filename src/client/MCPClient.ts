@@ -284,6 +284,7 @@ export class MCPClient {
     this.logger.debug(`Server command: ${config.command}`, config.args || []);
 
     const mergedEnv = mergeEnvironments(process.env, config.env);
+    const commandStr = `${config.command}${config.args ? ' ' + config.args.join(' ') : ''}`;
 
     try {
       // Use StdioClientTransport to spawn the server process (single process)
@@ -334,7 +335,8 @@ export class MCPClient {
         throw error;
       }
       throw new MCPConnectionError(
-        `Failed to connect to MCP server: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to connect to MCP server: ${error instanceof Error ? error.message : String(error)}`,
+        commandStr
       );
     }
   }
@@ -410,7 +412,7 @@ export class MCPClient {
    */
   async listTools(): Promise<Tool[]> {
     if (!this.client) {
-      throw new MCPNotStartedError();
+      throw new MCPNotStartedError('listTools');
     }
 
     const request: ListToolsRequest = {
@@ -454,7 +456,7 @@ export class MCPClient {
    */
   async callTool(options: ToolCallOptions): Promise<CallToolResult> {
     if (!this.client) {
-      throw new MCPNotStartedError();
+      throw new MCPNotStartedError('callTool');
     }
 
     const request: CallToolRequest = {
@@ -496,7 +498,7 @@ export class MCPClient {
    */
   async listResources(): Promise<Resource[]> {
     if (!this.client) {
-      throw new MCPNotStartedError();
+      throw new MCPNotStartedError('listResources');
     }
 
     const request: ListResourcesRequest = {
@@ -536,7 +538,7 @@ export class MCPClient {
    */
   async readResource(uri: string): Promise<ReadResourceResult> {
     if (!this.client) {
-      throw new MCPNotStartedError();
+      throw new MCPNotStartedError('readResource');
     }
 
     const request: ReadResourceRequest = {
@@ -573,7 +575,7 @@ export class MCPClient {
    */
   async listPrompts(): Promise<Prompt[]> {
     if (!this.client) {
-      throw new MCPNotStartedError();
+      throw new MCPNotStartedError('listPrompts');
     }
 
     const request: ListPromptsRequest = {
@@ -614,7 +616,7 @@ export class MCPClient {
    */
   async getPrompt(name: string, args?: Record<string, string>): Promise<GetPromptResult> {
     if (!this.client) {
-      throw new MCPNotStartedError();
+      throw new MCPNotStartedError('getPrompt');
     }
 
     const request: GetPromptRequest = {
@@ -659,7 +661,7 @@ export class MCPClient {
    */
   async requestSampling(request: CreateMessageRequestParams): Promise<CreateMessageResult> {
     if (!this.client) {
-      throw new MCPNotStartedError();
+      throw new MCPNotStartedError('requestSampling');
     }
 
     if (this.options.enableProtocolLogging) {
@@ -771,12 +773,13 @@ export class MCPClient {
     }
     const message = error instanceof Error ? error.message : String(error);
     if (message.toLowerCase().includes('timeout') || message.toLowerCase().includes('timed out')) {
-      throw new MCPTimeoutError(
-        `${operation} timed out: ${message}`,
-        timeout ?? this.options.timeout ?? 30000
-      );
+      const t = timeout ?? this.options.timeout ?? 30000;
+      throw new MCPTimeoutError(`${operation} timed out after ${t}ms`, t, operation);
     }
-    throw new MCPServerError(`${operation} failed: ${message}`);
+    // Extract MCP error code if present (e.g., "-32602" or "-32603")
+    const codeMatch = message.match(/code[:\s]+(-?\d+)/);
+    const serverCode = codeMatch ? parseInt(codeMatch[1], 10) : undefined;
+    throw new MCPServerError(`${operation} failed: ${message}`, operation, serverCode);
   }
 
   private async withRetry<T>(operation: () => Promise<T>, retries?: number): Promise<T> {

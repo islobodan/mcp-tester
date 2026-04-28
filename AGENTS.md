@@ -292,16 +292,19 @@ describe('Integration', () => {
 ```
 
 ### Current Test Suite
-- **Total Tests**: 227 tests (all passing)
+- **Total Tests**: 257 tests (all passing)
 - **Test Categories**:
-  - Basic Operations: 3 tests
+  - Basic Operations: 3 tests → 4 tests
   - Tools (in-memory): 11 tests
   - Resources (in-memory): 5 tests
   - Prompts (in-memory): 4 tests
   - Advanced Features: 3 tests
-  - Real Server (stdio): 13 tests
+  - Real Server (stdio): 13 tests → 14 tests
   - Everything Server: 37 tests
   - CLI Tool: 35 tests
+  - Assertions: 67 tests
+  - Matchers: 49 tests
+  - **Error Classes: 28 tests**
 
 ## Important Gotchas & Non-Obvious Patterns
 
@@ -484,16 +487,17 @@ assert.equal(tools.length, 4);
 ### Custom Error Classes
 The codebase uses specific error classes for different scenarios:
 - `MCPClientError`: Base error class
-- `MCPTimeoutError`: Request timeout
-- `MCPConnectionError`: Connection failures
-- `MCPNotStartedError`: Methods called before `start()`
-- `MCPAlreadyStartedError`: Attempt to start already-running client
-- `MCPServerError`: Server-side errors
+- `MCPTimeoutError`: Request timeout — has `.timeout`, `.operation`, `.suggestions[]`
+- `MCPConnectionError`: Connection failures — has `.command`, `.suggestions[]`
+- `MCPNotStartedError`: Methods called before `start()` — has `.method` (which method was called)
+- `MCPAlreadyStartedError`: Attempt to start already-running client — message includes "Call stop()" and "new MCPClient"
+- `MCPServerError`: Server-side errors — has `.operation`, `.serverCode`
 
 All errors include:
-- Descriptive message
+- Descriptive message with context
 - Error code (e.g., `'MCP_TIMEOUT_ERROR'`)
 - Proper stack traces
+- Actionable suggestions (where appropriate)
 
 ### Error Handling Example
 ```typescript
@@ -501,6 +505,8 @@ try {
   await client.callTool({ name: 'tool', arguments: {} });
 } catch (error) {
   if (error instanceof MCPTimeoutError) {
+    console.error(`Timeout on ${error.operation} after ${error.timeout}ms`);
+    console.error('Suggestions:', error.suggestions);
     console.error(`Timeout after ${error.timeout}ms`);
   } else if (error instanceof MCPConnectionError) {
     console.error('Connection failed');
