@@ -29,6 +29,41 @@ No more manual clicking through inspectors — write real tests, run them in CI,
 | **Benchmarks** | Measure latency, throughput, and payload performance with `npm run benchmark` |
 | **CLI** | Smoke-test any server from the terminal in seconds |
 
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        Your Test Suite                             │
+│  ┌──────────┐  ┌───────────┐  ┌────────┐  ┌───────────────────┐  │
+│  │   Jest    │  │  Vitest   │  │ assert │  │  Custom Runner   │  │
+│  │ matchers │  │ matchers  │  │ module │  │  (any framework)  │  │
+│  └────┬─────┘  └─────┬─────┘  └───┬────┘  └────────┬──────────┘  │
+│       │              │             │                 │              │
+│  ┌────▼──────────────▼─────────────▼─────────────────▼──────────┐    │
+│  │                      MCPClient                              │    │
+│  │  ┌──────────────────────────────────────────────────────┐  │    │
+│  │  │  start() │ stop() │ listTools() │ callTool() │ ...   │  │    │
+│  │  └──────────────────────┬───────────────────────────────────┘  │    │
+│  │                         │                                      │    │
+│  │  ┌──────────────────────▼───────────────────────────────┐    │    │
+│  │  │         Retry │ Timeout │ Error Handling              │    │    │
+│  │  │    MCPTimeoutError │ MCPConnectionError │ ...        │    │    │
+│  │  └──────────────────────┬───────────────────────────────┘    │    │
+│  └─────────────────────────┼─────────────────────────────────────┘    │
+│                            │ stdio (JSON-RPC)                        │
+│  ┌─────────────────────────▼─────────────────────────────────────┐  │
+│  │              MCP Server (child process)                       │  │
+│  │  ┌────────┐  ┌───────────┐  ┌──────────┐  ┌────────────┐   │  │
+│  │  │ Tools  │  │ Resources │  │ Prompts  │  │ Sampling   │   │  │
+│  │  └────────┘  └───────────┘  └──────────┘  └────────────┘   │  │
+│  └──────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Data flow**: Your test calls `MCPClient` → which sends JSON-RPC over stdio → to the MCP server process → server responds → `MCPClient` returns typed results → your assertion validates them.
+
+**Key design**: `MCPClient` manages the server lifecycle (spawn/kill) and protocol handling. Your tests never deal with the transport layer directly.
+
 ## Why MCP Tester?
 
 - **Full protocol support** — tools, resources, prompts, sampling, elicitation, notifications

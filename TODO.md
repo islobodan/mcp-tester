@@ -513,14 +513,15 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 20. Add Architecture Diagram
+### [x] 20. Add Architecture Diagram
 **Description**: Visual diagram of how mcp-tester works.
 
 **Tasks**:
-- Create ASCII diagram of architecture
-- Show MCPClient, MCP Server, Jest relationship
-- Include in README
-- Optionally create mermaid diagram for better rendering
+- [x] Create ASCII diagram of architecture in README
+- [x] Show MCPClient, MCP Server, Jest/Vitest/assert relationship
+- [x] Show data flow (JSON-RPC over stdio)
+- [x] Show error handling layer (Retry/Timeout/Error classes)
+- [x] Include in README (after Capabilities, before Why MCP Tester)
 
 **Impact**: Better understanding of system design
 
@@ -894,9 +895,10 @@ The following tasks can be completed quickly and provide immediate value:
 
 ### Should Have (Good Impact, Reasonable Effort)
 4. Add integration tests
-5. Improve error messages
+5. ~~Improve error messages~~ ✅
 6. ~~Add performance benchmarks~~ ✅
 7. Better mock server (remove `any` types) ✅
+8. ~~Add architecture diagram~~ ✅
 
 ### Nice to Have (Lower Priority)
 8. HTTP transport support
@@ -909,11 +911,11 @@ The following tasks can be completed quickly and provide immediate value:
 ## Progress Tracking
 
 **Total Items**: 48
-**Completed**: 23
+**Completed**: 24
 **In Progress**: 0
-**Not Started**: 25
+**Not Started**: 24
 
-**Completion Percentage**: 47.9%
+**Completion Percentage**: 50%
 
 ---
 
