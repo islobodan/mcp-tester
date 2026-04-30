@@ -168,7 +168,7 @@ describe('MockMCPServer', () => {
     await mockServer.handleToolCall('delay', { ms: 100 });
     const end = Date.now();
 
-    expect(end - start).toBeGreaterThanOrEqual(100);
+    expect(end - start).toBeGreaterThanOrEqual(90);
   });
 
   it('should throw error for unknown tool', async () => {

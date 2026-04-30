@@ -9,7 +9,7 @@
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Test Status](https://img.shields.io/badge/tests-306%20passing-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)
-[![Coverage](https://img.shields.io/badge/coverage-77%2F57%2F64%2F76-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)  <!-- statements/branches/functions/lines -->
+[![Coverage](https://img.shields.io/badge/coverage-68%2F61%2F60%2F68-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)  <!-- statements/branches/functions/lines -->
 
 A production-ready MCP (Model Context Protocol) client for **automated testing** of MCP servers with Jest.
 No more manual clicking through inspectors — write real tests, run them in CI, break builds on regressions.

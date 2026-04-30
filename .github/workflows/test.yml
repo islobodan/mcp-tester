@@ -46,15 +46,72 @@ jobs:
       - name: Run tests
         run: npm test
 
+  coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
       - name: Run tests with coverage
         run: npm run test:coverage
 
-      - name: Upload coverage reports
-        uses: codecov/codecov-action@v3
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
         with:
           files: ./coverage/lcov.info
           flags: unittests
           name: codecov-umbrella
+          fail_ci_if_error: false
+          verbose: true
+
+      - name: Generate coverage summary
+        id: coverage
+        run: |
+          # Extract coverage percentages from Jest summary
+          SUMMARY=$(cat coverage/coverage-summary.json 2>/dev/null || echo '{}')
+          STATEMENTS=$(echo "$SUMMARY" | jq -r '.total.statements.pct // "N/A"')
+          BRANCHES=$(echo "$SUMMARY" | jq -r '.total.branches.pct // "N/A"')
+          FUNCTIONS=$(echo "$SUMMARY" | jq -r '.total.functions.pct // "N/A"')
+          LINES=$(echo "$SUMMARY" | jq -r '.total.lines.pct // "N/A"')
+
+          echo "statements=$STATEMENTS" >> $GITHUB_OUTPUT
+          echo "branches=$BRANCHES" >> $GITHUB_OUTPUT
+          echo "functions=$FUNCTIONS" >> $GITHUB_OUTPUT
+          echo "lines=$LINES" >> $GITHUB_OUTPUT
+
+          # Create coverage table for PR comment
+          {
+            echo "## 📊 Test Coverage Report"
+            echo ""
+            echo "| Metric | Coverage |"
+            echo "|--------|----------|"
+            echo "| Statements | ${STATEMENTS}% |"
+            echo "| Branches | ${BRANCHES}% |"
+            echo "| Functions | ${FUNCTIONS}% |"
+            echo "| Lines | ${LINES}% |"
+            echo ""
+            echo "Thresholds: Statements ≥76% · Branches ≥57% · Functions ≥64% · Lines ≥76%"
+          } > coverage-comment.md
+
+      - name: Comment PR with coverage
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: coverage
+          path: coverage-comment.md
 
   lint:
     runs-on: ubuntu-latest

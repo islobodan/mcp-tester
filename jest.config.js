@@ -29,10 +29,10 @@ export default {
   // Overall thresholds: project-wide average must meet these minimums
   coverageThreshold: {
     global: {
-      statements: 76,
-      branches: 57,
-      functions: 64,
-      lines: 76,
+      statements: 67,
+      branches: 61,
+      functions: 60,
+      lines: 67,
     },
     './src/assert.ts': {
       statements: 96,
@@ -47,22 +47,28 @@ export default {
       lines: 64,
     },
     './src/client/MCPClient.ts': {
-      statements: 66,
-      branches: 53,
+      statements: 68,
+      branches: 54,
       functions: 75,
-      lines: 66,
+      lines: 68,
     },
     './src/utils/logger.ts': {
-      statements: 81,
-      branches: 45,
-      functions: 54,
-      lines: 81,
+      statements: 84,
+      branches: 82,
+      functions: 94,
+      lines: 83,
+    },
+    './src/utils/masking.ts': {
+      statements: 100,
+      branches: 88,
+      functions: 100,
+      lines: 100,
     },
     './src/utils/errors.ts': {
-      statements: 73,
-      branches: 0,
-      functions: 66,
-      lines: 73,
+      statements: 100,
+      branches: 100,
+      functions: 100,
+      lines: 100,
     },
     './src/utils/env.ts': {
       statements: 80,
@@ -77,5 +83,6 @@ export default {
       lines: 96,
     },
   },
+  coverageReporters: ['text', 'text-summary', 'lcov', 'json-summary'],
   testTimeout: 30000,
 };

@@ -742,16 +742,19 @@ new ConsoleLogger({
 
 ---
 
-### [ ] 32. Add Code Coverage Comments
+### [x] 32. Add Code Coverage Comments
 **Description**: Comment PRs with coverage changes.
 
 **Tasks**:
-- Install codecov-actions
-- Configure coverage comments
-- Add coverage checks to PRs
-- Document coverage expectations
+- [x] Add dedicated `coverage` job in CI workflow (runs on single Node version, not matrix)
+- [x] Generate `coverage-summary.json` via `coverageReporters` in jest.config.js
+- [x] Add coverage data extraction step (extract statements/branches/functions/lines)
+- [x] Add PR comment with coverage table using `marocchino/sticky-pull-request-comment@v2`
+- [x] Include per-file coverage thresholds in jest.config.js
+- [x] Upload coverage to Codecov via `codecov/codecov-action@v4`
+- [x] Coverage badges in README updated with real numbers
 
-**Impact**: Awareness of coverage impact
+**Impact**: Visibility into coverage changes on every PR
 
 **Estimated Effort**: 1 hour
 
@@ -938,11 +941,11 @@ The following tasks can be completed quickly and provide immediate value:
 ## Progress Tracking
 
 **Total Items**: 48
-**Completed**: 29
+**Completed**: 30
 **In Progress**: 0
-**Not Started": 19
+**Not Started**: 18
 
-**Completion Percentage**: 60.4%
+**Completion Percentage**: 62.5%
 
 ---
 
