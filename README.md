@@ -8,7 +8,7 @@
 [![npm downloads](https://img.shields.io/npm/dm/@slbdn/mcp-tester)](https://www.npmjs.com/package/@slbdn/mcp-tester)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Test Status](https://img.shields.io/badge/tests-284%20passing-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)
+[![Test Status](https://img.shields.io/badge/tests-306%20passing-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)
 [![Coverage](https://img.shields.io/badge/coverage-77%2F57%2F64%2F76-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)  <!-- statements/branches/functions/lines -->
 
 A production-ready MCP (Model Context Protocol) client for **automated testing** of MCP servers with Jest.
@@ -84,7 +84,7 @@ No more manual clicking through inspectors — write real tests, run them in CI,
 | Branches | 57.26% |
 | Functions | 64.48% |
 | Lines | 76.19% |
-| Tests | 284 passing |
+| Tests | 306 passing |
 
 Per-file coverage thresholds are set in `jest.config.js` to catch regressions while avoiding CI noise. Run `npm run test:coverage` to see the full breakdown by file.
 
@@ -366,7 +366,7 @@ mcp-tester/
 │   │   ├── errors.ts            # Error classes
 │   │   ├── logger.ts            # Logging
 │   │   └── env.ts               # Environment utilities
-│   └── __tests__/               # 284 tests
+│   └── __tests__/               # 306 tests
 │       ├── everything-server.test.ts  # Integration tests (server-everything)
 │       ├── real-server.test.ts        # Integration tests (stdio transport)
 │       ├── cli.test.ts                # CLI tool tests
@@ -390,7 +390,7 @@ mcp-tester/
 npm install          # Install dependencies
 npm run build        # Compile TypeScript
 npm run dev          # Watch mode — auto-rebuild on source changes
-npm test             # Run tests (284 tests)
+npm test             # Run tests (306 tests)
 npm run lint         # Lint code
 npm run format       # Format with Prettier
 ```
@@ -454,6 +454,25 @@ const client = new MCPClient({ logLevel: 'debug', enableProtocolLogging: true })
 ```
 
 All logs go to stderr — they won't interfere with test output.
+
+New logging features:
+- **Timing**: operations log elapsed time (e.g., `Listed 4 tools in 12ms`)
+- **Secret masking**: API keys, tokens, and passwords are auto-masked (e.g., `sk-ab...789`)
+- **Pretty-printed JSON**: protocol messages are formatted and masked
+- **Timestamps**: enable with `{ timestamps: true }`
+- **Colors**: auto-enabled in terminals (cyan=debug, green=info, yellow=warn, red=error)
+
+```typescript
+import { startTimer, prettyPrint } from '@slbdn/mcp-tester';
+
+// Measure operation timing
+const elapsed = startTimer();
+await someOperation();
+console.log(`Took ${elapsed()}ms`);
+
+// Pretty-print objects with secret masking
+prettyPrint({ apiKey: 'sk-proj-abc123...', count: 42 });
+```
 
 See [Troubleshooting Guide](./docs/troubleshooting.md) for more details.
 

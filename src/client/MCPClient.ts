@@ -27,7 +27,14 @@ import {
   GetPromptResult,
   CreateMessageResult,
 } from '@modelcontextprotocol/sdk/types.js';
-import { Logger, LogLevel, ConsoleLogger, NoOpLogger } from '../utils/logger.js';
+import {
+  Logger,
+  LogLevel,
+  ConsoleLogger,
+  NoOpLogger,
+  startTimer,
+  prettyPrint,
+} from '../utils/logger.js';
 import { mergeEnvironments } from '../utils/env.js';
 import {
   MCPClientError,
@@ -421,15 +428,16 @@ export class MCPClient {
     };
 
     if (this.options.enableProtocolLogging) {
-      this.logger.debug('Request:', request);
+      this.logger.debug('Request:', prettyPrint(request));
     }
 
     try {
+      const elapsed = startTimer();
       const result = await this.withRetry(async () =>
         this.client!.request(request, ListToolsResultSchema)
       );
       const tools = result.tools || [];
-      this.logger.debug(`Listed ${tools.length} tools`);
+      this.logger.debug(`Listed ${tools.length} tools in ${elapsed()}ms`);
       return tools;
     } catch (error) {
       this.logger.error('Failed to list tools:', error);
@@ -468,16 +476,17 @@ export class MCPClient {
     };
 
     if (this.options.enableProtocolLogging) {
-      this.logger.debug(`Calling tool: ${options.name}`, options.arguments);
+      this.logger.debug(`Calling tool: ${options.name}`, prettyPrint(options.arguments));
     }
 
     try {
+      const elapsed = startTimer();
       const timeout = options.timeout ?? this.options.timeout;
       const result = await this.withRetry(
         async () => this.client!.request(request, CallToolResultSchema, { timeout }),
         options.retries
       );
-      this.logger.debug(`Tool ${options.name} executed successfully`);
+      this.logger.debug(`Tool ${options.name} executed in ${elapsed()}ms`);
       return result;
     } catch (error) {
       this.logger.error(`Failed to call tool ${options.name}:`, error);
@@ -507,15 +516,16 @@ export class MCPClient {
     };
 
     if (this.options.enableProtocolLogging) {
-      this.logger.debug('Request:', request);
+      this.logger.debug('Request:', prettyPrint(request));
     }
 
     try {
+      const elapsed = startTimer();
       const result = await this.withRetry(async () =>
         this.client!.request(request, ListResourcesResultSchema)
       );
       const resources = result.resources || [];
-      this.logger.debug(`Listed ${resources.length} resources`);
+      this.logger.debug(`Listed ${resources.length} resources in ${elapsed()}ms`);
       return resources;
     } catch (error) {
       this.logger.error('Failed to list resources:', error);
@@ -551,10 +561,11 @@ export class MCPClient {
     }
 
     try {
+      const elapsed = startTimer();
       const result = await this.withRetry(async () =>
         this.client!.request(request, ReadResourceResultSchema)
       );
-      this.logger.debug(`Resource ${uri} read successfully`);
+      this.logger.debug(`Resource ${uri} read in ${elapsed()}ms`);
       return result;
     } catch (error) {
       this.logger.error(`Failed to read resource ${uri}:`, error);
@@ -584,15 +595,16 @@ export class MCPClient {
     };
 
     if (this.options.enableProtocolLogging) {
-      this.logger.debug('Request:', request);
+      this.logger.debug('Request:', prettyPrint(request));
     }
 
     try {
+      const elapsed = startTimer();
       const result = await this.withRetry(async () =>
         this.client!.request(request, ListPromptsResultSchema)
       );
       const prompts = result.prompts || [];
-      this.logger.debug(`Listed ${prompts.length} prompts`);
+      this.logger.debug(`Listed ${prompts.length} prompts in ${elapsed()}ms`);
       return prompts;
     } catch (error) {
       this.logger.error('Failed to list prompts:', error);
@@ -628,14 +640,15 @@ export class MCPClient {
     };
 
     if (this.options.enableProtocolLogging) {
-      this.logger.debug(`Getting prompt: ${name}`, args);
+      this.logger.debug(`Getting prompt: ${name}`, prettyPrint(args));
     }
 
     try {
+      const elapsed = startTimer();
       const result = await this.withRetry(async () =>
         this.client!.request(request, GetPromptResultSchema)
       );
-      this.logger.debug(`Prompt ${name} retrieved successfully`);
+      this.logger.debug(`Prompt ${name} retrieved in ${elapsed()}ms`);
       return result;
     } catch (error) {
       this.logger.error(`Failed to get prompt ${name}:`, error);

@@ -44,6 +44,7 @@ export {
   MCPServerError,
 } from './utils/errors.js';
 export type { Logger, LoggerOptions, LogLevel } from './utils/logger.js';
+export { startTimer, prettyPrint } from './utils/logger.js';
 export {
   maskSecrets,
   maskValue,

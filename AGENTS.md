@@ -295,19 +295,21 @@ describe('Integration', () => {
 ```
 
 ### Current Test Suite
-- **Total Tests**: 257 tests (all passing)
+- **Total Tests**: 306 tests (all passing)
 - **Test Categories**:
-  - Basic Operations: 3 tests → 4 tests
+  - Basic Operations: 4 tests
   - Tools (in-memory): 11 tests
   - Resources (in-memory): 5 tests
   - Prompts (in-memory): 4 tests
   - Advanced Features: 3 tests
-  - Real Server (stdio): 13 tests → 14 tests
+  - Real Server (stdio): 14 tests
   - Everything Server: 37 tests
   - CLI Tool: 35 tests
   - Assertions: 67 tests
   - Matchers: 49 tests
-  - **Error Classes: 28 tests**
+  - Error Classes: 28 tests
+  - Masking: 27 tests
+  - Logger: 22 tests
 
 ## Important Gotchas & Non-Obvious Patterns
 

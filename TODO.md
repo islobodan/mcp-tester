@@ -567,18 +567,37 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 23. Add Better Debug Logging
+### [x] 23. Add Better Debug Logging
 **Description**: Enhanced logging for debugging issues.
 
 **Tasks**:
-- Add request/response timing to logger
-- Add JSON pretty-printing for protocol messages
-- Add colored output for different log levels
-- Add `verbose` mode for detailed debugging
-- Add log filtering options
-- Document debug logging in README
+- [x] Add request/response timing to logger — every operation now logs elapsed ms
+- [x] Add JSON pretty-printing for protocol messages (`prettyPrint()`)
+- [x] Add colored output for different log levels (cyan/debug, green/info, yellow/warn, red/error)
+- [x] Add timestamps option (`new ConsoleLogger({ timestamps: true })`)
+- [x] Add `startTimer()` utility for measuring operation duration
+- [x] Integrate timing into MCPClient: listTools/callTool/listResources/readResource/listPrompts/getPrompt all log `X in Nms`
+- [x] Add `prettyPrint()` to protocol logging (args masked, JSON-formatted)
+- [x] Export `startTimer` and `prettyPrint` from package index
+- [x] 22 tests in `logger.test.ts`
+- [x] Document in docs/api-reference.md and README troubleshooting
 
-**Impact**: Easier troubleshooting
+**New Logger Options**:
+```typescript
+new ConsoleLogger({
+  level: 'debug',
+  prefix: 'MyApp',
+  timestamps: true,    // ← NEW: include ISO timestamps
+  colors: true,       // ← NEW: colored output (auto-disabled in non-TTY)
+  maskSecrets: true,   // already existed, now defaults to true
+});
+```
+
+**New Exports**:
+- `startTimer()` — returns `() => number` (elapsed ms since call)
+- `prettyPrint(value, mask?)` — JSON pretty-print with secret masking
+
+**Impact**: Easier troubleshooting — timing in debug logs, pretty-printed protocol messages
 
 **Estimated Effort**: 2-3 hours
 
@@ -919,11 +938,11 @@ The following tasks can be completed quickly and provide immediate value:
 ## Progress Tracking
 
 **Total Items**: 48
-**Completed**: 28
+**Completed**: 29
 **In Progress**: 0
-**Not Started**: 20
+**Not Started": 19
 
-**Completion Percentage**: 58.3%
+**Completion Percentage**: 60.4%
 
 ---
 
