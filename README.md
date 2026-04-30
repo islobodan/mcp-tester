@@ -395,6 +395,68 @@ npm run lint         # Lint code
 npm run format       # Format with Prettier
 ```
 
+## Troubleshooting
+
+### "Client not started" Error
+
+Calling methods before `start()`:
+
+```typescript
+// ✗ Wrong
+const client = new MCPClient();
+const tools = await client.listTools(); // throws MCPNotStartedError
+
+// ✓ Correct
+const client = new MCPClient();
+await client.start({ command: 'node', args: ['./server.js'] });
+const tools = await client.listTools();
+```
+
+### Timeout Errors
+
+```typescript
+// Global timeout
+const client = new MCPClient({ timeout: 60000 });
+
+// Per-call override
+await client.callTool({ name: 'slow-tool', arguments: {}, timeout: 30000 });
+```
+
+### Server Won't Start
+
+```bash
+# Verify the server runs standalone first
+node ./my-server.js
+```
+
+Check that the command and args are correct — `MCPConnectionError` includes the command and suggestions.
+
+### ESM Import Errors
+
+```typescript
+// ✗ Wrong — missing .js extension
+import { MCPClient } from './client/MCPClient';
+
+// ✓ Correct
+import { MCPClient } from './client/MCPClient.js';
+```
+
+### Tests Fail in CI
+
+- Set `maxWorkers: 1` in Jest config (parallel workers can crash)
+- Verify Node.js >= 18
+- Check that server paths are correct
+
+### Debug Mode
+
+```typescript
+const client = new MCPClient({ logLevel: 'debug', enableProtocolLogging: true });
+```
+
+All logs go to stderr — they won't interfere with test output.
+
+See [Troubleshooting Guide](./docs/troubleshooting.md) for more details.
+
 ## Contributing
 
 1. Fork the repository

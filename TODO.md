@@ -484,23 +484,22 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 18. Add Troubleshooting Section to README
+### [x] 18. Add Troubleshooting Section to README
 **Description**: Comprehensive troubleshooting guide in README.
 
 **Tasks**:
-- Create "Troubleshooting" section in README
-- Add common issues and solutions:
-  - "Module not found" errors
-  - Server won't start
-  - Timeout issues
-  - Permission errors
-  - ESM import issues
-- Add debugging tips
-- Link to AGENTS.md for detailed patterns
+- [x] Create "Troubleshooting" section in README
+- [x] Cover: "Client not started" error (MCPNotStartedError)
+- [x] Cover: Timeout errors with code examples
+- [x] Cover: Server won't start (MCPConnectionError)
+- [x] Cover: ESM import errors (.js extension)
+- [x] Cover: Tests fail in CI (maxWorkers, Node version)
+- [x] Cover: Debug mode (logLevel, enableProtocolLogging)
+- [x] Link to docs/troubleshooting.md for full guide
 
 **Impact**: Reduce support burden
 
-**Estimated Effort**: 2-3 hours
+**Estimated Effort**: 1 hour
 
 ---
 
@@ -915,11 +914,11 @@ The following tasks can be completed quickly and provide immediate value:
 ## Progress Tracking
 
 **Total Items**: 48
-**Completed**: 26
+**Completed**: 27
 **In Progress**: 0
-**Not Started**: 22
+**Not Started**: 21
 
-**Completion Percentage**: 54.2%
+**Completion Percentage**: 56.3%
 
 ---
 
