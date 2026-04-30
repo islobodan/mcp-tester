@@ -619,16 +619,21 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 26. Add Secret Masking in Logs
+### [x] 26. Add Secret Masking in Logs
 **Description**: Automatically mask sensitive data in logs.
 
 **Tasks**:
-- Add secret detection patterns (API keys, tokens, passwords)
-- Mask secrets in debug logs
-- Add configurable secret patterns
-- Document secret masking behavior
+- [x] Create `src/utils/masking.ts` with secret detection patterns
+- [x] Built-in patterns: OpenAI/Anthropic keys, AWS keys, Bearer tokens, JWTs, hex tokens, URL creds, key-value pairs
+- [x] Built-in env var masking: 30+ sensitive key names (API_KEY, PASSWORD, TOKEN, DATABASE_URL, etc.)
+- [x] `maskSecrets()` function integrated into `ConsoleLogger.format()`
+- [x] Configurable: `addSecretPattern()`, `resetSecretPatterns()`, `getSecretPatterns()`, `getSensitiveEnvKeys()`
+- [x] Disable masking per-logger: `new ConsoleLogger({ maskSecrets: false })`
+- [x] Exported from package index: `maskSecrets`, `maskValue`, `addSecretPattern`, `resetSecretPatterns`, `getSecretPatterns`, `getSensitiveEnvKeys`
+- [x] 27 tests in `masking.test.ts`
+- [x] Documented in `docs/api-reference.md` Secret Masking section
 
-**Impact**: Security, prevents accidental secret leaks
+**Impact**: Security — prevents accidental secret leaks in debug output
 
 **Estimated Effort**: 2-3 hours
 
@@ -914,11 +919,11 @@ The following tasks can be completed quickly and provide immediate value:
 ## Progress Tracking
 
 **Total Items**: 48
-**Completed**: 27
+**Completed**: 28
 **In Progress**: 0
-**Not Started**: 21
+**Not Started**: 20
 
-**Completion Percentage**: 56.3%
+**Completion Percentage**: 58.3%
 
 ---
 

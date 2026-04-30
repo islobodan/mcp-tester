@@ -256,6 +256,69 @@ client.setLogLevel('debug');
 
 ---
 
+## Secret Masking
+
+All log output is automatically masked to prevent accidental secret leakage. API keys, tokens, passwords, and other sensitive values are replaced with `***` or `sk-ab...789`-style masks.
+
+```typescript
+import { maskSecrets, maskValue, addSecretPattern } from '@slbdn/mcp-tester';
+
+// Built-in patterns are applied automatically
+maskSecrets('API key: sk-proj-abcdefghijklmnopqrstuvwxyz');
+// → 'API key: sk-pr...xyz'
+
+// Mask environment variables with sensitive keys
+maskSecrets('PASSWORD=mysecretpassword123');
+// → 'PASSWORD=***'
+maskSecrets('OPENAI_API_KEY=sk-abc...');
+// → 'OPENAI_API_KEY=***'
+
+// Add custom patterns
+addSecretPattern(/my-org-key-[a-zA-Z0-9]{20,}/g, 'MyOrg key');
+```
+
+### Built-in Patterns
+
+| Pattern | Description |
+|---------|-------------|
+| `sk-proj-...`, `sk-ant-...` | OpenAI/Anthropic API keys |
+| `sk-...` (20+ chars) | Generic API keys |
+| `AKIA...` | AWS access keys |
+| `Bearer ...` | Bearer tokens |
+| `eyJ...` | JWT tokens |
+| 40+ hex chars | Long hex tokens |
+| `:password@host` | URL credentials |
+| `password=...`, `token=...` | Key-value secrets |
+
+### Sensitive Environment Variables
+
+Values for these keys are automatically masked: `API_KEY`, `SECRET`, `PASSWORD`, `TOKEN`, `DATABASE_URL`, `AWS_SECRET_ACCESS_KEY`, `OPENAI_API_KEY`, and 30+ more.
+
+### Exports
+
+| Function | Description |
+|----------|-------------|
+| `maskSecrets(input)` | Mask all secrets in a string |
+| `maskValue(value, chars?)` | Mask a single value (show first/last `chars`) |
+| `addSecretPattern(regex, name)` | Add a custom pattern |
+| `resetSecretPatterns()` | Reset to built-in defaults |
+| `getSecretPatterns()` | Get active pattern list |
+| `getSensitiveEnvKeys()` | Get set of sensitive env var names |
+
+### ConsoleLogger Integration
+
+`ConsoleLogger` automatically masks all log output. To disable:
+
+```typescript
+const client = new MCPClient({
+  logLevel: 'debug',
+  // maskSecrets is true by default
+  // maskSecrets: false,  // disable masking (not recommended)
+});
+```
+
+---
+
 ## Error Classes
 
 All errors extend `MCPClientError` and include a `code` property. Errors provide

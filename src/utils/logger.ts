@@ -2,7 +2,10 @@
  * Logging utilities for MCP client.
  *
  * Provides configurable logging with multiple output levels and formats.
+ * All log output is automatically masked to prevent sensitive data leakage.
  */
+
+import { maskSecrets } from './masking.js';
 
 /**
  * Supported log levels in order of verbosity.
@@ -22,6 +25,11 @@ export interface LoggerOptions {
    * Prefix added to all log messages.
    */
   prefix?: string;
+  /**
+   * Whether to mask secrets in log output.
+   * @defaultValue true
+   */
+  maskSecrets?: boolean;
 }
 
 /**
@@ -59,21 +67,32 @@ const LOG_LEVELS: Record<LogLevel, number> = {
 };
 
 /**
- * Logger implementation that outputs to stderr.
+ * Mask all arguments in an array by converting to strings and masking secrets.
+ */
+function maskArgs(args: unknown[], shouldMask: boolean): unknown[] {
+  if (!shouldMask) return args;
+  return args.map((arg) => (typeof arg === 'string' ? maskSecrets(arg) : maskSecrets(String(arg))));
+}
+
+/**
+ * Logger implementation that outputs to stderr with automatic secret masking.
  *
  * @example
  * ```typescript
  * const logger = new ConsoleLogger({ level: 'debug', prefix: 'MyApp' });
  * logger.info('Starting...'); // [MyApp] INFO: Starting...
+ * logger.info('API key:', 'sk-abc123def456ghi789'); // [MyApp] INFO: API key: sk-ab...789
  * ```
  */
 export class ConsoleLogger implements Logger {
   private level: number;
   private prefix: string;
+  private shouldMask: boolean;
 
   constructor(options: LoggerOptions = {}) {
     this.level = LOG_LEVELS[options.level || 'info'];
     this.prefix = options.prefix || '';
+    this.shouldMask = options.maskSecrets !== false; // default true
   }
 
   private shouldLog(messageLevel: LogLevel): boolean {
@@ -82,7 +101,8 @@ export class ConsoleLogger implements Logger {
 
   private format(level: LogLevel, args: unknown[]): unknown[] {
     const prefix = this.prefix ? `[${this.prefix}] ` : '';
-    return [`${prefix}${level.toUpperCase()}:`, ...args];
+    const masked = maskArgs(args, this.shouldMask);
+    return [`${prefix}${level.toUpperCase()}:`, ...masked];
   }
 
   debug(...args: unknown[]): void {

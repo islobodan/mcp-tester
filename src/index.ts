@@ -44,6 +44,15 @@ export {
   MCPServerError,
 } from './utils/errors.js';
 export type { Logger, LoggerOptions, LogLevel } from './utils/logger.js';
+export {
+  maskSecrets,
+  maskValue,
+  addSecretPattern,
+  resetSecretPatterns,
+  getSecretPatterns,
+  getSensitiveEnvKeys,
+} from './utils/masking.js';
+export type { SecretPattern } from './utils/masking.js';
 export * as assert from './assert.js';
 export { AssertionError } from './assert.js';
 export {
