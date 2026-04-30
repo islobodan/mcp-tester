@@ -281,4 +281,17 @@ npm run test:coverage
 open coverage/lcov-report/index.html
 ```
 
-Coverage thresholds: **80%** for branches, functions, lines, and statements.
+Coverage thresholds are configured in `jest.config.js` with per-file floors to catch regressions. Run `npm run test:coverage` to see the full breakdown by file.
+
+| File | Stmts | Branch | Func | Lines |
+|------|-------|--------|------|-------|
+| Global | 67% | 61% | 60% | 67% |
+| `assert.ts` | 96% | 87% | 100% | 96% |
+| `matchers.ts` | 68% | 28% | 42% | 64% |
+| `MCPClient.ts` | 68% | 54% | 75% | 68% |
+| `logger.ts` | 84% | 82% | 94% | 83% |
+| `masking.ts` | 100% | 88% | 100% | 100% |
+| `errors.ts` | 100% | 100% | 100% | 100% |
+| `env.ts` | 80% | 100% | 60% | 87% |
+
+If coverage drops below these thresholds, the test command will exit with an error. PRs automatically receive a coverage comment via GitHub Actions (see [CI/CD Integration](./cicd.md)).

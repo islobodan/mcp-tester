@@ -1,6 +1,6 @@
 {
   "name": "@slbdn/mcp-tester",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Minimal MCP client implementation for CI/CD testing of MCP servers",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

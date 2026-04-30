@@ -80,13 +80,13 @@ No more manual clicking through inspectors — write real tests, run them in CI,
 
 | Metric | Coverage |
 |--------|----------|
-| Statements | 76.77% |
-| Branches | 57.26% |
-| Functions | 64.48% |
-| Lines | 76.19% |
+| Statements | 68% |
+| Branches | 61% |
+| Functions | 60% |
+| Lines | 68% |
 | Tests | 306 passing |
 
-Per-file coverage thresholds are set in `jest.config.js` to catch regressions while avoiding CI noise. Run `npm run test:coverage` to see the full breakdown by file.
+Per-file coverage thresholds are set in `jest.config.js` to catch regressions while avoiding CI noise. Run `npm run test:coverage` to see the full breakdown by file. PRs automatically receive a coverage comment via GitHub Actions.
 
 ## Install
 
