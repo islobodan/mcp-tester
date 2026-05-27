@@ -614,18 +614,22 @@ new ConsoleLogger({
 
 ## Security & Reliability
 
-### [ ] 24. Add Input Validation
+### [x] 24. Add Input Validation
 **Description**: Validate all inputs to client methods.
 
 **Tasks**:
-- Add validation for `start()` config
-- Add validation for tool arguments
-- Add validation for resource URIs
-- Add validation for prompt arguments
-- Throw descriptive errors for invalid inputs
-- Add tests for validation
+- [x] Create `src/utils/validation.ts` with validation functions
+- [x] Validate `start()` config (command, args, env, startupDelay)
+- [x] Validate `callTool()` options (name, arguments, timeout, retries)
+- [x] Validate `readResource()` URI (non-empty string)
+- [x] Validate `getPrompt()` name and arguments (non-empty name, string-valued args)
+- [x] Validate `requestSampling()` params (non-empty messages array)
+- [x] Validate constructor options (timeout, retries, retryDelay, startupDelay, etc.)
+- [x] Throw descriptive `MCPClientError` with actionable messages for invalid inputs
+- [x] Validation runs before connection-state checks (invalid args error, not "not started")
+- [x] 91 tests in `validation.test.ts` (unit + MCPClient integration)
 
-**Impact**: Better error messages, security
+**Impact**: Better error messages, catches bugs early, prevents silent failures
 
 **Estimated Effort**: 3-4 hours
 
@@ -950,11 +954,11 @@ The following tasks can be completed quickly and provide immediate value:
 ## Progress Tracking
 
 **Total Items**: 48
-**Completed**: 31
+**Completed**: 32
 **In Progress**: 0
-**Not Started**: 17
+**Not Started**: 16
 
-**Completion Percentage**: 64.6%
+**Completion Percentage**: 66.7%
 
 ---
 

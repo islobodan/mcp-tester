@@ -8,9 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.2.0] - 2026-04-30
 
 ### Added
+- **Input validation** (`src/utils/validation.ts`) — all MCPClient methods validate inputs before execution:
+  - `start()`: validates command (required string), args (string array), env (string values), startupDelay (non-negative number)
+  - `callTool()`: validates name (required string), arguments (object), timeout (positive number), retries (non-negative number)
+  - `readResource()`: validates URI (required non-empty string)
+  - `getPrompt()`: validates name (required string), args (string values)
+  - `requestSampling()`: validates messages (non-empty array)
+  - Constructor: validates timeout (positive), retries/retryDelay/startupDelay (non-negative), name/version (string)
+  - Validation runs before connection checks — invalid args throw `MCPClientError`, not `MCPNotStartedError`
+  - 91 tests in `validation.test.ts`
 - **Code coverage comments on PRs** — GitHub Actions workflow now posts a coverage table as a sticky comment on every pull request (statements/branches/functions/lines with thresholds)
 - **Dedicated `coverage` CI job** — runs on single Node.js version (faster than matrix), generates `coverage-summary.json`, uploads to Codecov v4
 - **`coverageReporters`** in `jest.config.js` — added `json-summary` reporter for CI coverage data extraction
+- **VS Code snippets** (`.vscode/mcp-tester.code-snippets`) — 15 snippets for MCP test patterns (type `mcp` prefix)
 
 ### Changed
 - **Per-file coverage thresholds** updated for new files (`masking.ts`, `logger.ts`) and actual coverage numbers
@@ -20,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **docs/testing.md** — updated coverage thresholds (was "80%", now per-file table)
 - **AGENTS.md** — updated test count, coverage stats, CI job descriptions, file listing
 - Fixed flaky `delay` test (100ms → 90ms tolerance for timing variance)
+- Updated test count: 397 (was 306)
 
 ## [1.1.0] - 2026-04-23
 

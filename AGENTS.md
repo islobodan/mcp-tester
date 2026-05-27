@@ -104,6 +104,7 @@ src/
 ├── utils/
 │   ├── logger.ts            # Logger utility (ConsoleLogger, NoOpLogger)
 │   ├── masking.ts            # Secret masking (addSecretPattern, maskSecrets, prettyPrint)
+│   ├── validation.ts          # Input validation (validateServerConfig, validateToolCallOptions, ...)
 │   ├── errors.ts            # Custom error classes (MCPClientError, etc.)
 │   └── env.ts              # Environment variable utilities
 └── __tests__/
@@ -296,7 +297,8 @@ describe('Integration', () => {
 ```
 
 ### Current Test Suite
-- **Total Tests**: 306 tests (all passing)
+- **Total Tests**: 397 tests (all passing)
+- **Test Suites**: 12
 - **Test Categories**:
   - Basic Operations: 4 tests
   - Tools (in-memory): 11 tests
@@ -311,6 +313,7 @@ describe('Integration', () => {
   - Error Classes: 28 tests
   - Masking: 27 tests
   - Logger: 22 tests
+  - Validation: 91 tests
 
 ## Important Gotchas & Non-Obvious Patterns
 
@@ -567,6 +570,7 @@ chore: maintenance tasks
 | `src/client/MCPClient.ts` | Main client implementation |
 | `src/utils/logger.ts` | Logging utility (colors, timestamps, timers) |
 | `src/utils/masking.ts` | Secret masking (patterns, env keys, prettyPrint) |
+| `src/utils/validation.ts` | Input validation for all MCPClient methods |
 | `src/utils/errors.ts` | Custom error classes |
 | `src/utils/env.ts` | Environment variable utilities |
 | `src/assert.ts` | Assertion utilities (framework-agnostic) |

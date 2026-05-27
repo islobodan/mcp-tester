@@ -44,6 +44,15 @@ import {
   MCPTimeoutError,
   MCPServerError,
 } from '../utils/errors.js';
+import {
+  validateServerConfig,
+  validateToolCallOptions,
+  validateResourceUri,
+  validatePromptName,
+  validatePromptArgs,
+  validateSamplingRequest,
+  validateClientOptions,
+} from '../utils/validation.js';
 
 /**
  * Configuration for starting an MCP server connection.
@@ -240,6 +249,8 @@ export class MCPClient {
    * ```
    */
   constructor(options: MCPClientOptions = {}) {
+    validateClientOptions(options);
+
     this.options = {
       name: options.name || 'mcp-test-client',
       version: options.version || '1.0.0',
@@ -283,6 +294,8 @@ export class MCPClient {
    * ```
    */
   async start(config: MCPServerConfig): Promise<void> {
+    validateServerConfig(config);
+
     if (this.client) {
       throw new MCPAlreadyStartedError();
     }
@@ -463,6 +476,8 @@ export class MCPClient {
    * ```
    */
   async callTool(options: ToolCallOptions): Promise<CallToolResult> {
+    validateToolCallOptions(options);
+
     if (!this.client) {
       throw new MCPNotStartedError('callTool');
     }
@@ -547,6 +562,8 @@ export class MCPClient {
    * ```
    */
   async readResource(uri: string): Promise<ReadResourceResult> {
+    validateResourceUri(uri);
+
     if (!this.client) {
       throw new MCPNotStartedError('readResource');
     }
@@ -627,6 +644,9 @@ export class MCPClient {
    * ```
    */
   async getPrompt(name: string, args?: Record<string, string>): Promise<GetPromptResult> {
+    validatePromptName(name);
+    validatePromptArgs(args);
+
     if (!this.client) {
       throw new MCPNotStartedError('getPrompt');
     }
@@ -673,6 +693,8 @@ export class MCPClient {
    * ```
    */
   async requestSampling(request: CreateMessageRequestParams): Promise<CreateMessageResult> {
+    validateSamplingRequest(request);
+
     if (!this.client) {
       throw new MCPNotStartedError('requestSampling');
     }
