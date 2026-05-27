@@ -539,20 +539,27 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ## Developer Experience
 
-### [ ] 21. Add VS Code Snippets
+### [x] 21. Add VS Code Snippets
 **Description**: Code snippets for common test patterns.
 
 **Tasks**:
-- Create `.vscode/mcp-tester.code-snippets`
-- Add snippet for test suite
-- Add snippet for basic test
-- Add snippet for tool call test
-- Add snippet for resource test
-- Document available snippets in README
+- [x] Create `.vscode/mcp-tester.code-snippets`
+- [x] Add snippet for test suite (`mcp-test`)
+- [x] Add snippet for tool call test (`mcp-tool`)
+- [x] Add snippet for resource test (`mcp-resource`)
+- [x] Add snippet for prompt test (`mcp-prompt`)
+- [x] Add snippet for client setup (`mcp-client`, `mcp-client-opts`)
+- [x] Add snippet for error handling (`mcp-error`)
+- [x] Add snippet for parallel calls (`mcp-parallel`)
+- [x] Add snippet for list+assert (`mcp-list-tools`, `mcp-list-resources`, `mcp-list-prompts`)
+- [x] Add snippet for assertions (`mcp-assert-text`, `mcp-assert-json`)
+- [x] Add snippet for notifications (`mcp-notifications`)
+- [x] Add snippet for imports (`mcp-import`, `mcp-import-full`)
+- [x] Document available snippets in README
 
 **Impact**: Faster test writing in VS Code
 
-**Estimated Effort**: 1-2 hours
+**Estimated Effort**: 1 hour
 
 ---
 
@@ -943,11 +950,11 @@ The following tasks can be completed quickly and provide immediate value:
 ## Progress Tracking
 
 **Total Items**: 48
-**Completed**: 30
+**Completed**: 31
 **In Progress**: 0
-**Not Started**: 18
+**Not Started**: 17
 
-**Completion Percentage**: 62.5%
+**Completion Percentage**: 64.6%
 
 ---
 

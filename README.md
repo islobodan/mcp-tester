@@ -476,6 +476,30 @@ prettyPrint({ apiKey: 'sk-proj-abc123...', count: 42 });
 
 See [Troubleshooting Guide](./docs/troubleshooting.md) for more details.
 
+## VS Code Snippets
+
+Type `mcp` in any TypeScript file to get started — 15 built-in snippets:
+
+| Prefix | Inserts |
+|--------|--------|
+| `mcp-test` | Full test suite with lifecycle setup |
+| `mcp-tool` | Tool call test + assertion |
+| `mcp-resource` | Resource read test |
+| `mcp-prompt` | Prompt get test |
+| `mcp-client` | `new MCPClient()` + `start()` |
+| `mcp-client-opts` | Client with timeout, retries, log level |
+| `mcp-error` | Error handling test (`rejects.toThrow`) |
+| `mcp-parallel` | `Promise.all` parallel tool calls |
+| `mcp-list-tools` | List tools + `toHaveTool` assertion |
+| `mcp-list-resources` | List resources + `toHaveResource` assertion |
+| `mcp-list-prompts` | List prompts + `toHavePrompt` assertion |
+| `mcp-assert-text` | `assert.toolTextEquals()` |
+| `mcp-assert-json` | `assert.toolJsonEquals()` |
+| `mcp-notifications` | Notification handler setup |
+| `mcp-import` / `mcp-import-full` | Import statements |
+
+Snippets are in `.vscode/mcp-tester.code-snippets` — works out of the box when you open the project in VS Code.
+
 ## Contributing
 
 1. Fork the repository
