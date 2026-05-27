@@ -375,8 +375,10 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 12. Add Snapshot Testing Support
+### [postponed] 12. Add Snapshot Testing Support
 **Description**: Support Jest snapshot testing for tools/resources/prompts.
+
+**Reason for postponement**: Snapshot testing is a poor fit for MCP testing — assertions are more intentional, `jest -u` is a blunt tool that can accept bugs, and dynamic responses cause false failures. A schema diff utility would be more valuable.
 
 **Tasks**:
 - Add snapshot tests to existing test suite
