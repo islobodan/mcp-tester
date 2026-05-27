@@ -357,19 +357,24 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 11. Add Test Code Generator
+### [x] 11. Add Test Code Generator
 **Description**: CLI tool to generate test boilerplate from server inspection.
 
 **Tasks**:
-- Create `src/generate-tests.ts`
-- Add `generate` command to CLI
-- Connect to server, list tools/resources/prompts
-- Generate test file with all available endpoints
-- Include optional test for each tool with sample args
-- Add command-line options for output file, template
-- Document usage
+- [x] Create `src/generate-tests.ts` with `generateTests()` function
+- [x] Add `generate` command to CLI (`mcp-tester generate` / `mcp-tester gen`)
+- [x] Connect to server, list tools/resources/prompts in parallel
+- [x] Generate test file with all available endpoints
+- [x] Generate sample arguments from JSON Schema (types, enums, defaults, examples)
+- [x] Support `--framework jest|vitest` flag
+- [x] Support `--output <file>` to write to file (stdout by default)
+- [x] Support `--description` for custom suite name
+- [x] Support `--no-tools`, `--no-resources`, `--no-prompts`, `--no-matchers` flags
+- [x] Export `generateTests()` and `GenerateTestOptions` from package index
+- [x] 21 tests in `generate-tests.test.ts`
+- [x] Document in CLI help and examples
 
-**Impact**: Quick test scaffolding for new servers
+**Impact**: Quick test scaffolding for new servers — one command generates a full test suite
 
 **Estimated Effort**: 6-8 hours
 
@@ -954,11 +959,11 @@ The following tasks can be completed quickly and provide immediate value:
 ## Progress Tracking
 
 **Total Items**: 48
-**Completed**: 32
+**Completed**: 33
 **In Progress**: 0
-**Not Started**: 16
+**Not Started**: 15
 
-**Completion Percentage**: 66.7%
+**Completion Percentage**: 68.8%
 
 ---
 

@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.2.0] - 2026-04-30
 
 ### Added
+- **Test code generator** (`src/generate-tests.ts`) — generate a complete test file from MCP server inspection:
+  - CLI: `mcp-tester generate node ./server.js -o server.test.ts` (alias: `gen`)
+  - API: `generateTests({ command, args, framework, ... })`
+  - Generates lifecycle tests, tool call tests with sample args from JSON Schema, resource read tests, prompt tests
+  - Options: `--framework jest|vitest`, `--output <file>`, `--description <name>`, `--no-tools`, `--no-resources`, `--no-prompts`, `--no-matchers`
+  - Sample arguments derived from JSON Schema: types, enums, defaults, examples
+  - 21 tests in `generate-tests.test.ts`
 - **Input validation** (`src/utils/validation.ts`) — all MCPClient methods validate inputs before execution:
   - `start()`: validates command (required string), args (string array), env (string values), startupDelay (non-negative number)
   - `callTool()`: validates name (required string), arguments (object), timeout (positive number), retries (non-negative number)
@@ -30,7 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **docs/testing.md** — updated coverage thresholds (was "80%", now per-file table)
 - **AGENTS.md** — updated test count, coverage stats, CI job descriptions, file listing
 - Fixed flaky `delay` test (100ms → 90ms tolerance for timing variance)
-- Updated test count: 397 (was 306)
+- Updated test count: 418 (was 306)
 
 ## [1.1.0] - 2026-04-23
 

@@ -8,7 +8,7 @@
 [![npm downloads](https://img.shields.io/npm/dm/@slbdn/mcp-tester)](https://www.npmjs.com/package/@slbdn/mcp-tester)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Test Status](https://img.shields.io/badge/tests-397%20passing-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)
+[![Test Status](https://img.shields.io/badge/tests-418%20passing-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)
 [![Coverage](https://img.shields.io/badge/coverage-68%2F61%2F60%2F68-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)  <!-- statements/branches/functions/lines -->
 
 A production-ready MCP (Model Context Protocol) client for **automated testing** of MCP servers with Jest.
@@ -84,7 +84,7 @@ No more manual clicking through inspectors — write real tests, run them in CI,
 | Branches | 61% |
 | Functions | 60% |
 | Lines | 68% |
-| Tests | 397 passing |
+| Tests | 418 passing |
 
 Per-file coverage thresholds are set in `jest.config.js` to catch regressions while avoiding CI noise. Run `npm run test:coverage` to see the full breakdown by file. PRs automatically receive a coverage comment via GitHub Actions.
 
@@ -173,11 +173,52 @@ npx @slbdn/mcp-tester list-tools node ./server.js --json
 # Call a tool
 npx @slbdn/mcp-tester call-tool echo node ./server.js --params '{"message":"Hello"}'
 
-# Short aliases: lt, ct, rr, gp
+# Generate test file from server inspection
+npx @slbdn/mcp-tester generate node ./server.js -o server.test.ts
+npx @slbdn/mcp-tester gen node ./server.js --framework vitest --no-resources
+
+# Short aliases: lt, ct, rr, gp, gen
 npx @slbdn/mcp-tester lt node ./server.js
 ```
 
 See [CLI Reference](./docs/cli.md) for all commands and options.
+
+### Generate Test Files
+
+Connect to any MCP server and generate a ready-to-run test file:
+
+```bash
+# Generate Jest test file
+npx @slbdn/mcp-tester generate node ./server.js -o server.test.ts
+
+# Generate Vitest test file
+npx @slbdn/mcp-tester gen node ./server.js --framework vitest
+
+# Skip specific sections
+npx @slbdn/mcp-tester generate node ./server.js --no-resources --no-prompts -o tools-only.test.ts
+```
+
+Or use the API:
+
+```typescript
+import { generateTests } from '@slbdn/mcp-tester';
+
+const code = await generateTests({
+  command: 'node',
+  args: ['./server.js'],
+  framework: 'jest',
+  description: 'My Server Tests',
+});
+
+fs.writeFileSync('server.test.ts', code);
+```
+
+The generator connects to the server, inspects all tools/resources/prompts, and generates:
+- Connection and lifecycle tests
+- Tool call tests with **sample arguments derived from JSON Schema**
+- Resource read tests
+- Prompt tests with sample arguments
+- Proper `beforeEach`/`afterEach` cleanup
 
 ## Speed Up Your Tests with Parallel Execution
 

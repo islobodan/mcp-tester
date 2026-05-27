@@ -86,3 +86,5 @@ export {
   assertHasResource,
   assertHasPrompt,
 } from './matchers.js';
+export { generateTests } from './generate-tests.js';
+export type { GenerateTestOptions } from './generate-tests.js';

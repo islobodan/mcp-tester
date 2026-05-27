@@ -96,6 +96,7 @@ src/
 ├── index.ts                 # Library entry point, exports from client/
 ├── assert.ts                 # Assertion utilities (framework-agnostic)
 ├── matchers.ts               # Custom Jest/Vitest matchers
+├── generate-tests.ts         # Test code generator from server inspection
 ├── client/
 │   ├── MCPClient.ts         # Main client wrapper class (~400 lines)
 │   └── index.ts            # Client module exports
@@ -297,8 +298,8 @@ describe('Integration', () => {
 ```
 
 ### Current Test Suite
-- **Total Tests**: 397 tests (all passing)
-- **Test Suites**: 12
+- **Total Tests**: 418 tests (all passing)
+- **Test Suites**: 13
 - **Test Categories**:
   - Basic Operations: 4 tests
   - Tools (in-memory): 11 tests
@@ -314,6 +315,7 @@ describe('Integration', () => {
   - Masking: 27 tests
   - Logger: 22 tests
   - Validation: 91 tests
+  - Generate Tests: 21 tests
 
 ## Important Gotchas & Non-Obvious Patterns
 
@@ -575,6 +577,7 @@ chore: maintenance tasks
 | `src/utils/env.ts` | Environment variable utilities |
 | `src/assert.ts` | Assertion utilities (framework-agnostic) |
 | `src/matchers.ts` | Custom Jest/Vitest matchers |
+| `src/generate-tests.ts` | Test code generator (generateTests function) |
 | `vitest.d.ts` | Vitest type declarations for matchers |
 | `src/__tests__/fixtures/mock-server.ts` | In-memory mock server for unit tests |
 | `examples/mock-server.js` | Basic standalone MCP server (echo, add, delay, error_tool) |
