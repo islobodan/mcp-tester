@@ -306,6 +306,10 @@ No extra config needed. Just `Promise.all` and go.
 | `start(config)` | `Promise<void>` | Connect to an MCP server |
 | `stop()` | `Promise<void>` | Disconnect and clean up |
 | `isConnected()` | `boolean` | Check connection state |
+| `isHealthy()` | `Promise<HealthStatus>` | Check server health and responsiveness |
+| `getServerPid()` | `number | null` | Get server process PID |
+| `startHealthMonitor(opts)` | `void` | Start periodic health monitoring |
+| `stopHealthMonitor()` | `void` | Stop health monitoring |
 | `listTools()` | `Promise<Tool[]>` | List available tools |
 | `callTool(options)` | `Promise<CallToolResult>` | Call a tool with arguments |
 | `listResources()` | `Promise<Resource[]>` | List available resources |
@@ -317,6 +321,25 @@ No extra config needed. Just `Promise.all` and go.
 | `setNotificationHandlers(handlers)` | `void` | Handle server notifications |
 
 See [API Reference](./docs/api-reference.md) for full details including types, options, and error classes.
+
+## Server Health Checks
+
+Detect crashed servers and zombie processes during long test runs:
+
+```typescript
+// One-time check
+const health = await client.isHealthy();
+console.log(`Healthy: ${health.healthy}, PID: ${health.pid}, latency: ${health.latencyMs}ms`);
+
+// Periodic monitoring
+client.startHealthMonitor({
+  interval: 3000,
+  onUnhealthy: (status) => console.error('Server down:', status.message),
+  onRecovery: (status) => console.log('Server recovered!'),
+});
+```
+
+Health checks detect zombie processes (killed/crashed but `isConnected()` still returns `true`) using `process.kill(pid, 0)`.
 
 ## Custom Jest Matchers
 

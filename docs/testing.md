@@ -411,3 +411,33 @@ it('should add numbers correctly', async () => {
 ```
 
 See [Advanced Usage](./advanced.md#typescript-type-generation) for full documentation.
+
+## Server Health Checks
+
+Use health checks to ensure your server is alive during long test suites:
+
+```typescript
+const health = await client.isHealthy();
+expect(health.healthy).toBe(true);
+expect(health.latencyMs).toBeLessThan(1000);
+expect(health.pid).not.toBeNull();
+```
+
+For long-running test suites, use periodic monitoring to fail fast when the server crashes:
+
+```typescript
+describe('Long test suite', () => {
+  beforeAll(() => {
+    client.startHealthMonitor({
+      interval: 5000,
+      onUnhealthy: (status) => {
+        throw new Error(`Server died: ${status.message}`);
+      },
+    });
+  });
+
+  afterAll(() => client.stopHealthMonitor());
+});
+```
+
+See [Advanced Usage](./advanced.md#server-health-checks) for full documentation.

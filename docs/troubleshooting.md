@@ -63,6 +63,26 @@ rm -rf dist/
 npm run build
 ```
 
+### Server Crashes During Tests
+
+**Problem:** Server process dies mid-test, but `isConnected()` still returns `true`
+
+```typescript
+// Use health checks to detect zombie processes
+const health = await client.isHealthy();
+if (!health.healthy) {
+  console.error(`Server died: ${health.message}`);
+  await client.stop();
+  await client.start({ command: 'node', args: ['./server.js'] });
+}
+
+// Or use periodic monitoring
+client.startHealthMonitor({
+  interval: 3000,
+  onUnhealthy: () => { throw new Error('Server crashed during tests'); },
+});
+```
+
 ### Tests Fail in CI but Pass Locally
 
 - Check Node.js version matches (>= 18)
@@ -96,7 +116,7 @@ Coverage thresholds: **80%** for branches, functions, lines, and statements.
 
 - Only supports **stdio** transport (HTTP not yet implemented)
 - Designed for **Node.js** servers (other runtimes may need adjustments)
-- Mock server is minimal (real servers may behave differently)
+- Mock server has configurable delays, failures, stateful tools, and validation
 
 ## Vitest
 
