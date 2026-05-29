@@ -420,14 +420,30 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 **Tasks**:
 - [x] Replace `any` types with proper MCP SDK types in MockMCPServer
-- [ ] Add simulated delays (configurable)
-- [ ] Add random failures (for testing retry logic)
-- [ ] Add tools that return different results based on input
-- [ ] Add support for streaming responses
-- [ ] Add validation of input schemas
-- [ ] Document mock server capabilities
+- [x] Add simulated delays (configurable `defaultDelay`)
+- [x] Add random failures (`failureRate` 0-1, custom `failureMessage`)
+- [x] Add tools that return different results based on input (`transform`, `counter`, `items`)
+- [x] Add support for streaming responses (`setupStream`, `nextStreamChunk`)
+- [x] Add validation of input schemas (`validateSchemas` option)
+- [x] Document mock server capabilities
 
-**Impact**: Better unit testing without real servers
+**New Tools**:
+| Tool | Description |
+|------|-------------|
+| `counter` | Stateful counter: increment/get/reset |
+| `items` | Stateful item list: add/list/remove/clear |
+| `transform` | Input-based transforms: upper/lower/reverse/length |
+
+**New Features**:
+- `MockServerConfig` — `defaultDelay`, `failureRate`, `validateSchemas`, `failureMessage`
+- Custom handlers: `registerToolHandler`, `registerResourceHandler`, `registerPromptHandler`
+- Call history: `getCallHistory`, `getCallCount`
+- Streaming: `setupStream`, `nextStreamChunk`
+- Dynamic registration: `addTool/addResource/addPrompt`, `removeTool/removeResource/removePrompt`
+- `resetState()` clears counters, items, history, streams
+- 68 tests in `mock-server.test.ts`
+
+**Impact**: Better unit testing — test retry logic, delays, stateful interactions, schema validation
 
 **Estimated Effort**: 4-6 hours
 

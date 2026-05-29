@@ -298,8 +298,8 @@ describe('Integration', () => {
 ```
 
 ### Current Test Suite
-- **Total Tests**: 491 tests (all passing)
-- **Test Suites**: 14
+- **Total Tests**: 559 tests (all passing)
+- **Test Suites**: 15
 - **Test Categories**:
   - Basic Operations: 4 tests
   - Tools (in-memory): 11 tests
@@ -317,6 +317,7 @@ describe('Integration', () => {
   - Validation: 91 tests
   - Generate Tests: 21 tests
   - Property-Based: 73 tests
+  - Mock Server: 68 tests
 
 ## Important Gotchas & Non-Obvious Patterns
 

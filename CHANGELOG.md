@@ -18,6 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 17 masking tests: idempotency, completeness, secret detection, length bounds
   - 12 generate-tests tests: no-throw, serializability, schema priority, nested arrays
   - Fixed flaky `fc.double()` producing NaN/Infinity → use `fc.integer()` for numeric fields
+- **Enhanced mock server** (`src/__tests__/fixtures/mock-server.ts`) — 68 tests:
+  - Configurable delays (`defaultDelay`) and random failures (`failureRate`)
+  - Input schema validation (`validateSchemas` option)
+  - Stateful tools: `counter` (increment/get/reset), `items` (add/list/remove/clear)
+  - Transform tool: `upper`/`lower`/`reverse`/`length` operations
+  - Custom handlers: `registerToolHandler`, `registerResourceHandler`, `registerPromptHandler`
+  - Call history: `getCallHistory`, `getCallCount` for test assertions
+  - Streaming support: `setupStream`, `nextStreamChunk`
+  - Dynamic registration/removal of tools, resources, prompts
 - **Test code generator** (`src/generate-tests.ts`) — generate a complete test file from MCP server inspection:
   - CLI: `mcp-tester generate node ./server.js -o server.test.ts` (alias: `gen`)
   - API: `generateTests({ command, args, framework, ... })`
