@@ -13,6 +13,9 @@ build/
 coverage/
 *.lcov
 
+# Test reports
+reports/
+
 # Environment variables
 .env
 .env.local

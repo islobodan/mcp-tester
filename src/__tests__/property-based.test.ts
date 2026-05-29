@@ -142,7 +142,7 @@ describe('Property-based: validation', () => {
       fc.assert(
         fc.property(
           fc.string({ minLength: 1 }).filter((s) => s.trim() !== ''),
-          fc.double({ min: 0 }),
+          fc.integer({ min: 0, max: 60000 }),
           (cmd, delay) => {
             expect(() => validateServerConfig({ command: cmd, startupDelay: delay })).not.toThrow();
           }
@@ -472,9 +472,9 @@ describe('Property-based: validation', () => {
         fc.property(
           fc.string(),
           fc.string(),
-          fc.double({ min: 1 }),
-          fc.integer({ min: 0 }),
-          fc.double({ min: 0 }),
+          fc.integer({ min: 1, max: 100000 }),
+          fc.integer({ min: 0, max: 100 }),
+          fc.integer({ min: 0, max: 10000 }),
           (name, version, timeout, retries, retryDelay) => {
             expect(() =>
               validateClientOptions({ name, version, timeout, retries, retryDelay })

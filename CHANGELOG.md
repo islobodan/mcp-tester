@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.2.0] - 2026-04-30
 
 ### Added
+- **Visual test reports** — HTML test report auto-generated on every `npm test` run:
+  - Uses `jest-html-reporters` with collapsible test trees, timing, failure details
+  - Report saved to `reports/test-report.html`
+  - CI uploads report as artifact (14-day retention)
+  - Open locally: `open reports/test-report.html`
+- **Property-based tests** (`src/__tests__/property-based.test.ts`) — 73 tests using fast-check:
+  - 44 validation tests: reject/accept all input types, error code invariants
+  - 17 masking tests: idempotency, completeness, secret detection, length bounds
+  - 12 generate-tests tests: no-throw, serializability, schema priority, nested arrays
+  - Fixed flaky `fc.double()` producing NaN/Infinity → use `fc.integer()` for numeric fields
 - **Test code generator** (`src/generate-tests.ts`) — generate a complete test file from MCP server inspection:
   - CLI: `mcp-tester generate node ./server.js -o server.test.ts` (alias: `gen`)
   - API: `generateTests({ command, args, framework, ... })`

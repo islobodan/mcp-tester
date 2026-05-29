@@ -84,5 +84,18 @@ export default {
     },
   },
   coverageReporters: ['text', 'text-summary', 'lcov', 'json-summary'],
+  reporters: [
+    'default',
+    [
+      'jest-html-reporters',
+      {
+        publicPath: './reports',
+        filename: 'test-report.html',
+        expand: true,
+        pageTitle: '@slbdn/mcp-tester Test Report',
+        hideIcon: true,
+      },
+    ],
+  ],
   testTimeout: 30000,
 };
