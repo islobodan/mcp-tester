@@ -552,3 +552,56 @@ interface NotificationHandler {
   onResourceListChanged?: () => void;
 }
 ```
+
+---
+
+## generateTypes
+
+Generate TypeScript type declarations from an MCP server's tool schemas.
+
+```typescript
+import { generateTypes } from '@slbdn/mcp-tester';
+
+const types = await generateTypes({
+  command: 'node',
+  args: ['./server.js'],
+});
+```
+
+### Parameters: `GenerateTypesOptions`
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `command` | `string` | **required** | Command to run the MCP server |
+| `args` | `string[]` | `[]` | Arguments for the server command |
+| `timeout` | `number` | `30000` | Connection timeout (ms) |
+| `includeResources` | `boolean` | `true` | Include resource URI types |
+| `includePrompts` | `boolean` | `true` | Include prompt argument types |
+| `moduleName` | `string` | `'@slbdn/mcp-tester'` | Module name for import hints |
+
+**Returns:** `Promise<string>` — the generated `.d.ts` file content
+
+### Generated Types
+
+| Type | Description |
+|------|-------------|
+| `{ToolName}Args` | Typed interface per tool's input schema |
+| `ToolName` | Union of all tool names |
+| `ToolArgsMap` | Lookup map: `ToolArgsMap['add']` → `AddArgs` |
+| `ToolCall` | Discriminated union for typed `callTool()` |
+| `ResourceUri` | Union of all resource URIs |
+| `{PromptName}Args` | Typed interface per prompt's arguments |
+| `PromptName` | Union of all prompt names |
+| `PromptArgsMap` | Lookup map for prompt arguments |
+| `PromptCall` | Discriminated union for typed `getPrompt()` |
+| `ServerCapabilities` | Overview interface with typed arrays |
+
+### Schema Conversion Functions
+
+These exported functions handle JSON Schema → TypeScript conversion:
+
+| Function | Description |
+|----------|-------------|
+| `schemaToType(schema, indent?)` | Convert a JSON Schema to a TypeScript type string |
+| `toTypeName(name)` | Sanitize a tool/prompt name into a valid TypeScript identifier |
+| `escapePropertyName(name)` | Escape a property name for TypeScript (quote if needed) |

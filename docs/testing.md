@@ -387,3 +387,27 @@ Property-based tests use [fast-check](https://github.com/dubzzz/fast-check) to g
 | `generate-tests.ts` | 12 | No-throw on any schema, JSON serializability, priority order |
 
 Property tests run with 25 iterations per property (configured via `fc.configureGlobal({ numRuns: 25 })`). They're fast (~1s for all 73 tests) and integrated into the normal test suite — no separate command needed.
+
+## TypeScript Type Generation
+
+Generate typed `.d.ts` declarations from your server's tool schemas for type-safe testing:
+
+```bash
+npx @slbdn/mcp-tester generate-types node ./server.js -o server.d.ts
+```
+
+Then use the types in your tests:
+
+```typescript
+import type { ToolArgsMap, ToolName } from './server.d.ts';
+
+it('should add numbers correctly', async () => {
+  const result = await client.callTool({
+    name: 'add',
+    arguments: { a: 3, b: 4 } as ToolArgsMap['add'], // ← type-checked!
+  });
+  expect(result).toReturnText('7');
+});
+```
+
+See [Advanced Usage](./advanced.md#typescript-type-generation) for full documentation.

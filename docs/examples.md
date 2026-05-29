@@ -262,3 +262,39 @@ npx tsx examples/simple-server.ts
 # Run stateful server (counter + todos)
 npx tsx examples/stateful-server.ts
 ```
+
+## Generating TypeScript Types
+
+Connect to any MCP server and generate typed `.d.ts` declarations:
+
+```typescript
+import { generateTypes } from '@slbdn/mcp-tester';
+import { writeFileSync } from 'fs';
+
+const types = await generateTypes({
+  command: 'node',
+  args: ['./my-server.js'],
+});
+
+writeFileSync('my-server-types.d.ts', types);
+```
+
+Or use the CLI:
+
+```bash
+npx @slbdn/mcp-tester generate-types node ./server.js -o server.d.ts
+```
+
+Then use the generated types for type-safe tool calls:
+
+```typescript
+import type { ToolArgsMap, ToolCall } from './server.d.ts';
+
+// TypeScript knows the exact arguments shape
+const result = await client.callTool({
+  name: 'add',
+  arguments: { a: 1, b: 2 } as ToolArgsMap['add'],
+});
+```
+
+**Supported schema features:** primitives, enums, arrays, nested objects, `oneOf`/`anyOf`/`allOf`, `$ref`, `const`, optional fields, JSDoc descriptions.

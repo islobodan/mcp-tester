@@ -97,6 +97,7 @@ src/
 ├── assert.ts                 # Assertion utilities (framework-agnostic)
 ├── matchers.ts               # Custom Jest/Vitest matchers
 ├── generate-tests.ts         # Test code generator from server inspection
+├── generate-types.ts         # TypeScript type generator from tool schemas
 ├── client/
 │   ├── MCPClient.ts         # Main client wrapper class (~400 lines)
 │   └── index.ts            # Client module exports

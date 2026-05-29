@@ -253,6 +253,88 @@ server.getCallHistory()[0].args; // { message: 'test' }
 
 See [Testing Guide](./testing.md#mock-server) for the full mock server API reference.
 
+## TypeScript Type Generation
+
+Generate typed `.d.ts` declarations from any MCP server's tool schemas:
+
+```bash
+npx mcp-tester generate-types node ./server.js -o server.d.ts
+```
+
+Or use the API:
+
+```typescript
+import { generateTypes } from '@slbdn/mcp-tester';
+import { writeFileSync } from 'fs';
+
+const types = await generateTypes({
+  command: 'node',
+  args: ['./server.js'],
+});
+
+writeFileSync('server.d.ts', types);
+```
+
+### Generated Output
+
+```typescript
+/** Echo back the input */
+export interface EchoArgs {
+  /** Message to echo */
+  message: string;
+}
+
+/** Add two numbers */
+export interface AddArgs {
+  a: number;
+  b: number;
+}
+
+/** Union of all tool names */
+export type ToolName = 'echo' | 'add' | 'delay' | 'error_tool';
+
+/** Look up the argument type for a tool by name */
+export interface ToolArgsMap {
+  'echo': EchoArgs;
+  'add': AddArgs;
+}
+
+/** Discriminated union for typed callTool() */
+export type ToolCall =
+  | { name: 'echo'; arguments: EchoArgs }
+  | { name: 'add'; arguments: AddArgs };
+```
+
+### Using Generated Types
+
+```typescript
+import type { ToolArgsMap, ToolName } from './server.d.ts';
+
+// Type-safe arguments
+const result = await client.callTool({
+  name: 'add',
+  arguments: { a: 1, b: 2 } as ToolArgsMap['add'],
+});
+```
+
+### Supported JSON Schema Features
+
+| Feature | TypeScript Output |
+|---------|------------------|
+| `{ type: 'string' }` | `string` |
+| `{ type: 'number' }` | `number` |
+| `{ type: 'boolean' }` | `boolean` |
+| `{ enum: ['a', 'b'] }` | `'a' \| 'b'` |
+| `{ const: 'fixed' }` | `'fixed'` |
+| `{ type: 'array', items: ... }` | `T[]` or `Array<T>` |
+| `{ type: 'object', properties: ... }` | `{ prop: Type }` |
+| `{ oneOf: [...] }` | Union type |
+| `{ anyOf: [...] }` | Union type |
+| `{ allOf: [...] }` | Intersection type |
+| `{ $ref: '#/definitions/X' }` | `X` |
+| Optional fields (not in `required`) | `field?: Type` |
+| `description` | JSDoc comments |
+
 ## Performance Benchmarks
 
 Run the benchmark suite to measure MCP Tester's performance characteristics:
