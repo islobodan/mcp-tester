@@ -7,6 +7,8 @@
 
 import { MCPClient } from './client/MCPClient.js';
 import type { Tool, Resource, Prompt } from '@modelcontextprotocol/sdk/types.js';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 /**
  * Options for test generation.
@@ -16,8 +18,6 @@ export interface GenerateTestOptions {
   command: string;
   /** Arguments for the server command. */
   args?: string[];
-  /** Output file path (writes to stdout if omitted). */
-  output?: string;
   /** Test framework to target. @defaultValue 'jest' */
   framework?: 'jest' | 'vitest';
   /** Include resource tests. @defaultValue true */
@@ -109,7 +109,7 @@ function formatStartCommand(command: string, args?: string[]): string {
 /**
  * Generate tool test cases.
  */
-function generateToolTests(tools: Tool[], framework: string): string {
+function generateToolTests(tools: Tool[]): string {
   if (tools.length === 0) return '';
 
   const lines: string[] = ["  describe('Tools', () => {"];
@@ -125,11 +125,7 @@ function generateToolTests(tools: Tool[], framework: string): string {
     lines.push('');
     lines.push(`    it('should have tool "${tool.name}"', async () => {`);
     lines.push('      const tools = await client.listTools();');
-    if (framework === 'vitest') {
-      lines.push(`      expect(tools).toHaveTool('${tool.name}');`);
-    } else {
-      lines.push(`      expect(tools).toHaveTool('${tool.name}');`);
-    }
+    lines.push(`      expect(tools).toHaveTool('${tool.name}');`);
     lines.push('    });');
     lines.push('');
 
@@ -273,7 +269,7 @@ function buildTestFile(
   ].join('\n');
 
   // Test sections
-  const toolTests = options.includeTools !== false ? generateToolTests(tools, framework) : '';
+  const toolTests = options.includeTools !== false ? generateToolTests(tools) : '';
   const resourceTests = options.includeResources !== false ? generateResourceTests(resources) : '';
   const promptTests = options.includePrompts !== false ? generatePromptTests(prompts) : '';
 
@@ -329,12 +325,12 @@ ${sections.join('\n\n')}
  */
 function getVersion(): string {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const pkg = require('../package.json');
-    return pkg.version || '1.0.0';
+    const pkg = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf-8'));
+    if (pkg.name === '@slbdn/mcp-tester') return pkg.version || '1.0.0';
   } catch {
-    return '1.0.0';
+    /* fallback */
   }
+  return '1.0.0';
 }
 
 /**

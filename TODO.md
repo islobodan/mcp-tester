@@ -695,17 +695,25 @@ new ConsoleLogger({
 
 ---
 
-### [ ] 28. Add Property-Based Testing
-**Description**: Use property-based testing for robustness.
+### [x] 28. Add Property-Based Testing
+**Description**: Use property-based testing (fast-check) for robustness of pure utility functions.
 
 **Tasks**:
-- Install fast-check library
-- Add property-based tests for tool calls
-- Add tests with random inputs
-- Add invariant testing
-- Document property-based testing patterns
+- [x] Install fast-check library as dev dependency
+- [x] 44 validation property tests — reject/accept for all input types, error code invariants
+- [x] 17 masking property tests — idempotency, completeness, secret detection, length bounds
+- [x] 12 generate-tests property tests — no-throw, serializability, enum/default/example priority, nested schemas
+- [x] Configure fast-check with 25 runs per property (fast CI)
+- [x] All 73 tests pass in ~1s
 
-**Impact**: Catch edge cases
+**Scope**: Pure functions only (validation.ts, masking.ts, generate-tests.ts). Async/stateful MCP client methods are not suitable for property-based testing.
+
+**Key Findings**:
+- maskSecrets env var regex requires 4+ non-whitespace/non-quote chars — short values aren't masked
+- maskValue preserves first/last 3 chars — secrets under ~12 chars may be partially reconstructable
+- generateSampleValue never crashes on any JSON Schema combination
+
+**Impact**: Catches edge cases manual tests miss — e.g., AWS key filter starvation, quote chars in env values
 
 **Estimated Effort**: 4-6 hours
 
@@ -959,11 +967,11 @@ The following tasks can be completed quickly and provide immediate value:
 ## Progress Tracking
 
 **Total Items**: 48
-**Completed**: 33
+**Completed**: 34
 **In Progress**: 0
-**Not Started**: 15
+**Not Started**: 14
 
-**Completion Percentage**: 68.8%
+**Completion Percentage**: 70.8%
 
 ---
 

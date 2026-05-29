@@ -37,7 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **docs/testing.md** — updated coverage thresholds (was "80%", now per-file table)
 - **AGENTS.md** — updated test count, coverage stats, CI job descriptions, file listing
 - Fixed flaky `delay` test (100ms → 90ms tolerance for timing variance)
-- Updated test count: 418 (was 306)
+- **Updated test count**: 491 (was 306)
 
 ## [1.1.0] - 2026-04-23
 

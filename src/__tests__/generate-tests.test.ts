@@ -1,9 +1,7 @@
-import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 import { generateTests } from '../generate-tests.js';
 import type { GenerateTestOptions } from '../generate-tests.js';
 import { MCPClient } from '../client/MCPClient.js';
 import fs from 'fs';
-import path from 'path';
 
 const MOCK_SERVER_CMD = 'node';
 const MOCK_SERVER_ARGS = ['./examples/mock-server.js'];
