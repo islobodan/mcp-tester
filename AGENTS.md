@@ -316,8 +316,8 @@ describe('Integration', () => {
 ```
 
 ### Current Test Suite
-- **Total Tests**: 559 tests (all passing)
-- **Test Suites**: 15
+- **Total Tests**: 618 tests (all passing)
+- **Test Suites**: 16
 - **Test Categories**:
   - Basic Operations: 4 tests
   - Tools (in-memory): 11 tests
@@ -336,6 +336,7 @@ describe('Integration', () => {
   - Generate Tests: 21 tests
   - Property-Based: 73 tests
   - Mock Server: 68 tests
+  - Generate Types: 59 tests
 
 ## Important Gotchas & Non-Obvious Patterns
 
@@ -598,6 +599,7 @@ chore: maintenance tasks
 | `src/assert.ts` | Assertion utilities (framework-agnostic) |
 | `src/matchers.ts` | Custom Jest/Vitest matchers |
 | `src/generate-tests.ts` | Test code generator (generateTests function) |
+| `src/generate-types.ts` | TypeScript type generator from tool schemas (generateTypes) |
 | `vitest.d.ts` | Vitest type declarations for matchers |
 | `src/__tests__/fixtures/mock-server.ts` | In-memory mock server for unit tests |
 | `examples/mock-server.js` | Basic standalone MCP server (echo, add, delay, error_tool) |

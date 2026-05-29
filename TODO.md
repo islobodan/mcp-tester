@@ -403,16 +403,23 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 13. Add TypeScript Types for Tool Schemas
+### [x] 13. Add TypeScript Types for Tool Schemas
 **Description**: Generate TypeScript types from tool schemas.
 
 **Tasks**:
-- Research JSON Schema to TypeScript generation
-- Create utility to generate types from tool schemas
-- Add `generate-types` CLI command
-- Support nested schemas and arrays
-- Document usage
-- Add example in examples/
+- [x] Research JSON Schema to TypeScript generation — built custom converter
+- [x] Create utility to generate types from tool schemas — `src/generate-types.ts`
+- [x] Add `generate-types` CLI command — `mcp-tester generate-types`
+- [x] Support nested schemas and arrays — objects, arrays, enums, oneOf, anyOf, allOf, $ref
+- [x] Document usage — README, examples, CLI help
+- [x] Add example in examples/ — usage in header comments
+
+**Generated types**: `{ToolName}Args`, `ToolName`, `ToolArgsMap`, `ToolCall`, `ResourceUri`,
+`PromptName`, `PromptArgsMap`, `PromptCall`, `ServerCapabilities`
+
+**CLI**: `npx mcp-tester generate-types node ./server.js -o server.d.ts`
+**API**: `import { generateTypes } from '@slbdn/mcp-tester'`
+**59 tests** in `src/__tests__/generate-types.test.ts`
 
 **Impact**: Type-safe tool calling
 
@@ -989,9 +996,9 @@ The following tasks can be completed quickly and provide immediate value:
 ## Progress Tracking
 
 **Total Items**: 48
-**Completed**: 36
+**Completed**: 37
 **In Progress**: 0
-**Not Started**: 12
+**Not Started**: 11
 
 **Completion Percentage**: 72.9%
 

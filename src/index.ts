@@ -88,3 +88,5 @@ export {
 } from './matchers.js';
 export { generateTests } from './generate-tests.js';
 export type { GenerateTestOptions } from './generate-tests.js';
+export { generateTypes } from './generate-types.js';
+export type { GenerateTypesOptions } from './generate-types.js';

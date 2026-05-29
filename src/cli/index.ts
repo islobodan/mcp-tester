@@ -4,6 +4,7 @@ import { Command } from 'commander';
 import { MCPClient } from '../client/MCPClient.js';
 import { MCPConnectionError, MCPTimeoutError, MCPServerError } from '../utils/errors.js';
 import { generateTests } from '../generate-tests.js';
+import { generateTypes } from '../generate-types.js';
 
 const program = new Command();
 
@@ -382,6 +383,49 @@ program
     }
   });
 
+// Generate TypeScript types command
+program
+  .command('generate-types')
+  .alias('gen-types')
+  .description('Generate TypeScript type declarations from MCP server tool schemas')
+  .argument('<command>', 'Command to run the MCP server')
+  .argument('[args...]', 'Arguments for the server command')
+  .option('-o, --output <file>', 'Output file path (prints to stdout if omitted)')
+  .option('--module-name <name>', 'Module name for import hints', '@slbdn/mcp-tester')
+  .option('--no-resources', 'Skip resource URI types')
+  .option('--no-prompts', 'Skip prompt argument types')
+  .action(async (command: string, serverArgs: string[], opts: Record<string, unknown>) => {
+    try {
+      console.error('🔍 Inspecting MCP server for type generation...');
+
+      const types = await generateTypes({
+        command,
+        args: serverArgs,
+        moduleName: opts['moduleName'] as string | undefined,
+        includeResources: opts['resources'] !== false,
+        includePrompts: opts['prompts'] !== false,
+        timeout: parseInt(String(opts['timeout'] || '30000')),
+      });
+
+      if (opts['output']) {
+        const fs = await import('fs');
+        const path = await import('path');
+        const outputPath = String(opts['output']);
+        const dir = path.dirname(outputPath);
+        if (dir && dir !== '.') {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+        fs.writeFileSync(outputPath, types, 'utf-8');
+        console.error(`✅ Generated type declarations: ${outputPath}`);
+      } else {
+        process.stdout.write(types);
+      }
+    } catch (error) {
+      console.error(`❌ Error: ${error instanceof Error ? error.message : String(error)}`);
+      process.exit(1);
+    }
+  });
+
 // Add custom help with examples using Commander's built-in help system
 program.addHelpText(
   'after',
@@ -395,6 +439,7 @@ Examples:
   mcp-tester lt node ./server.js                          # short alias for list-tools
   mcp-tester ct echo node ./server.js --params '{}'       # short alias for call-tool
   mcp-tester generate node ./server.js -o server.test.ts  # generate test file
+  mcp-tester generate-types node ./server.js -o server.d.ts  # generate TypeScript types
 `
 );
 

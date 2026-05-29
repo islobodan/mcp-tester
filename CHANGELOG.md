@@ -27,6 +27,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Call history: `getCallHistory`, `getCallCount` for test assertions
   - Streaming support: `setupStream`, `nextStreamChunk`
   - Dynamic registration/removal of tools, resources, prompts
+- **TypeScript type generator** (`src/generate-types.ts`) — generate typed `.d.ts` from MCP tool schemas:
+  - `generateTypes()` API: connect to server, inspect schemas, emit TypeScript declarations
+  - CLI: `npx mcp-tester generate-types node ./server.js -o server.d.ts`
+  - Handles: primitives, enums, arrays, nested objects, oneOf/anyOf/allOf, $ref, const
+  - Generated types: `{Tool}Args`, `ToolName`, `ToolArgsMap`, `ToolCall`, `ResourceUri`, `PromptCall`
+  - 59 tests (12 e2e + 4 options + 43 unit)
 - **Test code generator** (`src/generate-tests.ts`) — generate a complete test file from MCP server inspection:
   - CLI: `mcp-tester generate node ./server.js -o server.test.ts` (alias: `gen`)
   - API: `generateTests({ command, args, framework, ... })`

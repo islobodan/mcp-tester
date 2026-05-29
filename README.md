@@ -8,7 +8,7 @@
 [![npm downloads](https://img.shields.io/npm/dm/@slbdn/mcp-tester)](https://www.npmjs.com/package/@slbdn/mcp-tester)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Test Status](https://img.shields.io/badge/tests-559%20passing-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)
+[![Test Status](https://img.shields.io/badge/tests-618%20passing-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)
 [![Coverage](https://img.shields.io/badge/coverage-68%2F61%2F60%2F68-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)  <!-- statements/branches/functions/lines -->
 
 A production-ready MCP (Model Context Protocol) client for **automated testing** of MCP servers with Jest.
@@ -84,7 +84,7 @@ No more manual clicking through inspectors — write real tests, run them in CI,
 | Branches | 61% |
 | Functions | 60% |
 | Lines | 68% |
-| Tests | 559 passing |
+| Tests | 618 passing |
 
 Per-file coverage thresholds are set in `jest.config.js` to catch regressions while avoiding CI noise. Run `npm run test:coverage` to see the full breakdown by file. PRs automatically receive a coverage comment via GitHub Actions.
 
@@ -231,6 +231,43 @@ The generator connects to the server, inspects all tools/resources/prompts, and 
 - Resource read tests
 - Prompt tests with sample arguments
 - Proper `beforeEach`/`afterEach` cleanup
+
+### Generate TypeScript Types
+
+Connect to any MCP server and generate typed `.d.ts` declarations from tool schemas:
+
+```bash
+# Generate TypeScript types
+npx @slbdn/mcp-tester generate-types node ./server.js -o server.d.ts
+```
+
+Or use the API:
+
+```typescript
+import { generateTypes } from '@slbdn/mcp-tester';
+import { writeFileSync } from 'fs';
+
+const types = await generateTypes({
+  command: 'node',
+  args: ['./server.js'],
+});
+
+writeFileSync('server.d.ts', types);
+```
+
+This produces typed interfaces you can use for type-safe tool calls:
+
+```typescript
+import type { ToolArgsMap } from './server.d.ts';
+
+// TypeScript knows: { a: number; b: number }
+const result = await client.callTool({
+  name: 'add',
+  arguments: { a: 1, b: 2 } as ToolArgsMap['add'],
+});
+```
+
+Supports: primitives, enums, nested objects, arrays, `oneOf`/`anyOf`/`allOf`, `$ref`, `const`.
 
 ## Speed Up Your Tests with Parallel Execution
 

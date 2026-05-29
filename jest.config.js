@@ -82,6 +82,12 @@ export default {
       functions: 80,
       lines: 75,
     },
+    './src/generate-types.ts': {
+      statements: 80,
+      branches: 75,
+      functions: 90,
+      lines: 80,
+    },
   },
   coverageReporters: ['text', 'text-summary', 'lcov', 'json-summary'],
   reporters: [
