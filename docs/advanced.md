@@ -335,6 +335,53 @@ const result = await client.callTool({
 | Optional fields (not in `required`) | `field?: Type` |
 | `description` | JSDoc comments |
 
+## Server Health Checks
+
+Detect zombie processes and monitor server health during long-running test suites.
+
+### One-Time Check
+
+```typescript
+const health = await client.isHealthy();
+if (!health.healthy) {
+  console.error(`Server unhealthy: ${health.message}`);
+  console.error(`PID ${health.pid}, latency: ${health.latencyMs}ms`);
+}
+```
+
+### Periodic Monitoring
+
+```typescript
+client.startHealthMonitor({
+  interval: 3000,
+  onUnhealthy: (status) => {
+    console.error(`Server died: ${status.message}`);
+    // Optionally restart or fail the test
+  },
+  onRecovery: (status) => {
+    console.log(`Server recovered after crash`);
+  },
+});
+
+// Clean up
+client.stopHealthMonitor(); // explicit
+await client.stop();          // also stops the monitor
+```
+
+### Zombie Detection
+
+Uses `process.kill(pid, 0)` to check if the server process is still alive. Works on macOS, Linux, and Windows. Detects crashed, killed, or orphaned processes that `isConnected()` cannot detect (the client object still exists but the process is gone).
+
+### HealthStatus Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `healthy` | `boolean` | Is the server responsive |
+| `checkedAt` | `number` | Unix timestamp of the check |
+| `latencyMs` | `number` | Round-trip time, or -1 if failed |
+| `pid` | `number \| null` | Server process ID |
+| `message` | `string` | Human-readable status |
+
 ## Performance Benchmarks
 
 Run the benchmark suite to measure MCP Tester's performance characteristics:

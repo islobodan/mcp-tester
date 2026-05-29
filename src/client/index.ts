@@ -5,4 +5,6 @@ export type {
   ToolCallOptions,
   NotificationHandler,
   RetryOptions,
+  HealthStatus,
+  HealthMonitorOptions,
 } from './MCPClient.js';

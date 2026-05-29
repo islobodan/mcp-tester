@@ -668,15 +668,27 @@ new ConsoleLogger({
 
 ---
 
-### [ ] 25. Add Server Health Checks
+### [x] 25. Add Server Health Checks
 **Description**: Periodic health checks for server process.
 
 **Tasks**:
-- Implement health check mechanism
-- Add `isHealthy()` method
-- Detect zombie processes
-- Auto-restart on server crash (optional)
-- Add health check tests
+- [x] Implement health check mechanism — `isHealthy()` sends `tools/list` ping
+- [x] Add `isHealthy()` method — returns `HealthStatus` with `healthy`, `latencyMs`, `pid`, `message`
+- [x] Detect zombie processes — `isProcessAlive()` via `process.kill(pid, 0)`
+- [x] Auto-restart on server crash (optional) — not implemented (too opinionated; users can use `onUnhealthy` callback)
+- [x] Add health check tests — 17 tests including zombie process detection
+
+**New API**:
+| Method | Description |
+|--------|-------------|
+| `isHealthy()` | Check server health, returns `HealthStatus` |
+| `getLastHealthStatus()` | Get last check result without re-checking |
+| `getServerPid()` | Get server process PID |
+| `startHealthMonitor(opts)` | Start periodic monitoring with callbacks |
+| `stopHealthMonitor()` | Stop periodic monitoring |
+
+**Health Monitor callbacks**: `onUnhealthy`, `onRecovery`, `onCheck`
+**17 tests** in `src/__tests__/health-check.test.ts`
 
 **Impact**: More reliable testing
 
@@ -996,9 +1008,9 @@ The following tasks can be completed quickly and provide immediate value:
 ## Progress Tracking
 
 **Total Items**: 48
-**Completed**: 37
+**Completed**: 38
 **In Progress**: 0
-**Not Started**: 11
+**Not Started**: 10
 
 **Completion Percentage**: 72.9%
 

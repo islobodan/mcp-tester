@@ -555,7 +555,77 @@ interface NotificationHandler {
 
 ---
 
-## generateTypes
+## Server Health Checks
+
+Detect zombie processes and monitor server health.
+
+```typescript
+import { MCPClient } from '@slbdn/mcp-tester';
+
+const client = new MCPClient();
+await client.start({ command: 'node', args: ['./server.js'] });
+
+// One-time health check
+const health = await client.isHealthy();
+if (!health.healthy) {
+  console.error(`Server unhealthy: ${health.message}`);
+}
+console.log(`PID: ${health.pid}, latency: ${health.latencyMs}ms`);
+```
+
+### Periodic Monitoring
+
+```typescript
+client.startHealthMonitor({
+  interval: 3000,  // check every 3 seconds
+  onUnhealthy: (status) => console.error('Server down:', status.message),
+  onRecovery: (status) => console.log('Server recovered!'),
+  onCheck: (status) => console.log(`Health: ${status.healthy} (${status.latencyMs}ms)`),
+});
+
+// Stop monitoring
+client.stopHealthMonitor();
+// Also stopped automatically by client.stop()
+```
+
+### Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `isHealthy()` | `Promise<HealthStatus>` | Check server health and responsiveness |
+| `getLastHealthStatus()` | `HealthStatus \| null` | Get last check result (no new request) |
+| `getServerPid()` | `number \| null` | Get server process PID |
+| `startHealthMonitor(opts)` | `void` | Start periodic health monitoring |
+| `stopHealthMonitor()` | `void` | Stop periodic monitoring |
+
+### HealthStatus
+
+```typescript
+interface HealthStatus {
+  healthy: boolean;       // Is the server responsive?
+  checkedAt: number;     // Timestamp of the check
+  latencyMs: number;     // Round-trip latency, or -1 if failed
+  pid: number | null;    // Server process PID
+  message: string;       // Human-readable status
+}
+```
+
+### HealthMonitorOptions
+
+```typescript
+interface HealthMonitorOptions {
+  interval?: number;                          // Check interval in ms (default 5000)
+  onUnhealthy?: (status: HealthStatus) => void;  // Called when server goes down
+  onRecovery?: (status: HealthStatus) => void;   // Called when server recovers
+  onCheck?: (status: HealthStatus) => void;      // Called on every check
+}
+```
+
+### Zombie Process Detection
+
+Health checks detect dead server processes using `process.kill(pid, 0)` (signal 0 — existence check only). If the PID is no longer alive, `isHealthy()` returns `{ healthy: false, message: 'Server process (PID 12345) is no longer running' }`.
+
+---
 
 Generate TypeScript type declarations from an MCP server's tool schemas.
 

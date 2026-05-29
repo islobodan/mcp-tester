@@ -226,6 +226,36 @@ const DEFAULT_RETRY_OPTIONS: RetryOptions = {
  *
  * @see {@link https://spec.modelcontextprotocol.io | MCP Specification}
  */
+/**
+ * Health status of an MCP server connection.
+ */
+export interface HealthStatus {
+  /** Whether the server is healthy and responsive. */
+  healthy: boolean;
+  /** Timestamp of the health check. */
+  checkedAt: number;
+  /** Round-trip latency in ms, or -1 if the check failed. */
+  latencyMs: number;
+  /** Server PID, or null if not available. */
+  pid: number | null;
+  /** Human-readable status message. */
+  message: string;
+}
+
+/**
+ * Options for periodic health monitoring.
+ */
+export interface HealthMonitorOptions {
+  /** Interval between health checks in ms. @defaultValue 5000 */
+  interval?: number;
+  /** Called when the server becomes unhealthy. */
+  onUnhealthy?: (status: HealthStatus) => void;
+  /** Called when a previously unhealthy server recovers. */
+  onRecovery?: (status: HealthStatus) => void;
+  /** Called on every health check (healthy or not). */
+  onCheck?: (status: HealthStatus) => void;
+}
+
 export class MCPClient {
   private client: Client | null = null;
   private transport: StdioClientTransport | null = null;
@@ -233,6 +263,8 @@ export class MCPClient {
   private notificationHandlers: NotificationHandler;
   private logger: Logger;
   private retryOptions: RetryOptions;
+  private healthMonitorTimer: ReturnType<typeof setInterval> | null = null;
+  private lastHealthStatus: HealthStatus | null = null;
 
   /**
    * Creates a new MCPClient instance.
@@ -374,6 +406,8 @@ export class MCPClient {
    */
   async stop(): Promise<void> {
     this.logger.info('Stopping MCP client');
+
+    this.stopHealthMonitor();
 
     if (this.client) {
       try {
@@ -787,6 +821,157 @@ export class MCPClient {
   }
 
   /**
+   * Check if the server is alive and responsive.
+   *
+   * Sends a lightweight request to verify the server process is running
+   * and the MCP connection is functional. Detects zombie processes by
+   * checking if the PID is still alive.
+   *
+   * @returns A {@link HealthStatus} object with health info
+   *
+   * @example
+   * ```typescript
+   * const health = await client.isHealthy();
+   * if (!health.healthy) {
+   *   console.error(`Server unhealthy: ${health.message}`);
+   *   console.error(`PID ${health.pid}, latency: ${health.latencyMs}ms`);
+   * }
+   * ```
+   */
+  async isHealthy(): Promise<HealthStatus> {
+    const checkedAt = Date.now();
+
+    // Not connected at all
+    if (!this.client || !this.transport) {
+      return {
+        healthy: false,
+        checkedAt,
+        latencyMs: -1,
+        pid: null,
+        message: 'Client is not connected',
+      };
+    }
+
+    // Check if the server process is still alive (zombie detection)
+    const pid = this.transport.pid;
+    if (pid !== null && !isProcessAlive(pid)) {
+      return {
+        healthy: false,
+        checkedAt,
+        latencyMs: -1,
+        pid,
+        message: `Server process (PID ${pid}) is no longer running`,
+      };
+    }
+
+    // Send a lightweight request to verify MCP responsiveness
+    try {
+      const start = startTimer();
+      await this.client.request({ method: 'tools/list', params: {} }, ListToolsResultSchema);
+      const latencyMs = start();
+
+      const status: HealthStatus = {
+        healthy: true,
+        checkedAt,
+        latencyMs,
+        pid,
+        message: 'Server is healthy',
+      };
+      this.lastHealthStatus = status;
+      return status;
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      const status: HealthStatus = {
+        healthy: false,
+        checkedAt,
+        latencyMs: -1,
+        pid,
+        message: `Health check failed: ${msg}`,
+      };
+      this.lastHealthStatus = status;
+      return status;
+    }
+  }
+
+  /**
+   * Get the last health check result without performing a new check.
+   *
+   * @returns The last {@link HealthStatus}, or null if never checked
+   */
+  getLastHealthStatus(): HealthStatus | null {
+    return this.lastHealthStatus;
+  }
+
+  /**
+   * Get the server process PID.
+   *
+   * @returns The PID, or null if not connected / not available
+   */
+  getServerPid(): number | null {
+    return this.transport?.pid ?? null;
+  }
+
+  /**
+   * Start periodic health monitoring.
+   *
+   * Runs {@link isHealthy} at the specified interval and calls
+   * the provided callbacks on status changes.
+   *
+   * @param options - Monitoring configuration
+   *
+   * @example
+   * ```typescript
+   * client.startHealthMonitor({
+   *   interval: 3000,
+   *   onUnhealthy: (status) => console.error('Server down:', status.message),
+   *   onRecovery: (status) => console.log('Server recovered:', status.message),
+   * });
+   *
+   * // Later...
+   * client.stopHealthMonitor();
+   * ```
+   */
+  startHealthMonitor(options: HealthMonitorOptions = {}): void {
+    this.stopHealthMonitor();
+
+    const interval = options.interval ?? 5000;
+    let wasHealthy: boolean | null = null;
+
+    const check = async () => {
+      const status = await this.isHealthy();
+      options.onCheck?.(status);
+
+      if (!status.healthy && wasHealthy !== false) {
+        wasHealthy = false;
+        options.onUnhealthy?.(status);
+        this.logger.warn(`Health monitor: server unhealthy — ${status.message}`);
+      } else if (status.healthy && wasHealthy === false) {
+        wasHealthy = true;
+        options.onRecovery?.(status);
+        this.logger.info('Health monitor: server recovered');
+      } else if (status.healthy) {
+        wasHealthy = true;
+      }
+    };
+
+    // Run first check immediately
+    check();
+    this.healthMonitorTimer = setInterval(check, interval);
+    this.logger.debug(`Health monitor started (interval: ${interval}ms)`);
+  }
+
+  /**
+   * Stop periodic health monitoring.
+   */
+  stopHealthMonitor(): void {
+    if (this.healthMonitorTimer) {
+      clearInterval(this.healthMonitorTimer);
+      this.healthMonitorTimer = null;
+      this.logger.debug('Health monitor stopped');
+    }
+  }
+
+  /**
    * Sets the logging level for the client.
    *
    * @param level - The log level to set
@@ -843,5 +1028,18 @@ export class MCPClient {
 
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+}
+
+/**
+ * Check if a process with the given PID is still alive.
+ * Uses signal 0 (does not actually send a signal, just checks existence).
+ */
+function isProcessAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
   }
 }

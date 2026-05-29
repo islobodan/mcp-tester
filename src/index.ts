@@ -34,6 +34,8 @@ export {
   type ToolCallOptions,
   type NotificationHandler,
   type RetryOptions,
+  type HealthStatus,
+  type HealthMonitorOptions,
 } from './client/index.js';
 export {
   MCPClientError,

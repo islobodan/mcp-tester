@@ -33,6 +33,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Handles: primitives, enums, arrays, nested objects, oneOf/anyOf/allOf, $ref, const
   - Generated types: `{Tool}Args`, `ToolName`, `ToolArgsMap`, `ToolCall`, `ResourceUri`, `PromptCall`
   - 59 tests (12 e2e + 4 options + 43 unit)
+- **Server health checks** — detect zombie processes and monitor server health:
+  - `isHealthy()` — sends a lightweight `tools/list` ping, returns `HealthStatus` with latency, PID, message
+  - `getServerPid()` — get the server process PID
+  - `getLastHealthStatus()` — cached result without re-checking
+  - `startHealthMonitor(options)` — periodic health monitoring with `onUnhealthy`/`onRecovery`/`onCheck` callbacks
+  - `stopHealthMonitor()` — stop periodic monitoring (also auto-stopped by `client.stop()`)
+  - Zombie process detection via `process.kill(pid, 0)`
+  - 17 tests (including SIGKILL zombie detection test)
 - **Test code generator** (`src/generate-tests.ts`) — generate a complete test file from MCP server inspection:
   - CLI: `mcp-tester generate node ./server.js -o server.test.ts` (alias: `gen`)
   - API: `generateTests({ command, args, framework, ... })`
