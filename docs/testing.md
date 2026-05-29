@@ -249,28 +249,97 @@ describe('Unit Test', () => {
     const result = await mockServer.handleToolCall('echo', { message: 'test' });
     expect(result.content[0].text).toBe('Echo: test');
   });
-
-  it('should read resources', async () => {
-    const result = await mockServer.handleResourceRead('config://settings');
-    expect(result.contents[0].text).toContain('setting1');
-  });
-
-  it('should get prompts', async () => {
-    const result = await mockServer.handlePromptGet('greet', { name: 'Alice' });
-    expect(result.messages[0].content.text).toContain('Alice');
-  });
-
-  it('should support custom tools', () => {
-    mockServer.addTool({
-      name: 'custom',
-      description: 'A custom tool',
-      inputSchema: { type: 'object', properties: {} },
-    });
-  });
 });
 ```
 
-**Built-in mock tools:** `echo`, `add`, `delay`, `error_tool`
+### Built-in Tools
+
+| Tool | Description |
+|------|-------------|
+| `echo` | Echo back the input message |
+| `add` | Add two numbers |
+| `delay` | Delay for specified milliseconds |
+| `error_tool` | Always throws an error |
+| `counter` | Stateful counter: increment, get, reset |
+| `items` | Stateful item list: add, list, remove, clear |
+| `transform` | Transform text: upper, lower, reverse, length |
+
+### Configurable Behavior
+
+```typescript
+// Simulate slow responses
+const server = new MockMCPServer({ defaultDelay: 100 });
+
+// Simulate random failures (30% chance)
+const server = new MockMCPServer({ failureRate: 0.3, failureMessage: 'Network error' });
+
+// Enable input schema validation
+const server = new MockMCPServer({ validateSchemas: true });
+
+// Update config at runtime
+server.setConfig({ failureRate: 1.0 }); // always fail
+```
+
+### Custom Handlers
+
+```typescript
+// Custom tool handler
+server.registerToolHandler('echo', (args) => [
+  { type: 'text', text: `Custom: ${args.message}` },
+]);
+
+// Custom resource handler
+server.registerResourceHandler('text://example', (uri) => [
+  { uri, mimeType: 'text/plain', text: 'Custom content' },
+]);
+
+// Custom prompt handler
+server.registerPromptHandler('greet', (args) => [
+  { role: 'assistant', content: { type: 'text', text: `Hi ${args.name}!` } },
+]);
+```
+
+### Stateful Testing
+
+```typescript
+// Counter tool
+await server.handleToolCall('counter', { action: 'increment', by: 5 });
+const result = await server.handleToolCall('counter', { action: 'get' });
+// result.content[0].text === 'Counter: 5'
+
+// Items tool
+await server.handleToolCall('items', { action: 'add', value: 'apple' });
+await server.handleToolCall('items', { action: 'add', value: 'banana' });
+const list = await server.handleToolCall('items', { action: 'list' });
+// list.content[0].text === '["apple","banana"]'
+```
+
+### Call History & Assertions
+
+```typescript
+await server.handleToolCall('echo', { message: 'a' });
+await server.handleToolCall('echo', { message: 'b' });
+
+server.getCallCount('echo'); // 2
+server.getCallHistory();     // [{ tool: 'echo', args: {...}, timestamp: ... }, ...]
+```
+
+### Dynamic Registration
+
+```typescript
+// Add new tools/resources/prompts at runtime
+server.addTool({ name: 'myTool', description: '...', inputSchema: { ... } });
+server.addResource({ uri: 'custom://data', name: 'Data', description: '...', mimeType: 'text/plain' });
+server.addPrompt({ name: 'myPrompt', description: '...', arguments: [] });
+
+// Remove them
+server.removeTool('echo');
+server.removeResource('text://example');
+server.removePrompt('greet');
+
+// Reset all stateful data
+server.resetState();
+```
 **Built-in mock resources:** `text://example`, `config://settings`
 **Built-in mock prompts:** `greet`, `summarize`
 

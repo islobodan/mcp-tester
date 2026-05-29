@@ -176,23 +176,82 @@ describe('My Feature', () => {
     const result = await mockServer.handleToolCall('echo', { message: 'test' });
     expect(result.content[0].text).toBe('Echo: test');
   });
-
-  it('should add custom tools', () => {
-    mockServer.addTool({
-      name: 'custom',
-      description: 'Custom tool',
-      inputSchema: { type: 'object', properties: {} },
-    });
-
-    const result = await mockServer.handleToolCall('custom', {});
-    // ...
-  });
 });
 ```
 
-**Built-in mock tools:** `echo`, `add`, `delay`, `error_tool`
-**Built-in mock resources:** `text://example`, `config://settings`
-**Built-in mock prompts:** `greet`, `summarize`
+### Built-in Tools
+
+| Tool | Description |
+|------|-------------|
+| `echo` | Echo back the input message |
+| `add` | Add two numbers |
+| `delay` | Delay for specified milliseconds |
+| `error_tool` | Always throws an error |
+| `counter` | Stateful counter: increment, get, reset |
+| `items` | Stateful item list: add, list, remove, clear |
+| `transform` | Transform text: upper, lower, reverse, length |
+
+### Built-in Resources: `text://example`, `config://settings`
+### Built-in Prompts: `greet`, `summarize`
+
+### Testing Retry Logic
+
+```typescript
+const server = new MockMCPServer({ failureRate: 0.5 });
+// 50% of tool calls will throw randomly
+// Great for testing retry logic
+```
+
+### Testing with Delays
+
+```typescript
+const server = new MockMCPServer({ defaultDelay: 100 });
+// All tool calls take ≥100ms — test timeout handling
+```
+
+### Input Validation Testing
+
+```typescript
+const server = new MockMCPServer({ validateSchemas: true });
+await expect(
+  server.handleToolCall('echo', {})
+).rejects.toThrow('Missing required field');
+```
+
+### Stateful Testing
+
+```typescript
+await server.handleToolCall('counter', { action: 'increment', by: 5 });
+await server.handleToolCall('counter', { action: 'increment', by: 3 });
+const result = await server.handleToolCall('counter', { action: 'get' });
+// result.content[0].text === 'Counter: 8'
+
+server.resetState(); // clears counters, items, call history
+```
+
+### Custom Handlers
+
+```typescript
+server.registerToolHandler('echo', (args) => [
+  { type: 'text', text: `Override: ${args.message}` },
+]);
+server.registerResourceHandler('text://example', (uri) => [
+  { uri, mimeType: 'text/plain', text: 'Custom content' },
+]);
+server.registerPromptHandler('greet', (args) => [
+  { role: 'assistant', content: { type: 'text', text: `Hi ${args.name}!` } },
+]);
+```
+
+### Call History Assertions
+
+```typescript
+await server.handleToolCall('echo', { message: 'test' });
+server.getCallCount('echo');    // 1
+server.getCallHistory()[0].args; // { message: 'test' }
+```
+
+See [Testing Guide](./testing.md#mock-server) for the full mock server API reference.
 
 ## Performance Benchmarks
 

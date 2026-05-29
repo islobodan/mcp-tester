@@ -266,8 +266,26 @@ describe('Feature', () => {
     const result = await mockServer.handleToolCall('echo', { message: 'test' });
     expect(result.content[0].text).toBe('Echo: test');
   });
+
+  it('should test retry logic with random failures', async () => {
+    mockServer.setConfig({ failureRate: 1.0, failureMessage: 'fail' });
+    await expect(mockServer.handleToolCall('echo', { message: 'test' }))
+      .rejects.toThrow('fail');
+  });
+
+  it('should track call history', async () => {
+    await mockServer.handleToolCall('echo', { message: 'a' });
+    await mockServer.handleToolCall('echo', { message: 'b' });
+    expect(mockServer.getCallCount('echo')).toBe(2);
+  });
 });
 ```
+
+**Built-in tools:** `echo`, `add`, `delay`, `error_tool`, `counter`, `items`, `transform`
+
+**Config options:** `{ defaultDelay, failureRate, validateSchemas, failureMessage }`
+
+**Custom handlers:** `registerToolHandler`, `registerResourceHandler`, `registerPromptHandler`
 
 #### 6. Using Real Server Process (stdio)
 ```typescript
@@ -653,7 +671,7 @@ chore: maintenance tasks
 
 1. **Transport**: Only supports stdio transport (HTTP transport not implemented)
 2. **Runtime**: Designed for Node.js servers (other runtimes may need adjustments)
-3. **Mock Server**: Minimal implementation (real servers may have different behavior)
+3. **Mock Server**: Enhanced implementation with delays, failures, stateful tools, validation, custom handlers, and call history tracking
 4. **Test Coverage**: Per-file floors (60–100%) — run `npm run test:coverage` to see breakdown
 
 ## Security Considerations
