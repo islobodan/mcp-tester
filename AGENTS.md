@@ -34,7 +34,7 @@ npm run build
 # Watch mode — auto-rebuild on source changes
 npm run dev
 
-# Run all tests
+# Run all tests (generates reports/test-report.html)
 npm test
 
 # Run tests in watch mode

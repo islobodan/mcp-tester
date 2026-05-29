@@ -88,6 +88,18 @@ No more manual clicking through inspectors — write real tests, run them in CI,
 
 Per-file coverage thresholds are set in `jest.config.js` to catch regressions while avoiding CI noise. Run `npm run test:coverage` to see the full breakdown by file. PRs automatically receive a coverage comment via GitHub Actions.
 
+## Test Reports
+
+Every `npm test` run auto-generates an HTML test report:
+
+```bash
+npm test                # generates reports/test-report.html
+open reports/test-report.html   # macOS
+xdg-open reports/test-report.html  # Linux
+```
+
+The report includes collapsible test trees, timing per test, and failure details with stack traces. CI uploads reports as artifacts (14-day retention).
+
 ## Install
 
 ```bash
@@ -431,7 +443,7 @@ mcp-tester/
 npm install          # Install dependencies
 npm run build        # Compile TypeScript
 npm run dev          # Watch mode — auto-rebuild on source changes
-npm test             # Run tests (306 tests)
+npm test             # Run tests (auto-generates reports/test-report.html)
 npm run lint         # Lint code
 npm run format       # Format with Prettier
 ```
