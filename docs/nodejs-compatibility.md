@@ -40,7 +40,7 @@ Targets TypeScript 5.3+ with ES2022 output.
 
 **GitHub Actions:**
 ```yaml
-- uses: actions/setup-node@v3
+- uses: actions/setup-node@v5
   with:
     node-version: '20'
 ```

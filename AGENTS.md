@@ -500,7 +500,7 @@ assert.equal(tools.length, 4);
    - Generates `coverage-summary.json` (jest `json-summary` reporter)
    - Extracts coverage percentages (statements/branches/functions/lines)
    - Comments PR with coverage table via `marocchino/sticky-pull-request-comment@v2`
-   - Uploads to Codecov via `codecov/codecov-action@v4`
+   - Uploads to Codecov via `codecov/codecov-action@v5`
 
 3. **lint**: Separate linting job
    - Runs ESLint and Prettier checks
