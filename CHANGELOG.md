@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-07-01
+
 ### Added
 - **HTTP and SSE transport support** — connect to remote MCP servers:
   - `StreamableHttpServerConfig` (`transport: 'http'`) — modern MCP Streamable HTTP (POST + SSE GET)
@@ -18,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 15 integration tests (Streamable HTTP + SSE) against server-everything
   - 5 CLI HTTP transport tests
   - 14 validation tests for HTTP/SSE configs
+
+### Changed
+- `MCPServerConfig` is now a deprecated alias for `StdioServerConfig` (backward compatible)
+- `start()` accepts the `ServerConfig` discriminated union instead of `MCPServerConfig`
+- CLI commands now accept `[command]` (optional) instead of `<command>` to support HTTP/SSE
 
 ## [1.3.0] - 2026-07-01
 
