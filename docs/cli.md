@@ -8,6 +8,41 @@ Install globally or use via npx:
 npx @slbdn/mcp-tester test node ./server.js
 ```
 
+## Transports
+
+The CLI supports three transport types:
+
+### Stdio (default)
+
+Pass the command and arguments as positional args:
+
+```bash
+mcp-tester test node ./server.js
+mcp-tester list-tools node ./server.js --json
+```
+
+### HTTP (Streamable HTTP)
+
+Pass the URL as the first argument (auto-detected), or use `--transport http --url`:
+
+```bash
+# Auto-detect: URL as first arg
+mcp-tester test http://localhost:3000/mcp
+mcp-tester list-tools http://localhost:3000/mcp --json
+
+# Explicit
+mcp-tester test --transport http --url http://localhost:3000/mcp
+
+# With headers
+mcp-tester test --transport http --url https://api.example.com/mcp --headers '{"Authorization":"Bearer token"}'
+```
+
+### SSE (legacy)
+
+```bash
+mcp-tester test --transport sse --url http://localhost:3000/sse
+```
+
 ## Commands
 
 ### `test` — Test Server Connection

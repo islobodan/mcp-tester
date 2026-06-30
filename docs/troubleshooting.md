@@ -114,7 +114,7 @@ Coverage thresholds: **80%** for branches, functions, lines, and statements.
 
 ## Known Limitations
 
-- Only supports **stdio** transport (HTTP not yet implemented)
+- Supports **stdio**, **Streamable HTTP**, and **SSE** transports
 - Designed for **Node.js** servers (other runtimes may need adjustments)
 - Mock server has configurable delays, failures, stateful tools, and validation
 

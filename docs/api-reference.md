@@ -40,33 +40,68 @@ const client = new MCPClient({
 
 ---
 
-### `start(config: MCPServerConfig): Promise<void>`
+### `start(config: ServerConfig): Promise<void>`
 
-Start the client and connect to an MCP server via stdio.
+Start the client and connect to an MCP server. Supports three transport types:
 
-**Parameters:**
+#### Stdio (default)
+
+Spawns a local server process and communicates via stdin/stdout.
 
 | Param | Type | Required | Description |
 |-------|------|----------|-------------|
-| `config.command` | `string` | ✅ | Command to execute (e.g., `'node'`, `'python3'`) |
+| `config.transport` | `'stdio'` | | Omit for default (stdio) |
+| `config.command` | `string` | ✅ | Command to execute (e.g., `'node'`) |
 | `config.args` | `string[]` | | Arguments to pass to the command |
-| `config.env` | `Record<string, string \| undefined>` | | Environment variables for the server process |
+| `config.env` | `Record<string, string \| undefined>` | | Environment variables |
 | `config.startupDelay` | `number` | | Override startup delay (ms) |
-
-**Throws:**
-- `MCPAlreadyStartedError` — if the client is already connected
-- `MCPConnectionError` — if the server fails to start
 
 ```typescript
 await client.start({
   command: 'node',
-  args: ['./server.js', '--production'],
-  env: {
-    NODE_ENV: 'production',
-    API_KEY: process.env.API_KEY,
-  },
+  args: ['./server.js'],
 });
 ```
+
+#### Streamable HTTP
+
+Connects to a remote server via the MCP Streamable HTTP transport (POST + SSE GET).
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `config.transport` | `'http'` | ✅ | Must be `'http'` |
+| `config.url` | `string` | ✅ | Server endpoint URL |
+| `config.headers` | `Record<string, string>` | | Custom HTTP headers |
+| `config.sessionId` | `string` | | Resume existing session |
+
+```typescript
+await client.start({
+  transport: 'http',
+  url: 'https://api.example.com/mcp',
+  headers: { Authorization: 'Bearer token' },
+});
+```
+
+#### SSE (legacy)
+
+Connects to a server using the deprecated SSE transport.
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `config.transport` | `'sse'` | ✅ | Must be `'sse'` |
+| `config.url` | `string` | ✅ | SSE endpoint URL |
+| `config.headers` | `Record<string, string>` | | Custom HTTP headers |
+
+```typescript
+await client.start({
+  transport: 'sse',
+  url: 'http://localhost:3000/sse',
+});
+```
+
+**Throws:**
+- `MCPAlreadyStartedError` — if the client is already connected
+- `MCPConnectionError` — if the connection fails
 
 ---
 
@@ -87,6 +122,17 @@ Check if the client is connected.
 ```typescript
 if (client.isConnected()) {
   console.log('Client is active');
+}
+```
+
+### `getTransportType(): TransportType | null`
+
+Get the active transport type. Returns `'stdio'`, `'http'`, `'sse'`, or `null`.
+
+```typescript
+const type = client.getTransportType();
+if (type === 'http') {
+  console.log('Connected via HTTP');
 }
 ```
 

@@ -1,6 +1,8 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-// Note: Server process is managed by StdioClientTransport, no manual spawn needed
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
+import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import {
   ListToolsRequest,
   ListToolsResultSchema,
@@ -52,12 +54,20 @@ import {
   validatePromptArgs,
   validateSamplingRequest,
   validateClientOptions,
+  type TransportType,
 } from '../utils/validation.js';
 
 /**
- * Configuration for starting an MCP server connection.
+ * Configuration for starting an MCP server connection via **stdio** transport.
+ *
+ * This is the default transport — spawns a local server process and communicates
+ * over stdin/stdout.
  */
-export interface MCPServerConfig {
+export interface StdioServerConfig {
+  /**
+   * Transport type. Always `'stdio'`. Can be omitted (stdio is the default).
+   */
+  transport?: 'stdio';
   /**
    * The command to execute the MCP server (e.g., "node", "python").
    */
@@ -76,6 +86,57 @@ export interface MCPServerConfig {
    */
   startupDelay?: number;
 }
+
+/**
+ * Configuration for connecting to a remote MCP server via **Streamable HTTP** transport.
+ *
+ * Uses HTTP POST for sending messages and Server-Sent Events (GET) for receiving.
+ * This is the recommended transport for remote servers (MCP spec 2025-03-26+).
+ */
+export interface StreamableHttpServerConfig {
+  /** Always `'http'`. */
+  transport: 'http';
+  /** The MCP server endpoint URL (e.g. `http://localhost:3000/mcp`). */
+  url: string;
+  /** Additional HTTP headers to send (e.g. `{ Authorization: 'Bearer token' }`). */
+  headers?: Record<string, string>;
+  /** Existing session ID to resume. If omitted, a new session is created. */
+  sessionId?: string;
+  /** Custom `RequestInit` for low-level fetch control. */
+  requestInit?: RequestInit;
+}
+
+/**
+ * Configuration for connecting to a remote MCP server via **SSE** transport.
+ *
+ * Uses Server-Sent Events for receiving and HTTP POST for sending.
+ * @deprecated Prefer {@link StreamableHttpServerConfig} (`'http'`) for new servers.
+ * SSE is kept for backward compatibility with older MCP servers.
+ */
+export interface SseServerConfig {
+  /** Always `'sse'`. */
+  transport: 'sse';
+  /** The SSE endpoint URL (e.g. `http://localhost:3000/sse`). */
+  url: string;
+  /** Additional HTTP headers to send. */
+  headers?: Record<string, string>;
+  /** Custom `RequestInit` for low-level fetch control. */
+  requestInit?: RequestInit;
+}
+
+/**
+ * Union of all supported server transport configurations.
+ *
+ * - `StdioServerConfig` (default) — local process via stdin/stdout
+ * - `StreamableHttpServerConfig` — modern HTTP transport
+ * - `SseServerConfig` — legacy SSE transport
+ */
+export type ServerConfig = StdioServerConfig | StreamableHttpServerConfig | SseServerConfig;
+
+/**
+ * @deprecated Use {@link StdioServerConfig} instead. Kept as an alias for backward compatibility.
+ */
+export type MCPServerConfig = StdioServerConfig;
 
 /**
  * Options for configuring the MCPClient instance.
@@ -258,7 +319,8 @@ export interface HealthMonitorOptions {
 
 export class MCPClient {
   private client: Client | null = null;
-  private transport: StdioClientTransport | null = null;
+  private transport: Transport | null = null;
+  private transportType: TransportType | null = null;
   private options: MCPClientOptions;
   private notificationHandlers: NotificationHandler;
   private logger: Logger;
@@ -310,41 +372,59 @@ export class MCPClient {
   /**
    * Starts the client and connects to the MCP server.
    *
-   * Spawns the server process and establishes the MCP connection.
-   * The server process lifecycle is managed by StdioClientTransport.
+   * Supports three transport types:
+   * - **stdio** (default): Spawns a local server process
+   * - **http**: Connects to a Streamable HTTP endpoint
+   * - **sse**: Connects to a legacy SSE endpoint
    *
-   * @param config - Server configuration including command and arguments
+   * @param config - Server configuration (stdio, http, or sse)
    * @throws `MCPAlreadyStartedError` if client is already started
-   * @throws Error if server fails to start
-   * @example
+   * @throws `MCPConnectionError` if the connection fails
+   *
+   * @example Stdio (default)
    * ```typescript
    * await client.start({
    *   command: 'node',
-   *   args: ['./server.js', '--production'],
-   *   env: { NODE_ENV: 'production' },
+   *   args: ['./server.js'],
+   * });
+   * ```
+   *
+   * @example Streamable HTTP
+   * ```typescript
+   * await client.start({
+   *   transport: 'http',
+   *   url: 'http://localhost:3000/mcp',
+   * });
+   * ```
+   *
+   * @example SSE (legacy)
+   * ```typescript
+   * await client.start({
+   *   transport: 'sse',
+   *   url: 'http://localhost:3000/sse',
    * });
    * ```
    */
-  async start(config: MCPServerConfig): Promise<void> {
+  async start(config: ServerConfig): Promise<void> {
     validateServerConfig(config);
 
     if (this.client) {
       throw new MCPAlreadyStartedError();
     }
 
-    this.logger.info(`Starting MCP client: ${this.options.name} v${this.options.version}`);
-    this.logger.debug(`Server command: ${config.command}`, config.args || []);
+    // Determine transport type
+    const transportType: TransportType =
+      (config as { transport?: string }).transport === 'http'
+        ? 'http'
+        : (config as { transport?: string }).transport === 'sse'
+          ? 'sse'
+          : 'stdio';
+    this.transportType = transportType;
 
-    const mergedEnv = mergeEnvironments(process.env, config.env);
-    const commandStr = `${config.command}${config.args ? ' ' + config.args.join(' ') : ''}`;
+    this.logger.info(`Starting MCP client: ${this.options.name} v${this.options.version}`);
 
     try {
-      // Use StdioClientTransport to spawn the server process (single process)
-      this.transport = new StdioClientTransport({
-        command: config.command,
-        args: config.args || [],
-        env: mergedEnv,
-      });
+      this.transport = this.createTransport(config, transportType);
 
       this.client = new Client(
         {
@@ -371,7 +451,7 @@ export class MCPClient {
       this.setupNotificationHandlers();
 
       await this.client.connect(this.transport);
-      this.logger.info('Successfully connected to MCP server');
+      this.logger.info(`Successfully connected to MCP server via ${transportType} transport`);
     } catch (error) {
       this.logger.error('Failed to start MCP client:', error);
       if (this.transport) {
@@ -383,14 +463,60 @@ export class MCPClient {
         this.transport = null;
       }
       this.client = null;
+      this.transportType = null;
       if (error instanceof MCPClientError) {
         throw error;
       }
+      const connStr =
+        transportType === 'stdio'
+          ? `${(config as StdioServerConfig).command}${(config as StdioServerConfig).args ? ' ' + (config as StdioServerConfig).args!.join(' ') : ''}`
+          : (config as StreamableHttpServerConfig | SseServerConfig).url;
       throw new MCPConnectionError(
-        `Failed to connect to MCP server: ${error instanceof Error ? error.message : String(error)}`,
-        commandStr
+        `Failed to connect to MCP server via ${transportType}: ${error instanceof Error ? error.message : String(error)}`,
+        connStr
       );
     }
+  }
+
+  /**
+   * Creates the appropriate transport instance based on the config type.
+   */
+  private createTransport(config: ServerConfig, transportType: TransportType): Transport {
+    if (transportType === 'stdio') {
+      const cfg = config as StdioServerConfig;
+      this.logger.debug(`Server command: ${cfg.command}`, cfg.args || []);
+      const mergedEnv = mergeEnvironments(process.env, cfg.env);
+      return new StdioClientTransport({
+        command: cfg.command,
+        args: cfg.args || [],
+        env: mergedEnv,
+      });
+    }
+
+    if (transportType === 'http') {
+      const cfg = config as StreamableHttpServerConfig;
+      this.logger.debug(`Connecting to HTTP endpoint: ${cfg.url}`);
+      const requestInit: RequestInit = { ...cfg.requestInit };
+      if (cfg.headers) {
+        requestInit.headers = {
+          ...cfg.headers,
+          ...(requestInit.headers as Record<string, string>),
+        };
+      }
+      return new StreamableHTTPClientTransport(new URL(cfg.url), {
+        requestInit,
+        sessionId: cfg.sessionId,
+      });
+    }
+
+    // SSE
+    const cfg = config as SseServerConfig;
+    this.logger.debug(`Connecting to SSE endpoint: ${cfg.url}`);
+    const requestInit: RequestInit = { ...cfg.requestInit };
+    if (cfg.headers) {
+      requestInit.headers = { ...cfg.headers, ...(requestInit.headers as Record<string, string>) };
+    }
+    return new SSEClientTransport(new URL(cfg.url), { requestInit });
   }
 
   /**
@@ -427,6 +553,7 @@ export class MCPClient {
       this.transport = null;
     }
 
+    this.transportType = null;
     this.logger.info('MCP client stopped');
   }
 
@@ -852,16 +979,18 @@ export class MCPClient {
       };
     }
 
-    // Check if the server process is still alive (zombie detection)
-    const pid = this.transport.pid;
-    if (pid !== null && !isProcessAlive(pid)) {
-      return {
-        healthy: false,
-        checkedAt,
-        latencyMs: -1,
-        pid,
-        message: `Server process (PID ${pid}) is no longer running`,
-      };
+    // For stdio transport, check if the server process is still alive (zombie detection)
+    if (this.transportType === 'stdio') {
+      const pid = this.getStdioPid();
+      if (pid !== null && !isProcessAlive(pid)) {
+        return {
+          healthy: false,
+          checkedAt,
+          latencyMs: -1,
+          pid,
+          message: `Server process (PID ${pid}) is no longer running`,
+        };
+      }
     }
 
     // Send a lightweight request to verify MCP responsiveness
@@ -870,6 +999,7 @@ export class MCPClient {
       await this.client.request({ method: 'tools/list', params: {} }, ListToolsResultSchema);
       const latencyMs = start();
 
+      const pid = this.getStdioPid();
       const status: HealthStatus = {
         healthy: true,
         checkedAt,
@@ -881,6 +1011,7 @@ export class MCPClient {
       return status;
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
+      const pid = this.getStdioPid();
       const status: HealthStatus = {
         healthy: false,
         checkedAt,
@@ -905,10 +1036,23 @@ export class MCPClient {
   /**
    * Get the server process PID.
    *
-   * @returns The PID, or null if not connected / not available
+   * Only applicable to stdio transport. Returns null for HTTP/SSE transports
+   * (no local process).
+   *
+   * @returns The PID, or null if not connected / not a stdio transport
    */
   getServerPid(): number | null {
-    return this.transport?.pid ?? null;
+    return this.getStdioPid();
+  }
+
+  /**
+   * Get the PID from a stdio transport, or null for other transports.
+   */
+  private getStdioPid(): number | null {
+    if (this.transportType !== 'stdio' || !this.transport) {
+      return null;
+    }
+    return (this.transport as StdioClientTransport).pid ?? null;
   }
 
   /**
@@ -969,6 +1113,15 @@ export class MCPClient {
       this.healthMonitorTimer = null;
       this.logger.debug('Health monitor stopped');
     }
+  }
+
+  /**
+   * Get the transport type in use.
+   *
+   * @returns `'stdio'`, `'http'`, `'sse'`, or null if not connected
+   */
+  getTransportType(): TransportType | null {
+    return this.transportType;
   }
 
   /**

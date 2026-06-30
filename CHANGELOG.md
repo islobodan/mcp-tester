@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **HTTP and SSE transport support** — connect to remote MCP servers:
+  - `StreamableHttpServerConfig` (`transport: 'http'`) — modern MCP Streamable HTTP (POST + SSE GET)
+  - `SseServerConfig` (`transport: 'sse'`) — legacy SSE transport
+  - `ServerConfig` union type — `StdioServerConfig | StreamableHttpServerConfig | SseServerConfig`
+  - `getTransportType()` method — returns `'stdio'`, `'http'`, `'sse'`, or `null`
+  - URL auto-detection in CLI (passing a URL as first arg uses HTTP transport)
+  - CLI `--transport`, `--url`, `--headers` options on all commands
+  - 15 integration tests (Streamable HTTP + SSE) against server-everything
+  - 5 CLI HTTP transport tests
+  - 14 validation tests for HTTP/SSE configs
+
 ## [1.3.0] - 2026-07-01
 
 ### Added

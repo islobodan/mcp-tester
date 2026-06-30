@@ -29,6 +29,11 @@
 
 export {
   MCPClient,
+  type ServerConfig,
+  type StdioServerConfig,
+  type StreamableHttpServerConfig,
+  type SseServerConfig,
+  /** @deprecated Use StdioServerConfig */
   type MCPServerConfig,
   type MCPClientOptions,
   type ToolCallOptions,

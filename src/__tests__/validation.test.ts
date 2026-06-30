@@ -135,6 +135,116 @@ describe('Input Validation', () => {
     });
   });
 
+  // ─── HTTP / SSE transport config ───────────────────────────────────────
+
+  describe('validateServerConfig — HTTP transport', () => {
+    it('should accept valid http config', () => {
+      expect(() =>
+        validateServerConfig({ transport: 'http', url: 'http://localhost:3000/mcp' })
+      ).not.toThrow();
+    });
+
+    it('should accept https url', () => {
+      expect(() =>
+        validateServerConfig({ transport: 'http', url: 'https://api.example.com/mcp' })
+      ).not.toThrow();
+    });
+
+    it('should accept config with headers', () => {
+      expect(() =>
+        validateServerConfig({
+          transport: 'http',
+          url: 'http://localhost:3000/mcp',
+          headers: { Authorization: 'Bearer token' },
+        })
+      ).not.toThrow();
+    });
+
+    it('should accept config with sessionId', () => {
+      expect(() =>
+        validateServerConfig({
+          transport: 'http',
+          url: 'http://localhost:3000/mcp',
+          sessionId: 'abc-123',
+        })
+      ).not.toThrow();
+    });
+
+    it('should reject missing url', () => {
+      expect(() => validateServerConfig({ transport: 'http' })).toThrow(MCPClientError);
+      expect(() => validateServerConfig({ transport: 'http' })).toThrow(/url is required/i);
+    });
+
+    it('should reject empty url', () => {
+      expect(() => validateServerConfig({ transport: 'http', url: '' })).toThrow(MCPClientError);
+    });
+
+    it('should reject non-string url', () => {
+      expect(() => validateServerConfig({ transport: 'http', url: 123 })).toThrow(MCPClientError);
+    });
+
+    it('should reject invalid url format', () => {
+      expect(() => validateServerConfig({ transport: 'http', url: 'not-a-url' })).toThrow(
+        MCPClientError
+      );
+      expect(() => validateServerConfig({ transport: 'http', url: 'not-a-url' })).toThrow(
+        /not a valid url/i
+      );
+    });
+
+    it('should reject non-http protocol', () => {
+      expect(() =>
+        validateServerConfig({ transport: 'http', url: 'ftp://localhost/file' })
+      ).toThrow(MCPClientError);
+      expect(() =>
+        validateServerConfig({ transport: 'http', url: 'ftp://localhost/file' })
+      ).toThrow(/http or https/i);
+    });
+
+    it('should reject non-object headers', () => {
+      expect(() =>
+        validateServerConfig({
+          transport: 'http',
+          url: 'http://localhost:3000/mcp',
+          headers: 'bad',
+        })
+      ).toThrow(MCPClientError);
+    });
+
+    it('should reject non-string header values', () => {
+      expect(() =>
+        validateServerConfig({
+          transport: 'http',
+          url: 'http://localhost:3000/mcp',
+          headers: { Auth: 123 },
+        })
+      ).toThrow(MCPClientError);
+    });
+  });
+
+  describe('validateServerConfig — SSE transport', () => {
+    it('should accept valid sse config', () => {
+      expect(() =>
+        validateServerConfig({ transport: 'sse', url: 'http://localhost:3000/sse' })
+      ).not.toThrow();
+    });
+
+    it('should reject missing url for sse', () => {
+      expect(() => validateServerConfig({ transport: 'sse' })).toThrow(MCPClientError);
+    });
+  });
+
+  describe('validateServerConfig — unknown transport', () => {
+    it('should reject unknown transport type', () => {
+      expect(() => validateServerConfig({ transport: 'websocket', url: 'ws://localhost' })).toThrow(
+        MCPClientError
+      );
+      expect(() => validateServerConfig({ transport: 'websocket', url: 'ws://localhost' })).toThrow(
+        /unknown transport/i
+      );
+    });
+  });
+
   // ─── validateToolCallOptions ────────────────────────────────────────────
 
   describe('validateToolCallOptions', () => {

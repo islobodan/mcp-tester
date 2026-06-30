@@ -1,4 +1,5 @@
 import { exec } from 'child_process';
+import { spawn } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 import { readFileSync } from 'fs';
@@ -349,5 +350,83 @@ describe('CLI Tool', () => {
       // Clean up
       require('fs').unlinkSync(hangScript);
     });
+  });
+
+  // ─── HTTP transport ──────────────────────────────────────────────────
+
+  describe('HTTP transport', () => {
+    let httpServer: ReturnType<typeof spawn>;
+    const HTTP_PORT = 3197;
+    const EVERYTHING = path.join(
+      process.cwd(),
+      'node_modules',
+      '@modelcontextprotocol',
+      'server-everything',
+      'dist',
+      'index.js'
+    );
+
+    beforeAll(async () => {
+      httpServer = spawn('node', [EVERYTHING, 'streamableHttp'], {
+        env: { ...process.env, PORT: String(HTTP_PORT) },
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+      // Wait for server to start
+      for (let i = 0; i < 50; i++) {
+        try {
+          await fetch(`http://localhost:${HTTP_PORT}/`);
+          break;
+        } catch {
+          await new Promise((r) => setTimeout(r, 200));
+        }
+      }
+    }, 15000);
+
+    afterAll(() => {
+      if (httpServer) httpServer.kill('SIGTERM');
+    });
+
+    it('should test server via HTTP with --transport and --url', async () => {
+      const { stdout } = await execAsync(
+        `node ${CLI_PATH} test --transport http --url http://localhost:${HTTP_PORT}/mcp`,
+        { timeout: 15000 }
+      );
+      expect(stdout).toContain('Connected successfully');
+      expect(stdout).toContain('Tools:');
+    }, 20000);
+
+    it('should auto-detect HTTP from URL positional arg', async () => {
+      const { stdout } = await execAsync(
+        `node ${CLI_PATH} test http://localhost:${HTTP_PORT}/mcp`,
+        { timeout: 15000 }
+      );
+      expect(stdout).toContain('Connected successfully');
+    }, 20000);
+
+    it('should list tools via HTTP', async () => {
+      const { stdout } = await execAsync(
+        `node ${CLI_PATH} list-tools http://localhost:${HTTP_PORT}/mcp`,
+        { timeout: 15000 }
+      );
+      expect(stdout).toContain('Available tools');
+    }, 20000);
+
+    it('should call a tool via HTTP', async () => {
+      const { stdout } = await execAsync(
+        `node ${CLI_PATH} call-tool echo http://localhost:${HTTP_PORT}/mcp --params '{"message":"cli-http"}'`,
+        { timeout: 15000 }
+      );
+      expect(stdout).toContain('cli-http');
+    }, 20000);
+
+    it('should list tools via HTTP as JSON', async () => {
+      const { stdout } = await execAsync(
+        `node ${CLI_PATH} list-tools http://localhost:${HTTP_PORT}/mcp --json`,
+        { timeout: 15000 }
+      );
+      const parsed = JSON.parse(stdout);
+      expect(parsed.tools).toBeDefined();
+      expect(parsed.tools.length).toBeGreaterThan(0);
+    }, 20000);
   });
 });

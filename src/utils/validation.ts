@@ -8,17 +8,24 @@
 import { MCPClientError } from './errors.js';
 
 /**
- * Validate `start()` config — command is required and must be a non-empty string.
+ * Transport types supported by MCPClient.
  */
-export function validateServerConfig(config: unknown): asserts config is {
-  command: string;
-  args?: string[];
-  env?: Record<string, string | undefined>;
-  startupDelay?: number;
-} {
+export type TransportType = 'stdio' | 'http' | 'sse';
+
+/**
+ * Validate `start()` config.
+ *
+ * Supports three transport types:
+ * - **stdio** (default): `{ command, args, env, startupDelay }`
+ * - **http**: `{ transport: 'http', url, headers, sessionId }`
+ * - **sse**: `{ transport: 'sse', url, headers }`
+ */
+export function validateServerConfig(config: unknown): void {
   if (config === null || config === undefined) {
     throw new MCPClientError(
-      'Server config is required. Pass an object with at least { command: "node" }.',
+      'Server config is required.' +
+        ' For stdio: { command: "node", args: ["./server.js"] }.' +
+        ' For HTTP: { transport: "http", url: "http://localhost:3000/mcp" }.',
       'MCP_INVALID_CONFIG'
     );
   }
@@ -26,17 +33,38 @@ export function validateServerConfig(config: unknown): asserts config is {
   if (typeof config !== 'object' || Array.isArray(config)) {
     throw new MCPClientError(
       `Server config must be an object, got ${typeof config}.` +
-        ' Example: { command: "node", args: ["./server.js"] }',
+        ' For stdio: { command: "node", args: ["./server.js"] }.' +
+        ' For HTTP: { transport: "http", url: "http://localhost:3000/mcp" }.',
       'MCP_INVALID_CONFIG'
     );
   }
 
   const cfg = config as Record<string, unknown>;
 
+  // Determine transport type
+  const transport = (cfg.transport as string) || 'stdio';
+
+  if (transport === 'http' || transport === 'sse') {
+    validateHttpConfig(cfg, transport);
+  } else if (transport === 'stdio') {
+    validateStdioConfig(cfg);
+  } else {
+    throw new MCPClientError(
+      `Unknown transport type "${transport}".` +
+        ' Supported values: "stdio" (default), "http", "sse".',
+      'MCP_INVALID_CONFIG'
+    );
+  }
+}
+
+/**
+ * Validate stdio transport config — command is required.
+ */
+function validateStdioConfig(cfg: Record<string, unknown>): void {
   // command
   if (!('command' in cfg) || cfg.command === undefined || cfg.command === null) {
     throw new MCPClientError(
-      'Server config.command is required.' +
+      'Server config.command is required for stdio transport.' +
         ' Specify the executable to run, e.g. { command: "node", args: ["./server.js"] }.',
       'MCP_INVALID_CONFIG'
     );
@@ -118,6 +146,93 @@ export function validateServerConfig(config: unknown): asserts config is {
         'MCP_INVALID_CONFIG'
       );
     }
+  }
+}
+
+/**
+ * Validate HTTP/SSE transport config — url is required.
+ */
+function validateHttpConfig(cfg: Record<string, unknown>, transport: 'http' | 'sse'): void {
+  const example =
+    transport === 'http'
+      ? '{ transport: "http", url: "http://localhost:3000/mcp" }'
+      : '{ transport: "sse", url: "http://localhost:3000/sse" }';
+
+  // url
+  if (!('url' in cfg) || cfg.url === undefined || cfg.url === null) {
+    throw new MCPClientError(
+      `Server config.url is required for ${transport} transport.` + ` Example: ${example}`,
+      'MCP_INVALID_CONFIG'
+    );
+  }
+
+  if (typeof cfg.url !== 'string') {
+    throw new MCPClientError(
+      `Server config.url must be a string, got ${typeof cfg.url}.` + ` Example: ${example}`,
+      'MCP_INVALID_CONFIG'
+    );
+  }
+
+  if (cfg.url.trim() === '') {
+    throw new MCPClientError(
+      `Server config.url cannot be empty for ${transport} transport.` + ` Example: ${example}`,
+      'MCP_INVALID_CONFIG'
+    );
+  }
+
+  // Validate URL format
+  try {
+    // eslint-disable-next-line no-new
+    new URL(cfg.url);
+  } catch {
+    throw new MCPClientError(
+      `Server config.url is not a valid URL: "${cfg.url}".` +
+        ` Example: ${transport === 'http' ? 'http://localhost:3000/mcp' : 'http://localhost:3000/sse'}`,
+      'MCP_INVALID_CONFIG'
+    );
+  }
+
+  // Must be http or https
+  const parsed = new URL(cfg.url);
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new MCPClientError(
+      `Server config.url protocol must be http or https, got "${parsed.protocol}".` +
+        ` Example: ${transport === 'http' ? 'http://localhost:3000/mcp' : 'http://localhost:3000/sse'}`,
+      'MCP_INVALID_CONFIG'
+    );
+  }
+
+  // headers (optional)
+  if ('headers' in cfg && cfg.headers !== undefined) {
+    if (typeof cfg.headers !== 'object' || cfg.headers === null || Array.isArray(cfg.headers)) {
+      throw new MCPClientError(
+        `Server config.headers must be an object, got ${typeof cfg.headers}.` +
+          ' Example: { Authorization: "Bearer token" }',
+        'MCP_INVALID_CONFIG'
+      );
+    }
+
+    for (const [key, val] of Object.entries(cfg.headers as Record<string, unknown>)) {
+      if (typeof val !== 'string') {
+        throw new MCPClientError(
+          `Server config.headers["${key}"] must be a string, got ${typeof val}.`,
+          'MCP_INVALID_CONFIG'
+        );
+      }
+    }
+  }
+
+  // sessionId (optional, http only)
+  if (
+    transport === 'http' &&
+    'sessionId' in cfg &&
+    cfg.sessionId !== undefined &&
+    typeof cfg.sessionId !== 'string'
+  ) {
+    throw new MCPClientError(
+      `Server config.sessionId must be a string, got ${typeof cfg.sessionId}.`,
+      'MCP_INVALID_CONFIG'
+    );
   }
 }
 

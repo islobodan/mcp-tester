@@ -344,17 +344,21 @@ This document tracks planned improvements, features, and enhancements for mcp-te
 
 ---
 
-### [ ] 10. Add HTTP Transport Support
+### [x] 10. Add HTTP Transport Support
 **Description**: Support HTTP-based MCP servers in addition to stdio.
 
 **Tasks**:
-- Research HTTP transport in MCP specification
-- Create `HttpMCPClient` class or extend existing
-- Add `MCPHttpConfig` interface
-- Implement HTTP transport using fetch
-- Add tests for HTTP transport
-- Document HTTP vs stdio trade-offs
-- Update examples to show both transports
+- [x] Research HTTP transport in MCP specification — SDK provides `StreamableHTTPClientTransport` and `SSEClientTransport`
+- [x] Extend existing `MCPClient` — single `start()` accepts a discriminated union `ServerConfig`
+- [x] Add `StreamableHttpServerConfig`, `SseServerConfig` interfaces + `ServerConfig` union
+- [x] Implement HTTP transport using SDK transports (StreamableHTTP + SSE)
+- [x] Add tests for HTTP transport — 15 integration tests + 5 CLI tests + 14 validation tests
+- [x] Document HTTP vs stdio trade-offs — README, api-reference, troubleshooting, cli docs
+- [x] Update examples to show both transports — README Quick Start, CLI help examples
+
+**New types**: `ServerConfig`, `StdioServerConfig`, `StreamableHttpServerConfig`, `SseServerConfig`
+**New methods**: `getTransportType()`
+**CLI**: `--transport http|sse`, `--url`, `--headers` + URL auto-detection
 
 **Impact**: Enables testing of remote MCP servers
 
@@ -1008,9 +1012,9 @@ The following tasks can be completed quickly and provide immediate value:
 ## Progress Tracking
 
 **Total Items**: 48
-**Completed**: 38
+**Completed**: 39
 **In Progress**: 0
-**Not Started**: 10
+**Not Started**: 9
 
 **Completion Percentage**: 72.9%
 

@@ -317,8 +317,8 @@ describe('Integration', () => {
 ```
 
 ### Current Test Suite
-- **Total Tests**: 635 tests (all passing)
-- **Test Suites**: 17
+- **Total Tests**: 669 tests (all passing)
+- **Test Suites**: 18
 - **Test Categories**:
   - Basic Operations: 4 tests
   - Tools (in-memory): 11 tests
@@ -339,6 +339,7 @@ describe('Integration', () => {
   - Mock Server: 68 tests
   - Generate Types: 59 tests
   - Health Checks: 17 tests
+  - HTTP Transport: 15 tests
 
 ## Important Gotchas & Non-Obvious Patterns
 
@@ -673,7 +674,7 @@ chore: maintenance tasks
 
 ## Known Limitations
 
-1. **Transport**: Only supports stdio transport (HTTP transport not implemented)
+1. **Transport**: Supports stdio (default), Streamable HTTP, and SSE transports
 2. **Runtime**: Designed for Node.js servers (other runtimes may need adjustments)
 3. **Mock Server**: Enhanced implementation with delays, failures, stateful tools, validation, custom handlers, and call history tracking
 4. **Test Coverage**: Per-file floors (60–100%) — run `npm run test:coverage` to see breakdown
