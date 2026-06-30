@@ -5,13 +5,27 @@ import { MCPClient } from '../client/MCPClient.js';
 import { MCPConnectionError, MCPTimeoutError, MCPServerError } from '../utils/errors.js';
 import { generateTests } from '../generate-tests.js';
 import { generateTypes } from '../generate-types.js';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+// Read version from package.json (works in both src and dist)
+const __dirname = dirname(fileURLToPath(import.meta.url));
+function getPackageVersion(): string {
+  try {
+    const pkg = JSON.parse(readFileSync(join(__dirname, '../../package.json'), 'utf-8'));
+    return pkg.version || '0.0.0';
+  } catch {
+    return '0.0.0';
+  }
+}
 
 const program = new Command();
 
 program
   .name('mcp-tester')
   .description('CLI tool for testing MCP servers')
-  .version('1.0.0', '-V, --version');
+  .version(getPackageVersion(), '-V, --version');
 
 // Global options - use string type since commander passes strings
 program

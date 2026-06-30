@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-07-01
+
+### Added
+- **TypeScript type generator** (`src/generate-types.ts`) — generate typed `.d.ts` from MCP tool schemas:
+  - `generateTypes()` API: connect to server, inspect schemas, emit TypeScript declarations
+  - CLI: `npx mcp-tester generate-types node ./server.js -o server.d.ts`
+  - Handles: primitives, enums, arrays, nested objects, oneOf/anyOf/allOf, $ref, const
+  - Generated types: `{Tool}Args`, `ToolName`, `ToolArgsMap`, `ToolCall`, `ResourceUri`, `PromptCall`
+  - 59 tests (12 e2e + 4 options + 43 unit)
+- **Server health checks** — detect zombie processes and monitor server health:
+  - `isHealthy()` — sends a lightweight `tools/list` ping, returns `HealthStatus` with latency, PID, message
+  - `getServerPid()` — get the server process PID
+  - `getLastHealthStatus()` — cached result without re-checking
+  - `startHealthMonitor(options)` — periodic health monitoring with `onUnhealthy`/`onRecovery`/`onCheck` callbacks
+  - `stopHealthMonitor()` — stop periodic monitoring (also auto-stopped by `client.stop()`)
+  - Zombie process detection via `process.kill(pid, 0)`
+  - 17 tests (including SIGKILL zombie detection test)
+- **Enhanced mock server** (`src/__tests__/fixtures/mock-server.ts`) — 68 tests:
+  - Configurable delays (`defaultDelay`) and random failures (`failureRate`)
+  - Input schema validation (`validateSchemas` option)
+  - Stateful tools: `counter` (increment/get/reset), `items` (add/list/remove/clear)
+  - Transform tool: `upper`/`lower`/`reverse`/`length` operations
+  - Custom handlers: `registerToolHandler`, `registerResourceHandler`, `registerPromptHandler`
+  - Call history: `getCallHistory`, `getCallCount` for test assertions
+  - Streaming support: `setupStream`, `nextStreamChunk`
+  - Dynamic registration/removal of tools, resources, prompts
+
+### Changed
+- **CLI version** is now read dynamically from `package.json` (was hardcoded `1.0.0`)
+- Applied safe dependency patches: `@typescript-eslint/*` 8.60.0, `@types/node` 20.19.41, `prettier` 3.8.3, `ts-jest` 29.4.11
+- `npm audit fix` — 0 vulnerabilities (was 11)
+
+### Test Suite
+- **635 tests** (17 suites), up from 491 (14 suites)
+- New: mock server (68), generate-types (59), health checks (17)
+
 ## [1.2.0] - 2026-04-30
 
 ### Added

@@ -1,10 +1,15 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
+import { readFileSync } from 'fs';
 
 const execAsync = promisify(exec);
 const CLI_PATH = path.join(__dirname, '../..', 'dist/cli/index.js');
 const MOCK_SERVER = path.join(__dirname, '../..', 'examples/mock-server.js');
+
+// Read the actual package version so tests don't break on version bumps
+const PKG_PATH = path.join(__dirname, '../..', 'package.json');
+const PKG_VERSION = JSON.parse(readFileSync(PKG_PATH, 'utf-8')).version;
 
 describe('CLI Tool', () => {
   const cli = (args: string) => `node ${CLI_PATH} ${args}`;
@@ -28,12 +33,12 @@ describe('CLI Tool', () => {
   describe('--version', () => {
     it('should show version with -V flag', async () => {
       const { stdout } = await execAsync(`node ${CLI_PATH} -V`);
-      expect(stdout.trim()).toBe('1.0.0');
+      expect(stdout.trim()).toBe(PKG_VERSION);
     });
 
     it('should show version with --version flag', async () => {
       const { stdout } = await execAsync(`node ${CLI_PATH} --version`);
-      expect(stdout.trim()).toBe('1.0.0');
+      expect(stdout.trim()).toBe(PKG_VERSION);
     });
   });
 
