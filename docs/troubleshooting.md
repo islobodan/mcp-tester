@@ -85,7 +85,7 @@ client.startHealthMonitor({
 
 ### Tests Fail in CI but Pass Locally
 
-- Check Node.js version matches (>= 18)
+- Check Node.js version matches (>= 20)
 - Verify server paths are correct
 - Ensure environment variables are set
 - Check `maxWorkers: 1` in Jest config (avoids SIGSEGV crashes)

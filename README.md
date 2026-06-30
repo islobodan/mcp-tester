@@ -6,7 +6,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@slbdn/mcp-tester)](https://www.npmjs.com/package/@slbdn/mcp-tester)
 [![npm downloads](https://img.shields.io/npm/dm/@slbdn/mcp-tester)](https://www.npmjs.com/package/@slbdn/mcp-tester)
-[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Test Status](https://img.shields.io/badge/tests-669%20passing-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)
 [![Coverage](https://img.shields.io/badge/coverage-68%2F61%2F60%2F68-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)  <!-- statements/branches/functions/lines -->
@@ -106,7 +106,7 @@ The report includes collapsible test trees, timing per test, and failure details
 npm install @slbdn/mcp-tester --save-dev
 ```
 
-Requires **Node.js >= 18**. See [Node.js Compatibility](./docs/nodejs-compatibility.md) for details.
+Requires **Node.js >= 20**. See [Node.js Compatibility](./docs/nodejs-compatibility.md) for details.
 
 ## Quick Start
 
@@ -573,7 +573,7 @@ import { MCPClient } from './client/MCPClient.js';
 ### Tests Fail in CI
 
 - Set `maxWorkers: 1` in Jest config (parallel workers can crash)
-- Verify Node.js >= 18
+- Verify Node.js >= 20
 - Check that server paths are correct
 
 ### Debug Mode

@@ -4,14 +4,14 @@
 
 | Node.js Version | Status | Notes |
 |----------------|--------|-------|
-| 18.x | ✅ Fully Supported | Minimum required version |
-| 20.x (LTS) | ✅ Fully Supported | **Recommended** |
+| 18.x | ⚠️ Not Supported | ESM limitations — upgrade recommended |
+| 20.x (LTS) | ✅ Fully Supported | **Recommended** (minimum required version) |
 | 21.x | ✅ Fully Supported | Latest stable |
 | 22.x+ | ✅ Compatible | Tested, works |
 
 ## Requirements
 
-- **Node.js** >= 18
+- **Node.js** >= 20
 - **npm** >= 9
 - ES2022 Modules (ESM)
 - Async/await support
@@ -21,7 +21,7 @@ The `package.json` enforces the minimum version:
 ```json
 {
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   }
 }
 ```

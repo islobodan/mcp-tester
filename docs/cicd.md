@@ -21,7 +21,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18, 20, 21]
+        node-version: [20, 21]
 
     steps:
       - name: Checkout code
@@ -153,7 +153,7 @@ jobs:
 
 | Job | Purpose | Node Version |
 |-----|---------|---------------|
-| `test` | Run full test suite, upload HTML test report | Matrix: 18, 20, 21 |
+| `test` | Run full test suite, upload HTML test report | Matrix: 20, 21 |
 | `coverage` | Generate coverage report, upload to Codecov, comment on PRs | 20 |
 | `lint` | ESLint + Prettier checks | 20 |
 | `security` | npm audit for vulnerabilities | 20 |

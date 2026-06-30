@@ -18,7 +18,7 @@ For planned improvements, features, and enhancements, see [TODO.md](./TODO.md). 
 
 - **Type**: TypeScript library (ESM modules)
 - **Primary Purpose**: Test MCP server implementations in CI/CD pipelines
-- **Node.js Version**: >=18 (tested on 18, 20, 21)
+- **Node.js Version**: >=20 (tested on 20, 21)
 - **Package Manager**: npm
 - **Main SDK**: @modelcontextprotocol/sdk v1.29.0
 - **Status**: Production-ready
@@ -489,7 +489,7 @@ assert.equal(tools.length, 4);
 **Triggers**: Push to main/develop, Pull Requests
 
 **Jobs**:
-1. **test**: Multi-version Node testing (18, 20, 21)
+1. **test**: Multi-version Node testing (20, 21)
    - Security audit (`npm audit --audit-level=high`)
    - Check for outdated dependencies
    - Build, lint, format check
@@ -515,7 +515,7 @@ assert.equal(tools.length, 4);
 
 **Steps**:
 1. Verify version matches between tag and package.json
-2. Test across Node.js versions (18, 20, 21)
+2. Test across Node.js versions (20, 21)
 3. Build project
 4. Run security audits
 5. Publish to npm (requires `NPM_TOKEN` secret)
@@ -706,7 +706,7 @@ chore: maintenance tasks
 - **Solution**: Import types from `@modelcontextprotocol/sdk/types.js`
 
 **Issue**: Tests fail in CI but pass locally
-- **Solution**: Check Node.js version (requires >=18), verify environment variables
+- **Solution**: Check Node.js version (requires >=20), verify environment variables
 
 **Issue**: Coverage below thresholds
 - **Solution**: Check `jest.config.js` for per-file minimums, run `npm run test:coverage` to find gaps
@@ -734,6 +734,6 @@ chore: maintenance tasks
 - **Tests**: 306 (all passing, 11 suites)
 - **Build Time**: ~3 seconds
 - **Test Execution Time**: ~97 seconds
-- **Node.js Versions Tested**: 18, 20, 21
+- **Node.js Versions Tested**: 20, 21
 - **SDK Version**: 1.29.0
 - **Pre-commit Hooks**: Husky + lint-staged (eslint + prettier)

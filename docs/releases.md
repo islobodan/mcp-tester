@@ -50,7 +50,7 @@ git push origin main --tags
 
 The release workflow will automatically:
 - ✅ Verify version matches tag
-- ✅ Run tests across Node.js versions (18, 20, 21)
+- ✅ Run tests across Node.js versions (20, 21)
 - ✅ Build the project
 - ✅ Run security audits
 - ✅ Publish to npm
@@ -185,7 +185,7 @@ When you push a version tag (e.g., `v1.0.1`), the release workflow:
 
 1. **Trigger**: Starts automatically on tag push
 2. **Verify**: Confirms tag version matches package.json
-3. **Test**: Runs all tests across Node.js 18, 20, 21
+3. **Test**: Runs all tests across Node.js 20, 21
 4. **Build**: Compiles TypeScript to JavaScript
 5. **Audit**: Runs security audits
 6. **Lint**: Checks code quality
