@@ -195,10 +195,6 @@ function safeToString(value: unknown): string {
  * @returns String with secrets replaced by masked versions. Never throws.
  */
 export function maskSecrets(input: unknown): string {
-  if (input === null || input === undefined) {
-    return String(input);
-  }
-
   let result = safeToString(input);
 
   // 1. First mask values of known sensitive environment variable keys

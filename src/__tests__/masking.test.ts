@@ -85,6 +85,25 @@ describe('maskSecrets', () => {
     expect(typeof maskSecrets(circular)).toBe('string');
   });
 
+  it('should use Symbol.toPrimitive when present and callable', () => {
+    const obj = {
+      [Symbol.toPrimitive](hint: string) {
+        return `prim-${hint}`;
+      },
+    };
+    expect(maskSecrets(obj)).toBe('prim-string');
+  });
+
+  it('should fall back to Object.prototype.toString when every coercion and JSON fail', () => {
+    // Object with: no callable toString, no callable valueOf, no toPrimitive,
+    // AND a circular reference (so JSON.stringify throws).
+    // This forces the final Object.prototype.toString.call() fallback.
+    const hostile: Record<string, unknown> = { toString: null, valueOf: null };
+    hostile.self = hostile;
+    expect(() => maskSecrets(hostile)).not.toThrow();
+    expect(maskSecrets(hostile)).toBe('[object Object]');
+  });
+
   // OpenAI keys
   it('should mask OpenAI-style API keys', () => {
     const key = 'sk-proj-abcdefghijklmnopqrstuvwxyz1234567890';
@@ -188,6 +207,14 @@ describe('addSecretPattern', () => {
     const input = 'Using my-org-key-abcdefghijklmnopqrstuvwxyz1234567890 now';
     const result = maskSecrets(input);
     expect(result).not.toContain('abcdefghijklmnopqrstuvwxyz1234567890');
+  });
+
+  it('should use the default name when name is omitted', () => {
+    addSecretPattern(/default-named-\w+/g); // no name → default 'custom'
+    const patterns = getSecretPatterns();
+    const added = patterns.find((p) => p.pattern.source.includes('default-named'));
+    expect(added).toBeDefined();
+    expect(added!.name).toBe('custom');
   });
 
   it('should appear in getSecretPatterns', () => {

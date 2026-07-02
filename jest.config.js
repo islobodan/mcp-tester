@@ -24,6 +24,10 @@ export default {
     'src/**/*.ts',
     '!src/**/*.test.ts',
     '!src/**/index.ts',
+    // Exclude test infrastructure, fixtures, and helpers from coverage.
+    // These are test-only files, not shipped production code.
+    // (benchmarks.ts especially was 0% and dragged down the global average.)
+    '!src/__tests__/**',
   ],
   // Per-file thresholds: individual files must stay above these floors
   // Overall thresholds: project-wide average must meet these minimums
@@ -75,12 +79,6 @@ export default {
       branches: 100,
       functions: 60,
       lines: 87,
-    },
-    './src/__tests__/fixtures/mock-server.ts': {
-      statements: 75,
-      branches: 60,
-      functions: 80,
-      lines: 75,
     },
     './src/generate-types.ts': {
       statements: 80,
