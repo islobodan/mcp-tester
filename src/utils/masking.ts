@@ -131,18 +131,75 @@ export function maskValue(value: string, visibleChars: number = VISIBLE_CHARS): 
 }
 
 /**
+ * Safely convert any value to a string.
+ *
+ * Handles edge cases that `String()` chokes on:
+ * - Objects with a non-function `toString` (e.g. `{ toString: false }`)
+ * - Objects with a non-function `valueOf` or `Symbol.toPrimitive`
+ * - Circular references (falls back to a placeholder)
+ *
+ * @param value - Any value
+ * @returns A string representation that never throws
+ */
+function safeToString(value: unknown): string {
+  if (value === null) return 'null';
+  if (value === undefined) return 'undefined';
+
+  const typeofValue = typeof value;
+
+  // Primitives and functions are safe
+  if (
+    typeofValue === 'string' ||
+    typeofValue === 'number' ||
+    typeofValue === 'boolean' ||
+    typeofValue === 'bigint' ||
+    typeofValue === 'symbol' ||
+    typeofValue === 'function'
+  ) {
+    return String(value);
+  }
+
+  // value is an object — its toString/valueOf/Symbol.toPrimitive may be
+  // non-functions or throw, so we guard the coercion.
+  try {
+    // Prefer Symbol.toPrimitive if present and callable
+    const toPrim = (value as Record<symbol, unknown>)[Symbol.toPrimitive];
+    if (typeof toPrim === 'function') {
+      return String(toPrim.call(value, 'string'));
+    }
+    const toString = (value as { toString?: unknown }).toString;
+    if (typeof toString === 'function') {
+      return String(toString.call(value));
+    }
+    const valueOf = (value as { valueOf?: unknown }).valueOf;
+    if (typeof valueOf === 'function') {
+      return String(valueOf.call(value));
+    }
+  } catch {
+    // fall through to JSON / placeholder
+  }
+
+  // Last resort: JSON (handles plain objects & arrays); ignore cycles
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return Object.prototype.toString.call(value);
+  }
+}
+
+/**
  * Mask secrets in a string by applying all active secret patterns
  * and masking values of known sensitive environment variable keys.
  *
- * @param input - The value to mask (any type — converted to string)
- * @returns String with secrets replaced by masked versions
+ * @param input - The value to mask (any type — safely converted to string)
+ * @returns String with secrets replaced by masked versions. Never throws.
  */
 export function maskSecrets(input: unknown): string {
   if (input === null || input === undefined) {
     return String(input);
   }
 
-  let result = String(input);
+  let result = safeToString(input);
 
   // 1. First mask values of known sensitive environment variable keys
   //    Matches: KEY=value, KEY="value", KEY: value, KEY: "value"

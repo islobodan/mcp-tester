@@ -60,6 +60,31 @@ describe('maskSecrets', () => {
     expect(maskSecrets(true)).toBe('true');
   });
 
+  it('should never throw for hostile objects with non-function toString/valueOf', () => {
+    // Regression test: fc.anything() found { toString: false } which crashed
+    // String() with "Cannot convert object to primitive value".
+    expect(() => maskSecrets({ toString: false })).not.toThrow();
+    expect(() => maskSecrets({ toString: null })).not.toThrow();
+    expect(() => maskSecrets({ valueOf: false })).not.toThrow();
+    expect(() => maskSecrets({ [Symbol.toPrimitive]: 1 })).not.toThrow();
+    expect(() =>
+      maskSecrets({
+        toString: () => {
+          throw new Error('boom');
+        },
+      })
+    ).not.toThrow();
+    // Must always return a string
+    expect(typeof maskSecrets({ toString: false })).toBe('string');
+  });
+
+  it('should handle circular references without throwing', () => {
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+    expect(() => maskSecrets(circular)).not.toThrow();
+    expect(typeof maskSecrets(circular)).toBe('string');
+  });
+
   // OpenAI keys
   it('should mask OpenAI-style API keys', () => {
     const key = 'sk-proj-abcdefghijklmnopqrstuvwxyz1234567890';
