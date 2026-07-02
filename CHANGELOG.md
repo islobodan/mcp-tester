@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-07-02
+
+### Fixed
+- **`maskSecrets()` no longer throws on hostile objects** — objects with a non-function `toString` (e.g. `{ toString: false }`), non-function `valueOf`, non-function `Symbol.toPrimitive`, throwing coercion methods, or circular references previously crashed `String(input)` with `TypeError: Cannot convert object to primitive value`.
+  - Root cause: `String()` invokes `toString()`/`valueOf()`/`Symbol.toPrimitive`, but throws when those are present yet not callable.
+  - Since masking runs inside `ConsoleLogger.format()` on every log line, this could take down logging entirely.
+  - New internal `safeToString()` helper guards coercion with `typeof` checks and `try/catch`, falling back to `JSON.stringify` then `Object.prototype.toString.call()`.
+  - Found by property-based testing (`fc.anything()`); verified against 2000 randomized runs with 0 crashes.
+  - Added regression tests for hostile objects and circular references.
+
+### Changed
+- **CI: bumped GitHub Actions to current versions** (fixes "Node 20 is being deprecated" warning):
+  - `actions/checkout` v3 → v5 (node16 → node24 runtime)
+  - `actions/setup-node` v3 → v5
+  - `codecov/codecov-action` v3/v4 → v5
+  - Replaced deprecated `actions/create-release@v1` with `gh release create`
+  - The deprecation warning was about the action runtime, not the test matrix.
+
 ## [1.4.0] - 2026-07-01
 
 ### Added
