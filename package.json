@@ -84,7 +84,7 @@
   "devDependencies": {
     "@modelcontextprotocol/server-everything": "^2026.1.26",
     "@types/jest": "^29.5.0",
-    "@types/node": "^20.19.41",
+    "@types/node": "^26.0.1",
     "@typescript-eslint/eslint-plugin": "^8.60.0",
     "@typescript-eslint/parser": "^8.60.0",
     "eslint": "^8.56.0",
