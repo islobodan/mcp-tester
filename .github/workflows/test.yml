@@ -164,7 +164,7 @@ jobs:
         continue-on-error: true
 
       - name: Check for vulnerabilities
-        run: npm audit --production
+        run: npm audit --omit=dev
         continue-on-error: true
 
   package:

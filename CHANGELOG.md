@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.3] - 2026-10-05
+
+### Security
+- Cleared all `npm audit` advisories. A semver-safe `npm audit fix` removed the runtime advisories (`ip-address`, `qs`, `hono`, `body-parser`, `fast-uri`, `js-yaml`, `markdown-it`, …). The remaining dev-only advisories all traced to Jest 29's `micromatch`/`braces`/`expect`, so **Jest and `@types/jest` were upgraded to v30** (ts-jest already supports it). `npm audit` now reports 0 vulnerabilities.
+  - This also unblocks the `release.yml` publish job, whose hard `npm audit --audit-level=high` gate had prevented 1.4.2 from reaching npm.
+
+### Changed
+- CI uses `npm audit --omit=dev` instead of the deprecated `npm audit --production` alias.
+
 ## [1.4.2] - 2026-10-05
 
 ### Fixed
