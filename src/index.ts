@@ -93,7 +93,8 @@ export {
   assertHasResource,
   assertHasPrompt,
 } from './matchers.js';
-export { generateTests } from './generate-tests.js';
-export type { GenerateTestOptions } from './generate-tests.js';
-export { generateTypes } from './generate-types.js';
-export type { GenerateTypesOptions } from './generate-types.js';
+export { generateTests, generateTestsFromClient } from './generate-tests.js';
+export type { GenerateTestOptions, GenerateTestsFromClientOptions } from './generate-tests.js';
+export { generateTypes, generateTypesFromClient } from './generate-types.js';
+export type { GenerateTypesOptions, GenerateTypesFromClientOptions } from './generate-types.js';
+export { getPackageVersion } from './utils/version.js';

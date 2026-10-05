@@ -7,8 +7,7 @@
 
 import { MCPClient } from './client/MCPClient.js';
 import type { Tool, Resource, Prompt } from '@modelcontextprotocol/sdk/types.js';
-import { readFileSync } from 'fs';
-import { join } from 'path';
+import { getPackageVersion } from './utils/version.js';
 
 // ─── Options ────────────────────────────────────────────────────────
 
@@ -160,7 +159,7 @@ function objectToType(schema: JsonSchema, indent: number): string {
     const tsType = schemaToType(propSchema, indent + 1);
     const opt = isRequired ? '' : '?';
     const desc = propSchema.description
-      ? `${pad}/** ${String(propSchema.description).replace(/\*\//g, '*\\/')} */\n`
+      ? `${pad}/** ${safeDoc(String(propSchema.description))} */\n`
       : '';
     lines.push(`${desc}${pad}${escapePropertyName(name)}${opt}: ${tsType};`);
   }
@@ -187,6 +186,83 @@ function refToTypeName(ref: string): string {
   return parts[parts.length - 1];
 }
 
+/** Neutralise comment terminators inside generated JSDoc blocks. */
+function safeDoc(text: string): string {
+  return text.replace(/\*\//g, '*\\/');
+}
+
+/**
+ * Collect JSON Schema definitions from `$defs` / `definitions`.
+ */
+function collectDefinitions(schema: JsonSchema): Map<string, JsonSchema> {
+  const defs = new Map<string, JsonSchema>();
+  for (const key of ['$defs', 'definitions']) {
+    const bag = schema[key];
+    if (bag && typeof bag === 'object' && !Array.isArray(bag)) {
+      for (const [name, def] of Object.entries(bag as Record<string, unknown>)) {
+        if (def && typeof def === 'object') defs.set(name, def as JsonSchema);
+      }
+    }
+  }
+  return defs;
+}
+
+/**
+ * Recursively collect every `$ref` target name found in a schema.
+ */
+function collectRefs(schema: unknown, refs: Set<string>, seen: WeakSet<object>): void {
+  if (!schema || typeof schema !== 'object') return;
+  if (seen.has(schema as object)) return;
+  seen.add(schema as object);
+
+  if (Array.isArray(schema)) {
+    for (const item of schema) collectRefs(item, refs, seen);
+    return;
+  }
+
+  const obj = schema as JsonSchema;
+  if (typeof obj.$ref === 'string') refs.add(refToTypeName(obj.$ref));
+  for (const value of Object.values(obj)) collectRefs(value, refs, seen);
+}
+
+/**
+ * Emit TypeScript aliases for every `$ref`-referenced schema, resolved from the
+ * schema's `$defs` / `definitions`. Unresolved refs fall back to `unknown` so the
+ * generated file always type-checks instead of referencing undefined types.
+ */
+export function generateRefTypes(schema: JsonSchema): string {
+  const defs = collectDefinitions(schema);
+  const queue: string[] = [];
+  const seenRefs = new Set<string>();
+
+  const enqueueFrom = (source: JsonSchema): void => {
+    const refs = new Set<string>();
+    collectRefs(source, refs, new WeakSet());
+    for (const name of refs) {
+      if (!seenRefs.has(name)) {
+        seenRefs.add(name);
+        queue.push(name);
+      }
+    }
+  };
+
+  enqueueFrom(schema);
+
+  const lines: string[] = [];
+  while (queue.length > 0) {
+    const name = queue.shift() as string;
+    const def = defs.get(name);
+    if (def) {
+      lines.push(`export type ${name} = ${schemaToType(def, 0)};`);
+      enqueueFrom(def);
+    } else {
+      lines.push(`export type ${name} = unknown; // unresolved $ref`);
+    }
+  }
+
+  return lines.join('\n');
+}
+
 /**
  * Escape a string for use in a TypeScript string literal.
  */
@@ -205,11 +281,9 @@ export function toTypeName(name: string): string {
   // Split on non-alphanumeric, capitalize each segment
   const parts = name.split(/[^a-zA-Z0-9]+/).filter(Boolean);
   return parts
-    .map((p, i) => {
+    .map((p) => {
       const lower = p.toLowerCase();
-      return i === 0
-        ? lower.charAt(0).toUpperCase() + lower.slice(1)
-        : lower.charAt(0).toUpperCase() + lower.slice(1);
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
     })
     .join('');
 }
@@ -221,13 +295,15 @@ export function toTypeName(name: string): string {
  */
 function generateToolInterface(tool: Tool): string {
   const typeName = toTypeName(tool.name);
-  const desc = tool.description ? `/** ${tool.description} */\n` : '';
+  const desc = tool.description ? `/** ${safeDoc(tool.description)} */\n` : '';
   const schema = tool.inputSchema as JsonSchema;
 
   // If the schema has properties, generate an interface; otherwise unknown
   if (schema && schema.properties && typeof schema.properties === 'object') {
     const tsType = schemaToType(schema, 0);
-    return `${desc}export interface ${typeName}Args ${tsType}`;
+    const refTypes = generateRefTypes(schema);
+    const suffix = refTypes ? `\n${refTypes}` : '';
+    return `${desc}export interface ${typeName}Args ${tsType}${suffix}`;
   }
 
   return `${desc}export type ${typeName}Args = Record<string, unknown>`;
@@ -238,15 +314,15 @@ function generateToolInterface(tool: Tool): string {
  */
 function generateToolInfoType(tool: Tool): string {
   const typeName = toTypeName(tool.name);
-  return `  | { name: '${tool.name}'; arguments: ${typeName}Args }`;
+  return `  | { name: '${escapeString(tool.name)}'; arguments: ${typeName}Args }`;
 }
 
 /**
  * Generate type for a resource.
  */
 function generateResourceType(resource: Resource): string {
-  const desc = resource.description ? ` /** ${resource.description} */` : '';
-  return `  | '${resource.uri}'${desc}`;
+  const desc = resource.description ? ` /** ${safeDoc(resource.description)} */` : '';
+  return `  | '${escapeString(resource.uri)}'${desc}`;
 }
 
 /**
@@ -254,7 +330,7 @@ function generateResourceType(resource: Resource): string {
  */
 function generatePromptType(prompt: Prompt): string {
   const typeName = toTypeName(prompt.name);
-  const desc = prompt.description ? `/** ${prompt.description} */\n` : '';
+  const desc = prompt.description ? `/** ${safeDoc(prompt.description)} */\n` : '';
 
   if (!prompt.arguments || !Array.isArray(prompt.arguments) || prompt.arguments.length === 0) {
     return `${desc}export type ${typeName}Args = Record<string, never>`;
@@ -263,7 +339,7 @@ function generatePromptType(prompt: Prompt): string {
   const lines: string[] = ['{'];
   for (const arg of prompt.arguments) {
     const opt = arg.required ? '' : '?';
-    const argDesc = arg.description ? ` /** ${arg.description} */` : '';
+    const argDesc = arg.description ? ` /** ${safeDoc(arg.description)} */` : '';
     lines.push(`  ${escapePropertyName(arg.name)}${opt}: string;${argDesc}`);
   }
   lines.push('}');
@@ -276,7 +352,7 @@ function generatePromptType(prompt: Prompt): string {
  */
 function generatePromptInfoType(prompt: Prompt): string {
   const typeName = toTypeName(prompt.name);
-  return `  | { name: '${prompt.name}'; arguments: ${typeName}Args }`;
+  return `  | { name: '${escapeString(prompt.name)}'; arguments: ${typeName}Args }`;
 }
 
 /**
@@ -304,7 +380,7 @@ function buildTypeFile(
     ` * Tools: ${tools.length} | Resources: ${resources.length} | Prompts: ${prompts.length}`
   );
   sections.push(` *`);
-  sections.push(` * Generated by @slbdn/mcp-tester v${getVersion()}`);
+  sections.push(` * Generated by @slbdn/mcp-tester v${getPackageVersion()}`);
   sections.push(
     ` * Re-generate: npx mcp-tester generate-types -- ${options.command}${options.args ? ' ' + options.args.join(' ') : ''}`
   );
@@ -322,14 +398,16 @@ function buildTypeFile(
 
     // Tool name union
     sections.push('/** Union of all tool names */');
-    sections.push(`export type ToolName = ${tools.map((t) => `'${t.name}'`).join(' | ')};`);
+    sections.push(
+      `export type ToolName = ${tools.map((t) => `'${escapeString(t.name)}'`).join(' | ')};`
+    );
     sections.push('');
 
     // Arguments lookup type
     sections.push('/** Look up the argument type for a tool by name */');
     sections.push('export interface ToolArgsMap {');
     for (const tool of tools) {
-      sections.push(`  '${tool.name}': ${toTypeName(tool.name)}Args;`);
+      sections.push(`  '${escapeString(tool.name)}': ${toTypeName(tool.name)}Args;`);
     }
     sections.push('}');
     sections.push('');
@@ -380,14 +458,16 @@ function buildTypeFile(
 
     // Prompt name union
     sections.push('/** Union of all prompt names */');
-    sections.push(`export type PromptName = ${prompts.map((p) => `'${p.name}'`).join(' | ')};`);
+    sections.push(
+      `export type PromptName = ${prompts.map((p) => `'${escapeString(p.name)}'`).join(' | ')};`
+    );
     sections.push('');
 
     // Prompt args lookup
     sections.push('/** Look up the argument type for a prompt by name */');
     sections.push('export interface PromptArgsMap {');
     for (const prompt of prompts) {
-      sections.push(`  '${prompt.name}': ${toTypeName(prompt.name)}Args;`);
+      sections.push(`  '${escapeString(prompt.name)}': ${toTypeName(prompt.name)}Args;`);
     }
     sections.push('}');
     sections.push('');
@@ -425,19 +505,46 @@ function buildTypeFile(
 }
 
 /**
- * Get the package version.
+ * Options for {@link generateTypesFromClient}.
  */
-function getVersion(): string {
-  try {
-    const pkg = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf-8'));
-    if (pkg.name === '@slbdn/mcp-tester') return pkg.version || '1.0.0';
-  } catch {
-    /* fallback */
-  }
-  return '1.0.0';
+export interface GenerateTypesFromClientOptions {
+  /** Module name for the import hint. @defaultValue '@slbdn/mcp-tester' */
+  moduleName?: string;
+  /** Include resource URI types. @defaultValue true */
+  includeResources?: boolean;
+  /** Include prompt argument types. @defaultValue true */
+  includePrompts?: boolean;
+  /** Human-readable label for the server, used only in the generated header. */
+  serverLabel?: string;
 }
 
-// ─── Main API ───────────────────────────────────────────────────────
+/**
+ * Generate TypeScript type declarations from an already-connected client.
+ *
+ * Unlike {@link generateTypes}, this supports any transport (stdio, HTTP, SSE)
+ * because the caller owns the connection.
+ *
+ * @param client - A connected MCPClient instance
+ * @param options - Generation options
+ * @returns The generated `.d.ts` file content
+ */
+export async function generateTypesFromClient(
+  client: MCPClient,
+  options: GenerateTypesFromClientOptions = {}
+): Promise<string> {
+  const [tools, resources, prompts] = await Promise.all([
+    client.listTools(),
+    options.includeResources === false ? Promise.resolve([]) : client.listResources(),
+    options.includePrompts === false ? Promise.resolve([]) : client.listPrompts(),
+  ]);
+
+  return buildTypeFile(tools, resources, prompts, {
+    command: options.serverLabel || 'remote server',
+    moduleName: options.moduleName,
+    includeResources: options.includeResources,
+    includePrompts: options.includePrompts,
+  });
+}
 
 /**
  * Connect to an MCP server, inspect tool schemas, and generate TypeScript type declarations.
@@ -471,13 +578,12 @@ export async function generateTypes(options: GenerateTypesOptions): Promise<stri
       args: options.args,
     });
 
-    const [tools, resources, prompts] = await Promise.all([
-      client.listTools(),
-      client.listResources(),
-      client.listPrompts(),
-    ]);
-
-    return buildTypeFile(tools, resources, prompts, options);
+    return await generateTypesFromClient(client, {
+      moduleName: options.moduleName,
+      includeResources: options.includeResources,
+      includePrompts: options.includePrompts,
+      serverLabel: `${options.command}${options.args ? ' ' + options.args.join(' ') : ''}`,
+    });
   } finally {
     await client.stop();
   }

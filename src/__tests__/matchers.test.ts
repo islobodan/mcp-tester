@@ -25,6 +25,14 @@ import {
   toReturnResourceTextContaining,
   toReturnPromptTextContaining,
   toReturnPromptMessageCount,
+  setupJestMatchers,
+  setupCustomMatchers,
+  setupVitestMatchers,
+  assertToolText,
+  assertToolTextContains,
+  assertHasTool,
+  assertHasResource,
+  assertHasPrompt,
 } from '../matchers.js';
 import type {
   Tool,
@@ -346,5 +354,200 @@ describe('toReturnPromptMessageCount', () => {
 
   it('should fail when message count does not match', () => {
     expect(toReturnPromptMessageCount(promptResult('hello'), 5).pass).toBe(false);
+  });
+});
+
+// ─── Message Formatting Coverage ─────────────────────────────────────────────
+
+describe('matcher messages', () => {
+  it('toHaveTool messages (incl. empty list)', () => {
+    expect(toHaveTool(tools, 'echo').message()).toContain('NOT have');
+    expect(toHaveTool(tools, 'missing').message()).toContain('missing');
+    expect(toHaveTool([], 'missing').message()).toContain('(none)');
+  });
+
+  it('toHaveResource messages', () => {
+    expect(toHaveResource(resources, 'text://example').message()).toContain('NOT have');
+    expect(toHaveResource(resources, 'nope://x').message()).toContain('nope://x');
+  });
+
+  it('toHavePrompt messages', () => {
+    expect(toHavePrompt(prompts, 'greet').message()).toContain('NOT have');
+    expect(toHavePrompt(prompts, 'nope').message()).toContain('nope');
+  });
+
+  it('toHaveToolWithSchema messages', () => {
+    expect(toHaveToolWithSchema(tools, 'echo').message()).toContain('NOT have input schema');
+    expect(toHaveToolWithSchema(toolsNoSchema, 'bare').message()).toContain('to have input schema');
+    expect(toHaveToolWithSchema(tools, 'missing').message()).toContain('missing');
+  });
+
+  it('toHaveToolCount messages', () => {
+    expect(toHaveToolCount(tools, 3).message()).toContain('NOT have exactly');
+    expect(toHaveToolCount(tools, 1).message()).toContain('found 3');
+  });
+
+  it('toHaveResourceCount messages', () => {
+    expect(toHaveResourceCount(resources, 2).message()).toContain('NOT have exactly');
+    expect(toHaveResourceCount(resources, 1).message()).toContain('found 2');
+  });
+
+  it('toHavePromptCount messages', () => {
+    expect(toHavePromptCount(prompts, 2).message()).toContain('NOT have exactly');
+    expect(toHavePromptCount(prompts, 1).message()).toContain('found 2');
+  });
+
+  it('toHaveResourceByName messages', () => {
+    expect(toHaveResourceByName(resources, 'Settings').message()).toContain('NOT have');
+    expect(toHaveResourceByName(resources, 'Nope').message()).toContain('Nope');
+  });
+
+  it('toHavePromptWithArgs messages', () => {
+    expect(toHavePromptWithArgs(prompts, 'greet').message()).toContain('NOT have arguments');
+    expect(toHavePromptWithArgs(prompts, 'summarize').message()).toContain('to have arguments');
+    expect(toHavePromptWithArgs(prompts, 'missing').message()).toContain('missing');
+  });
+
+  it('toReturnText messages', () => {
+    expect(toReturnText(textResult('hi'), 'hi').message()).toContain('NOT equal');
+    expect(toReturnText(textResult('hi'), 'bye').message()).toContain('to equal');
+    expect(toReturnText(textResult('hi')).message()).toContain('NOT have text');
+    expect(toReturnText(noTextResult()).message()).toContain('text content');
+    expect(toReturnText({ content: [] } as unknown as CallToolResult).message()).toContain('empty');
+  });
+
+  it('toReturnTextContaining messages', () => {
+    expect(toReturnTextContaining(textResult('hi world'), 'world').message()).toContain(
+      'NOT contain'
+    );
+    expect(toReturnTextContaining(textResult('hi'), 'world').message()).toContain('to contain');
+    expect(toReturnTextContaining(noTextResult(), 'x').message()).toContain('no text content');
+  });
+
+  it('toReturnError messages (incl. empty content)', () => {
+    expect(toReturnError(textResult('oops', true)).message()).toContain('NOT be an error');
+    expect(toReturnError(textResult('fine')).message()).toContain('to be an error');
+    expect(toReturnError({ content: [] } as unknown as CallToolResult).message()).toContain(
+      'to be an error'
+    );
+  });
+
+  it('toReturnOk messages', () => {
+    expect(toReturnOk(textResult('fine')).message()).toContain('to be an error');
+    expect(toReturnOk(textResult('oops', true)).message()).toContain('successful');
+  });
+
+  it('toReturnJson messages', () => {
+    expect(toReturnJson(textResult('{"a":1}'), { a: 1 }).message()).toContain('NOT equal');
+    expect(toReturnJson(textResult('{"a":1}'), { a: 2 }).message()).toContain('Received');
+    expect(toReturnJson(textResult('nope'), {}).message()).toContain('valid JSON');
+    expect(toReturnJson(noTextResult(), {}).message()).toContain('no text content');
+  });
+
+  it('toReturnContentCount messages', () => {
+    expect(toReturnContentCount(textResult('x'), 1).message()).toContain('NOT have');
+    expect(toReturnContentCount(textResult('x'), 2).message()).toContain('but found 1');
+  });
+
+  it('toReturnImage messages', () => {
+    expect(toReturnImage(imageResult()).message()).toContain('NOT contain an image');
+    expect(toReturnImage(textResult('x')).message()).toContain('found types');
+  });
+
+  it('toReturnResourceText messages (incl. missing content)', () => {
+    expect(toReturnResourceText(resourceResult('hi'), 'hi').message()).toContain('NOT equal');
+    expect(toReturnResourceText(resourceResult('hi'), 'bye').message()).toContain('to equal');
+    expect(toReturnResourceText(resourceResult('hi')).message()).toContain('NOT have text');
+    expect(
+      toReturnResourceText({ contents: [] } as unknown as ReadResourceResult).message()
+    ).toContain('to have text content');
+  });
+
+  it('toReturnResourceTextContaining messages (incl. missing content)', () => {
+    expect(toReturnResourceTextContaining(resourceResult('hi world'), 'world').message()).toContain(
+      'NOT contain'
+    );
+    expect(toReturnResourceTextContaining(resourceResult('hi'), 'world').message()).toContain(
+      'to contain'
+    );
+    expect(
+      toReturnResourceTextContaining(
+        { contents: [] } as unknown as ReadResourceResult,
+        'x'
+      ).message()
+    ).toContain('no text content');
+  });
+
+  it('toReturnPromptTextContaining messages (incl. missing content)', () => {
+    expect(toReturnPromptTextContaining(promptResult('hi world'), 'world').message()).toContain(
+      'NOT contain'
+    );
+    expect(toReturnPromptTextContaining(promptResult('hi'), 'world').message()).toContain(
+      'to contain'
+    );
+    expect(
+      toReturnPromptTextContaining({ messages: [] } as unknown as GetPromptResult, 'x').message()
+    ).toContain('no text content');
+  });
+
+  it('toReturnPromptMessageCount messages', () => {
+    expect(toReturnPromptMessageCount(promptResult('x'), 1).message()).toContain('NOT have');
+    expect(toReturnPromptMessageCount(promptResult('x'), 2).message()).toContain('but found 1');
+  });
+});
+
+// ─── Setup & Standalone Assertions ───────────────────────────────────────────
+
+describe('matcher setup', () => {
+  it('setupJestMatchers registers without throwing', () => {
+    expect(() => setupJestMatchers()).not.toThrow();
+  });
+
+  it('setupCustomMatchers is an alias for setupJestMatchers', () => {
+    expect(setupCustomMatchers).toBe(setupJestMatchers);
+  });
+
+  it('setupVitestMatchers registers when expect.extend exists', () => {
+    expect(() => setupVitestMatchers()).not.toThrow();
+  });
+
+  it('setupVitestMatchers throws when expect.extend is missing', () => {
+    const original = (globalThis as { expect?: unknown }).expect;
+    (globalThis as { expect?: unknown }).expect = {};
+    try {
+      expect(() => setupVitestMatchers()).toThrow('must be called in a Vitest environment');
+    } finally {
+      (globalThis as { expect?: unknown }).expect = original;
+    }
+  });
+});
+
+describe('standalone assertion wrappers', () => {
+  it('assertToolText validates text', () => {
+    expect(() => assertToolText(textResult('hi'), 'hi')).not.toThrow();
+    expect(() => assertToolText(textResult('hi'), 'bye')).toThrow();
+    expect(() => assertToolText(noTextResult())).toThrow('text content');
+    expect(() => assertToolText(textResult('hi'), 'bye', 'custom')).toThrow('custom');
+  });
+
+  it('assertToolTextContains validates substrings', () => {
+    expect(() => assertToolTextContains(textResult('hi world'), 'world')).not.toThrow();
+    expect(() => assertToolTextContains(textResult('hi'), 'world')).toThrow();
+    expect(() => assertToolTextContains(noTextResult(), 'x')).toThrow('text content');
+  });
+
+  it('assertHasTool validates tool presence', () => {
+    expect(() => assertHasTool(tools, 'echo')).not.toThrow();
+    expect(() => assertHasTool(tools, 'missing')).toThrow('missing');
+  });
+
+  it('assertHasResource validates resource presence', () => {
+    expect(() => assertHasResource(resources, 'text://example')).not.toThrow();
+    expect(() => assertHasResource(resources, 'nope://x')).toThrow('nope://x');
+  });
+
+  it('assertHasPrompt validates prompt presence', () => {
+    expect(() => assertHasPrompt(prompts, 'greet')).not.toThrow();
+    expect(() => assertHasPrompt(prompts, 'missing')).toThrow('missing');
   });
 });

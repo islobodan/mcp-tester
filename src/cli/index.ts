@@ -4,22 +4,10 @@ import { Command } from 'commander';
 import { MCPClient } from '../client/MCPClient.js';
 import type { ServerConfig } from '../client/MCPClient.js';
 import { MCPConnectionError, MCPTimeoutError, MCPServerError } from '../utils/errors.js';
-import { generateTests } from '../generate-tests.js';
-import { generateTypes } from '../generate-types.js';
-import { readFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-
-// Read version from package.json (works in both src and dist)
-const __dirname = dirname(fileURLToPath(import.meta.url));
-function getPackageVersion(): string {
-  try {
-    const pkg = JSON.parse(readFileSync(join(__dirname, '../../package.json'), 'utf-8'));
-    return pkg.version || '0.0.0';
-  } catch {
-    return '0.0.0';
-  }
-}
+import { generateTests, generateTestsFromClient } from '../generate-tests.js';
+import { generateTypes, generateTypesFromClient } from '../generate-types.js';
+import { getPackageVersion } from '../utils/version.js';
+import type { LogLevel } from '../utils/logger.js';
 
 const program = new Command();
 
@@ -28,11 +16,20 @@ program
   .description('CLI tool for testing MCP servers (stdio, HTTP, and SSE transports)')
   .version(getPackageVersion(), '-V, --version');
 
-// Global options (also added per-command via addTransportOptions below)
+// Global options. Commander stores these on the root program, not on each
+// subcommand, so actions must merge them in via `withGlobals()` below.
 program
   .option('-t, --timeout <ms>', 'Request timeout in milliseconds', '30000')
   .option('-v, --verbose', 'Enable verbose output')
-  .option('-l, --log-level <level>', 'Log level (debug|info|warn|error)', 'info');
+  .option('-l, --log-level <level>', 'Log level (debug|info|warn|error|none)', 'info');
+
+/**
+ * Merge subcommand options with the root-level global options.
+ * Subcommand options win on key collisions.
+ */
+function withGlobals(opts: Record<string, unknown>): Record<string, unknown> {
+  return { ...program.opts(), ...opts };
+}
 
 /**
  * Add transport options to a command. Commander requires options to be defined
@@ -67,6 +64,11 @@ function resolveServerConfig(
   const url = opts['url'] ? String(opts['url']) : undefined;
   const headersRaw = opts['headers'] ? String(opts['headers']) : undefined;
 
+  if (transport && transport !== 'stdio' && transport !== 'http' && transport !== 'sse') {
+    console.error(`❌ Unknown transport "${transport}". Use stdio, http, or sse.`);
+    process.exit(1);
+  }
+
   let headers: Record<string, string> | undefined;
   if (headersRaw) {
     try {
@@ -77,9 +79,14 @@ function resolveServerConfig(
     }
   }
 
-  // HTTP or SSE transport
-  if (transport === 'http' || transport === 'sse' || (url && transport)) {
-    const actualTransport = (transport || 'http') as 'http' | 'sse';
+  // HTTP or SSE transport. A `--url` alone implies HTTP; an explicit
+  // non-stdio `--transport` uses the positional command as the URL.
+  if (url || transport === 'http' || transport === 'sse') {
+    if (transport === 'stdio') {
+      console.error('❌ --url requires --transport http or sse (not stdio).');
+      process.exit(1);
+    }
+    const actualTransport: 'http' | 'sse' = transport === 'sse' ? 'sse' : 'http';
     const actualUrl = url || command;
     if (!actualUrl) {
       console.error(
@@ -113,17 +120,16 @@ function describeTarget(config: ServerConfig): string {
   return `stdio: ${config.command} ${(config.args || []).join(' ')}`;
 }
 
-/** Create a client with global options. */
+/** Create a client from merged global + command options. */
 function createClient(opts: Record<string, unknown>): MCPClient {
+  const merged = withGlobals(opts);
+  const timeout = parseInt(String(merged['timeout'] || '30000'));
+  const logLevel = (merged['verbose'] ? 'debug' : String(merged['logLevel'] || 'info')) as LogLevel;
   return new MCPClient({
     name: 'mcp-tester-cli',
-    version: '1.0.0',
-    timeout: parseInt(String(opts['timeout'] || '30000')),
-    logLevel: (opts['verbose'] ? 'debug' : String(opts['logLevel'] || 'info')) as
-      | 'debug'
-      | 'info'
-      | 'warn'
-      | 'error',
+    version: getPackageVersion(),
+    timeout: Number.isNaN(timeout) ? 30000 : timeout,
+    logLevel,
   });
 }
 
@@ -194,7 +200,7 @@ withTransport(
     if (error instanceof MCPConnectionError) {
       console.error('   → Connection failed. Check the URL or command.');
     } else if (error instanceof MCPTimeoutError) {
-      console.error(`   → Request timed out after ${opts['timeout']}ms`);
+      console.error(`   → Request timed out after ${withGlobals(opts)['timeout']}ms`);
     } else if (error instanceof MCPServerError) {
       console.error('   → Server returned an error');
     }
@@ -452,9 +458,9 @@ withTransport(
       try {
         console.error('🔍 Inspecting MCP server...');
 
-        // generateTests supports stdio only (connects and inspects)
+        const merged = withGlobals(opts);
         const config = resolveServerConfig(opts, command, serverArgs);
-        const timeout = parseInt(String(opts['timeout'] || '30000'));
+        const timeout = parseInt(String(merged['timeout'] || '30000'));
 
         let code: string;
         if ('command' in config) {
@@ -470,12 +476,14 @@ withTransport(
             timeout,
           });
         } else {
-          // HTTP/SSE — connect directly
-          const client = new MCPClient({ name: 'mcp-tester-gen', version: '1.0.0', timeout });
+          const client = new MCPClient({
+            name: 'mcp-tester-gen',
+            version: getPackageVersion(),
+            timeout,
+          });
           try {
             await client.start(config);
-            // For HTTP/SSE, generate from connected client
-            code = await generateFromClient(client, {
+            code = await generateTestsFromClient(client, config, {
               framework: framework as 'jest' | 'vitest',
               description: opts['description'] as string | undefined,
               includeResources: opts['resources'] !== false,
@@ -526,8 +534,9 @@ withTransport(
       try {
         console.error('🔍 Inspecting MCP server for type generation...');
 
+        const merged = withGlobals(opts);
         const config = resolveServerConfig(opts, command, serverArgs);
-        const timeout = parseInt(String(opts['timeout'] || '30000'));
+        const timeout = parseInt(String(merged['timeout'] || '30000'));
 
         let types: string;
         if ('command' in config) {
@@ -540,7 +549,11 @@ withTransport(
             timeout,
           });
         } else {
-          const client = new MCPClient({ name: 'mcp-tester-gen', version: '1.0.0', timeout });
+          const client = new MCPClient({
+            name: 'mcp-tester-gen',
+            version: getPackageVersion(),
+            timeout,
+          });
           try {
             await client.start(config);
             types = await generateTypesFromClient(client, {
@@ -572,146 +585,6 @@ withTransport(
       }
     }
   );
-
-// ─── Helpers for HTTP/SSE codegen (inline inspection) ─────────────────────
-
-async function generateFromClient(
-  client: MCPClient,
-  opts: {
-    framework: 'jest' | 'vitest';
-    description?: string;
-    includeResources: boolean;
-    includePrompts: boolean;
-    includeTools: boolean;
-    includeMatchers: boolean;
-  }
-): Promise<string> {
-  const tools = opts.includeTools ? await client.listTools() : [];
-  const resources = opts.includeResources ? await client.listResources() : [];
-  const prompts = opts.includePrompts ? await client.listPrompts() : [];
-
-  // Build the test code inline (simplified version for HTTP/SSE)
-  const importLine = opts.framework === 'vitest' ? 'vitest' : '@jest/globals';
-  const matchersImport = opts.includeMatchers
-    ? `import { setup${opts.framework === 'vitest' ? 'Vitest' : 'Jest'}Matchers } from '@slbdn/mcp-tester';\n`
-    : '';
-
-  let code = `import { describe, it, expect, beforeAll, afterAll } from '${importLine}';\n`;
-  code += `import { MCPClient } from '@slbdn/mcp-tester';\n`;
-  if (matchersImport) code += matchersImport;
-  code += '\n';
-
-  const desc = opts.description || 'Generated MCP Server Tests';
-  code += `describe('${desc}', () => {\n`;
-  code += `  let client: MCPClient;\n\n`;
-  code += `  beforeAll(async () => {\n`;
-  if (matchersImport) {
-    code += `    setup${opts.framework === 'vitest' ? 'Vitest' : 'Jest'}Matchers();\n`;
-  }
-  code += `    client = new MCPClient({ timeout: 30000 });\n`;
-  code += `    // Update the URL/command for your server\n`;
-  code += `    await client.start({ command: 'node', args: ['./server.js'] });\n`;
-  code += `  });\n\n`;
-  code += `  afterAll(async () => {\n    if (client.isConnected()) await client.stop();\n  });\n\n`;
-
-  if (opts.includeTools) {
-    code += `  // ─── Tools (${tools.length}) ───\n`;
-    for (const tool of tools) {
-      code += `  it('should have tool: ${tool.name}', async () => {\n`;
-      code += `    const tools = await client.listTools();\n`;
-      code += `    expect(tools.map(t => t.name)).toContain('${tool.name}');\n`;
-      code += `  });\n\n`;
-    }
-  }
-
-  if (opts.includeResources) {
-    code += `  // ─── Resources (${resources.length}) ───\n`;
-    code += `  it('should list resources', async () => {\n`;
-    code += `    const resources = await client.listResources();\n`;
-    code += `    expect(resources.length).toBeGreaterThan(0);\n`;
-    code += `  });\n\n`;
-  }
-
-  if (opts.includePrompts) {
-    code += `  // ─── Prompts (${prompts.length}) ───\n`;
-    code += `  it('should list prompts', async () => {\n`;
-    code += `    const prompts = await client.listPrompts();\n`;
-    code += `    expect(prompts.length).toBeGreaterThan(0);\n`;
-    code += `  });\n\n`;
-  }
-
-  code += `});\n`;
-  return code;
-}
-
-async function generateTypesFromClient(
-  client: MCPClient,
-  opts: {
-    moduleName?: string;
-    includeResources: boolean;
-    includePrompts: boolean;
-  }
-): Promise<string> {
-  const tools = await client.listTools();
-  const resources = opts.includeResources ? await client.listResources() : [];
-  const prompts = opts.includePrompts ? await client.listPrompts() : [];
-
-  const moduleName = opts.moduleName || '@slbdn/mcp-tester';
-  let code = `// Generated by mcp-tester generate-types\n`;
-  code += `// Source: MCP server inspection\n\n`;
-
-  code += `// Tool argument types\n`;
-  for (const tool of tools) {
-    code += `export interface ${toPascalCase(tool.name)}Args {\n`;
-    const props = tool.inputSchema?.properties || {};
-    const required = tool.inputSchema?.required || [];
-    for (const [key, schema] of Object.entries(props)) {
-      const s = schema as Record<string, unknown>;
-      const tsType = jsonSchemaToTs(s);
-      const optional = !required.includes(key) ? '?' : '';
-      code += `  ${key}${optional}: ${tsType};\n`;
-    }
-    code += `}\n\n`;
-  }
-
-  code += `export type ToolName = ${tools.map((t) => `'${t.name}'`).join(' | ') || 'string'};\n\n`;
-
-  if (resources.length > 0) {
-    code += `export type ResourceUri = ${resources.map((r) => `'${r.uri}'`).join(' | ')};\n\n`;
-  }
-
-  if (prompts.length > 0) {
-    code += `export type PromptName = ${prompts.map((p) => `'${p.name}'`).join(' | ')};\n\n`;
-  }
-
-  code += `// Import the client\n`;
-  code += `import { MCPClient, type ToolCall } from '${moduleName}';\n`;
-
-  return code;
-}
-
-function toPascalCase(s: string): string {
-  return s.replace(/(^|[-_])(.)/g, (_, __, c: string) => c.toUpperCase());
-}
-
-function jsonSchemaToTs(schema: Record<string, unknown>): string {
-  const type = schema.type as string;
-  switch (type) {
-    case 'string':
-      return 'string';
-    case 'number':
-    case 'integer':
-      return 'number';
-    case 'boolean':
-      return 'boolean';
-    case 'array':
-      return 'unknown[]';
-    case 'object':
-      return 'Record<string, unknown>';
-    default:
-      return 'unknown';
-  }
-}
 
 // ─── Help ────────────────────────────────────────────────────────────────
 

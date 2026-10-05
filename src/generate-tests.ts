@@ -6,9 +6,9 @@
  */
 
 import { MCPClient } from './client/MCPClient.js';
+import type { ServerConfig, StdioServerConfig } from './client/MCPClient.js';
 import type { Tool, Resource, Prompt } from '@modelcontextprotocol/sdk/types.js';
-import { readFileSync } from 'fs';
-import { join } from 'path';
+import { getPackageVersion } from './utils/version.js';
 
 /**
  * Options for test generation.
@@ -96,14 +96,33 @@ function generateToolArgs(tool: Tool): Record<string, unknown> {
 }
 
 /**
- * Build the server start command string for the generated test.
+ * Build the `client.start({ ... })` config literal for the generated test.
+ * Uses JSON.stringify for values so quotes/backslashes are safely escaped.
  */
-function formatStartCommand(command: string, args?: string[]): string {
-  const parts = [`command: '${command}'`];
-  if (args && args.length > 0) {
-    parts.push(`args: ['${args.join("', '")}']`);
+function formatServerStart(server: ServerConfig): string {
+  if (server.transport === 'http' || server.transport === 'sse') {
+    const parts = [`transport: '${server.transport}'`, `url: ${JSON.stringify(server.url)}`];
+    if (server.headers && Object.keys(server.headers).length > 0) {
+      parts.push(`headers: ${JSON.stringify(server.headers)}`);
+    }
+    return parts.join(',\n      ');
+  }
+
+  const stdio = server as StdioServerConfig;
+  const parts = [`command: ${JSON.stringify(stdio.command)}`];
+  if (stdio.args && stdio.args.length > 0) {
+    parts.push(`args: ${JSON.stringify(stdio.args)}`);
   }
   return parts.join(',\n      ');
+}
+
+/** Human-readable server target for the generated file header. */
+function formatServerLabel(server: ServerConfig): string {
+  if (server.transport === 'http' || server.transport === 'sse') {
+    return `${server.transport} ${server.url}`;
+  }
+  const stdio = server as StdioServerConfig;
+  return `${stdio.command}${stdio.args && stdio.args.length > 0 ? ' ' + stdio.args.join(' ') : ''}`;
 }
 
 /**
@@ -116,11 +135,7 @@ function generateToolTests(tools: Tool[]): string {
 
   for (const tool of tools) {
     const sampleArgs = generateToolArgs(tool);
-    const argsStr =
-      Object.keys(sampleArgs).length > 0
-        ? JSON.stringify(sampleArgs, null, 4).replace(/\n/g, '\n        ')
-        : '{}';
-    const hasArgs = Object.keys(sampleArgs).length > 0;
+    const argsStr = Object.keys(sampleArgs).length > 0 ? JSON.stringify(sampleArgs) : '{}';
 
     lines.push('');
     lines.push(`    it('should have tool "${tool.name}"', async () => {`);
@@ -129,27 +144,15 @@ function generateToolTests(tools: Tool[]): string {
     lines.push('    });');
     lines.push('');
 
-    // Call test
-    lines.push(`    it('should call "${tool.name}" successfully', async () => {`);
+    // Call test. Generated arguments are guesses, and some tools intentionally
+    // return/throw errors — so accept a successful result or a tool-level error.
+    lines.push(`    it('should call "${tool.name}"', async () => {`);
     lines.push('      const result = await client.callTool({');
     lines.push(`        name: '${tool.name}',`);
     lines.push(`        arguments: ${argsStr},`);
-    lines.push('      });');
-    lines.push('      expect(result.content).toBeDefined();');
-    lines.push('      expect(result.content.length).toBeGreaterThan(0);');
+    lines.push('      }).catch((error: unknown) => error);');
+    lines.push('      expect(result).toBeDefined();');
     lines.push('    });');
-
-    // Add assertion test for tools with known return types
-    if (hasArgs) {
-      lines.push('');
-      lines.push(`    it('should return valid result from "${tool.name}"', async () => {`);
-      lines.push('      const result = await client.callTool({');
-      lines.push(`        name: '${tool.name}',`);
-      lines.push(`        arguments: ${argsStr},`);
-      lines.push('      });');
-      lines.push('      expect(result).toReturnOk();');
-      lines.push('    });');
-    }
   }
 
   lines.push('  });');
@@ -221,21 +224,38 @@ function generatePromptTests(prompts: Prompt[]): string {
 }
 
 /**
+ * Options consumed by {@link buildTestFile} (server description is passed separately).
+ */
+type TestBuildOptions = Pick<
+  GenerateTestOptions,
+  | 'framework'
+  | 'description'
+  | 'includeResources'
+  | 'includePrompts'
+  | 'includeTools'
+  | 'includeMatchers'
+>;
+
+/**
  * Generate a complete test file.
  */
 function buildTestFile(
   tools: Tool[],
   resources: Resource[],
   prompts: Prompt[],
-  options: GenerateTestOptions
+  options: TestBuildOptions,
+  server: ServerConfig
 ): string {
   const framework = options.framework || 'jest';
   const description = options.description || 'MCP Server';
-  const startCmd = formatStartCommand(options.command, options.args);
+  const startCmd = formatServerStart(server);
+  const serverLabel = formatServerLabel(server);
   const includeMatchers = options.includeMatchers !== false;
 
   // Imports
   const importLines: string[] = [];
+  // Triple-slash type directive must appear at the very top of the file.
+  let vitestReference = '';
 
   if (framework === 'vitest') {
     importLines.push(
@@ -244,7 +264,7 @@ function buildTestFile(
     const extraImports = includeMatchers ? ', setupVitestMatchers' : '';
     importLines.push(`import { MCPClient${extraImports} } from '@slbdn/mcp-tester';`);
     if (includeMatchers) {
-      importLines.push('// /// <reference types="@slbdn/mcp-tester/vitest" />');
+      vitestReference = '/// <reference types="@slbdn/mcp-tester/vitest" />\n\n';
     }
   } else {
     importLines.push(
@@ -260,10 +280,10 @@ function buildTestFile(
     ` * Generated test file for: ${description}`,
     ' *',
     ` * Framework: ${framework}`,
-    ` * Server: ${options.command}${options.args ? ' ' + options.args.join(' ') : ''}`,
+    ` * Server: ${serverLabel}`,
     ` * Tools: ${tools.length} | Resources: ${resources.length} | Prompts: ${prompts.length}`,
     ' *',
-    ` * Generated by @slbdn/mcp-tester v${getVersion()}`,
+    ` * Generated by @slbdn/mcp-tester v${getPackageVersion()}`,
     ' * Run: npx jest --testTimeout=30000 (or npx vitest run)',
     ' */',
   ].join('\n');
@@ -282,7 +302,7 @@ function buildTestFile(
       : 'beforeAll(() => setupJestMatchers());'
     : '';
 
-  return `${header}
+  return `${vitestReference}${header}
 
 ${importLines.join('\n')}
 
@@ -321,19 +341,6 @@ ${sections.join('\n\n')}
 }
 
 /**
- * Get the package version.
- */
-function getVersion(): string {
-  try {
-    const pkg = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf-8'));
-    if (pkg.name === '@slbdn/mcp-tester') return pkg.version || '1.0.0';
-  } catch {
-    /* fallback */
-  }
-  return '1.0.0';
-}
-
-/**
  * Connect to an MCP server, inspect capabilities, and generate a test file.
  *
  * @returns The generated test file content
@@ -358,8 +365,48 @@ export async function generateTests(options: GenerateTestOptions): Promise<strin
       client.listPrompts(),
     ]);
 
-    return buildTestFile(tools, resources, prompts, options);
+    const server: StdioServerConfig = { command: options.command, args: options.args };
+    return buildTestFile(tools, resources, prompts, options, server);
   } finally {
     await client.stop();
   }
+}
+
+/**
+ * Options for {@link generateTestsFromClient}.
+ */
+export type GenerateTestsFromClientOptions = Pick<
+  GenerateTestOptions,
+  | 'framework'
+  | 'description'
+  | 'includeResources'
+  | 'includePrompts'
+  | 'includeTools'
+  | 'includeMatchers'
+>;
+
+/**
+ * Generate a test file from an already-connected client.
+ *
+ * Unlike {@link generateTests}, this supports any transport (stdio, HTTP, SSE)
+ * because the caller owns the connection. The generated test file embeds the
+ * supplied `server` config so it can reconnect on its own.
+ *
+ * @param client - A connected MCPClient instance
+ * @param server - The config the generated test should use to connect
+ * @param options - Generation options
+ * @returns The generated test file content
+ */
+export async function generateTestsFromClient(
+  client: MCPClient,
+  server: ServerConfig,
+  options: GenerateTestsFromClientOptions = {}
+): Promise<string> {
+  const [tools, resources, prompts] = await Promise.all([
+    options.includeTools === false ? Promise.resolve([]) : client.listTools(),
+    options.includeResources === false ? Promise.resolve([]) : client.listResources(),
+    options.includePrompts === false ? Promise.resolve([]) : client.listPrompts(),
+  ]);
+
+  return buildTestFile(tools, resources, prompts, options, server);
 }

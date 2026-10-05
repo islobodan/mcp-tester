@@ -23,7 +23,12 @@ export default {
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.test.ts',
-    '!src/**/index.ts',
+    // Barrel entry points are thin re-export surfaces.
+    '!src/index.ts',
+    '!src/client/index.ts',
+    // The CLI is exercised end-to-end via child_process in cli.test.ts; its
+    // branches cannot be instrumented across the process boundary.
+    '!src/cli/index.ts',
     // Exclude test infrastructure, fixtures, and helpers from coverage.
     // These are test-only files, not shipped production code.
     // (benchmarks.ts especially was 0% and dragged down the global average.)
@@ -45,10 +50,10 @@ export default {
       lines: 96,
     },
     './src/matchers.ts': {
-      statements: 68,
-      branches: 28,
-      functions: 42,
-      lines: 64,
+      statements: 100,
+      branches: 90,
+      functions: 100,
+      lines: 100,
     },
     './src/client/MCPClient.ts': {
       statements: 68,

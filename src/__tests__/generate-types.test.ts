@@ -1,5 +1,11 @@
 import { describe, it, expect } from '@jest/globals';
-import { generateTypes, schemaToType, toTypeName, escapePropertyName } from '../generate-types.js';
+import {
+  generateTypes,
+  schemaToType,
+  toTypeName,
+  escapePropertyName,
+  generateRefTypes,
+} from '../generate-types.js';
 import type { GenerateTypesOptions } from '../generate-types.js';
 
 // ─── Helpers ────────────────────────────────────────────────────────
@@ -354,6 +360,75 @@ describe('schemaToType', () => {
       });
       expect(result).toContain('/** The name */');
     });
+
+    it('should escape comment terminators in descriptions', () => {
+      const result = schemaToType({
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'ends */ here' },
+        },
+        required: ['name'],
+      });
+      expect(result).toContain('ends *\\/ here');
+      expect(result).not.toContain('ends */ here');
+    });
+  });
+});
+
+// ─── generateRefTypes Unit Tests ────────────────────────────────────
+
+describe('generateRefTypes', () => {
+  it('returns an empty string when there are no refs', () => {
+    expect(generateRefTypes({ type: 'string' })).toBe('');
+  });
+
+  it('resolves refs from $defs into type aliases', () => {
+    const output = generateRefTypes({
+      type: 'object',
+      properties: { user: { $ref: '#/$defs/User' } },
+      $defs: {
+        User: {
+          type: 'object',
+          properties: { id: { type: 'string' } },
+          required: ['id'],
+        },
+      },
+    });
+    expect(output).toContain('export type User =');
+    expect(output).toContain('id: string');
+  });
+
+  it('resolves refs from legacy definitions', () => {
+    const output = generateRefTypes({
+      type: 'object',
+      properties: { user: { $ref: '#/definitions/User' } },
+      definitions: {
+        User: { type: 'object', properties: { name: { type: 'string' } }, required: ['name'] },
+      },
+    });
+    expect(output).toContain('export type User =');
+    expect(output).toContain('name: string');
+  });
+
+  it('falls back to unknown for unresolved refs so the file type-checks', () => {
+    const output = generateRefTypes({
+      type: 'object',
+      properties: { missing: { $ref: '#/definitions/Missing' } },
+    });
+    expect(output).toContain('export type Missing = unknown;');
+  });
+
+  it('resolves nested refs transitively', () => {
+    const output = generateRefTypes({
+      type: 'object',
+      properties: { a: { $ref: '#/$defs/A' } },
+      $defs: {
+        A: { type: 'object', properties: { b: { $ref: '#/$defs/B' } }, required: ['b'] },
+        B: { type: 'string' },
+      },
+    });
+    expect(output).toContain('export type A =');
+    expect(output).toContain('export type B = string;');
   });
 });
 

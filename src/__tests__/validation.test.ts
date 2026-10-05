@@ -460,6 +460,41 @@ describe('Input Validation', () => {
     it('should reject empty messages array', () => {
       expect(() => validateSamplingRequest({ messages: [] })).toThrow('cannot be empty');
     });
+
+    it('should reject a missing maxTokens', () => {
+      expect(() =>
+        validateSamplingRequest({
+          messages: [{ role: 'user', content: { type: 'text', text: 'Hi' } }],
+        })
+      ).toThrow('maxTokens');
+    });
+
+    it('should reject a non-numeric maxTokens', () => {
+      expect(() =>
+        validateSamplingRequest({
+          messages: [{ role: 'user', content: { type: 'text', text: 'Hi' } }],
+          maxTokens: 'lots',
+        })
+      ).toThrow('must be a number');
+    });
+
+    it('should reject a non-positive maxTokens', () => {
+      expect(() =>
+        validateSamplingRequest({
+          messages: [{ role: 'user', content: { type: 'text', text: 'Hi' } }],
+          maxTokens: 0,
+        })
+      ).toThrow('positive');
+    });
+
+    it('should reject a non-integer maxTokens', () => {
+      expect(() =>
+        validateSamplingRequest({
+          messages: [{ role: 'user', content: { type: 'text', text: 'Hi' } }],
+          maxTokens: 1.5,
+        })
+      ).toThrow('positive integer');
+    });
   });
 
   // ─── validateClientOptions ──────────────────────────────────────────────

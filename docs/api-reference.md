@@ -23,7 +23,7 @@ new MCPClient(options?: MCPClientOptions)
 | `enableProtocolLogging` | `boolean` | `false` | Log raw JSON protocol messages |
 | `retries` | `number` | `0` | Number of retry attempts for failed requests |
 | `retryDelay` | `number` | `1000` | Base delay (ms) between retries |
-| `startupDelay` | `number` | `500` | Delay after server start (ms) |
+| `startupDelay` | `number` | `0` | Delay after server start (ms). Opt-in; `0` disables |
 
 **Example:**
 
@@ -54,7 +54,7 @@ Spawns a local server process and communicates via stdin/stdout.
 | `config.command` | `string` | ✅ | Command to execute (e.g., `'node'`) |
 | `config.args` | `string[]` | | Arguments to pass to the command |
 | `config.env` | `Record<string, string \| undefined>` | | Environment variables |
-| `config.startupDelay` | `number` | | Override startup delay (ms) |
+| `config.startupDelay` | `number` | | Per-connection startup delay (ms), overrides the client option |
 
 ```typescript
 await client.start({

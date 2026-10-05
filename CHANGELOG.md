@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.2] - 2026-10-05
+
+### Fixed
+- **Published package was unusable from 1.3.0 onward** — the `files` allowlist omitted `dist/generate-tests.*` and `dist/generate-types.*` while `dist/index.js` eagerly re-exported them, so importing `@slbdn/mcp-tester` (or any deep path through the barrel) failed with `ERR_MODULE_NOT_FOUND`.
+  - `files` is now simply `["dist", ...]`, which cannot drift when new modules are added at the `dist/` root.
+- **CLI global options were ignored** — `--timeout`, `--verbose` and `--log-level` are declared on the root program, but subcommands read options from their own `opts`, so they had no effect. Actions now merge in `program.opts()`; `--log-level debug` emits debug output and `--timeout 1` correctly fails slow calls.
+- **`--url` without `--transport` failed** — the HTTP branch required a truthy `transport`. A URL now implies HTTP, and unknown `--transport` values are rejected with exit code 1.
+- **`getPackageVersion()` resolved against `process.cwd()`** — generated file headers reported `1.0.0` for consumers. It now resolves the installed package via Node module resolution (works from a clean install, the repo, and global CLI installs).
+- **CI `security` job failed on every run** — the `npm audit` steps are now `continue-on-error: true` rather than hard-failing the workflow.
+- **`startupDelay` was validated and documented but never applied** — `start()` now waits for it when configured. The default is `0` (opt-in).
+- **Health check assumed the server exposes tools** — `isHealthy()` used `tools/list`, so resource/prompt-only servers were reported unhealthy. It now uses the protocol-level `ping`, and records `lastHealthStatus` on every path.
+- **`startHealthMonitor()` could crash the process** — a throwing `onCheck`/`onUnhealthy`/`onRecovery` callback (or a rejected health check) surfaced as an unhandled rejection. Callbacks are now guarded and logged.
+- **`callTool()` was retried by default** — re-running a tool can duplicate side effects. Tool calls are now retried only when `retries` is passed per call; idempotent requests keep the global retry policy.
+- **HTTP/SSE header merging dropped entries** when `requestInit.headers` was a `Headers` instance or tuple array; headers are now merged without data loss.
+- **Sampling validation lied about `maxTokens`** — `validateSamplingRequest()` asserted it was a number without checking. It now rejects missing, non-numeric, non-integer, and non-positive values.
+- **Generated type declarations could reference undefined `$ref` types** — `$ref` targets are now emitted as `export type` aliases (resolved from `$defs`/`definitions`, transitively), falling back to `unknown` for unresolved refs so the output always type-checks.
+- **Descriptions could break generated JSDoc** — tool/resource/prompt/argument descriptions containing `*/` are escaped.
+- Removed dead code and stale artifacts: duplicated `toTypeName` ternary, tracked `.github/workflows/release.yml.bak`, and a stale CI coverage-threshold comment.
+
+### Added
+- **Package smoke test** (`npm run test:package`, wired into CI) — packs the tarball, installs it into a clean project, and verifies the root import and public exports. This catches packaging regressions that the `src/`-based Jest suite cannot.
+- `generateTestsFromClient()` / `generateTypesFromClient()` — generate from an already-connected client, so HTTP/SSE generation shares the stdio code path instead of a divergent inline copy.
+- CLI `generate` and `generate-types` now use the shared library generators for all transports.
+
+### Changed
+- Generated test call cases accept either a successful result or a tool-level error, so generated suites for servers with intentional error tools no longer fail out of the box.
+- `tsx` is now a declared devDependency for the `benchmark` script.
+- Coverage config excludes `src/cli/index.ts` explicitly (exercised end-to-end via `child_process`) instead of the blanket `src/**/index.ts` glob.
+- `matchers.ts` coverage raised from 68/29/42/65 to 100/95/100/100 (statements/branches/functions/lines); the Jest per-file floor now enforces it.
+
 ## [1.4.1] - 2026-07-02
 
 ### Fixed

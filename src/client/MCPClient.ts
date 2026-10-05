@@ -82,7 +82,11 @@ export interface StdioServerConfig {
   env?: Record<string, string | undefined>;
   /**
    * Delay in milliseconds to wait after starting the server before sending requests.
-   * @defaultValue 500
+   *
+   * Opt-in: when omitted (or `0`), no delay is applied. Useful for servers that
+   * are not ready to accept requests immediately after spawn.
+   *
+   * @defaultValue 0
    */
   startupDelay?: number;
 }
@@ -170,6 +174,10 @@ export interface MCPClientOptions {
   enableProtocolLogging?: boolean;
   /**
    * Number of retry attempts for failed requests.
+   *
+   * Applies to idempotent requests (list/read/get). `callTool()` is not retried
+   * by default — pass `retries` on the individual call to opt in — because
+   * re-running a tool may duplicate side effects.
    * @defaultValue 0
    */
   retries?: number;
@@ -180,7 +188,7 @@ export interface MCPClientOptions {
   retryDelay?: number;
   /**
    * Delay in milliseconds to wait after starting the server.
-   * @defaultValue 500
+   * @defaultValue 0
    */
   startupDelay?: number;
 }
@@ -203,6 +211,7 @@ export interface ToolCallOptions {
   timeout?: number;
   /**
    * Number of retries for this specific call. Overrides the default retries.
+   * Must be set explicitly to retry a tool call (retrying may duplicate side effects).
    */
   retries?: number;
 }
@@ -353,7 +362,7 @@ export class MCPClient {
       enableProtocolLogging: options.enableProtocolLogging || false,
       retries: options.retries ?? 0,
       retryDelay: options.retryDelay ?? 1000,
-      startupDelay: options.startupDelay ?? 500,
+      startupDelay: options.startupDelay ?? 0,
     };
 
     this.notificationHandlers = {};
@@ -451,6 +460,18 @@ export class MCPClient {
       this.setupNotificationHandlers();
 
       await this.client.connect(this.transport);
+
+      // Optional post-startup delay (stdio only). Applied only when explicitly
+      // configured so the default path stays fast.
+      const startupDelay =
+        transportType === 'stdio'
+          ? ((config as StdioServerConfig).startupDelay ?? this.options.startupDelay ?? 0)
+          : 0;
+      if (startupDelay > 0) {
+        this.logger.debug(`Waiting ${startupDelay}ms for server startup`);
+        await this.sleep(startupDelay);
+      }
+
       this.logger.info(`Successfully connected to MCP server via ${transportType} transport`);
     } catch (error) {
       this.logger.error('Failed to start MCP client:', error);
@@ -498,10 +519,7 @@ export class MCPClient {
       this.logger.debug(`Connecting to HTTP endpoint: ${cfg.url}`);
       const requestInit: RequestInit = { ...cfg.requestInit };
       if (cfg.headers) {
-        requestInit.headers = {
-          ...cfg.headers,
-          ...(requestInit.headers as Record<string, string>),
-        };
+        requestInit.headers = mergeHeaders(requestInit.headers, cfg.headers);
       }
       return new StreamableHTTPClientTransport(new URL(cfg.url), {
         requestInit,
@@ -514,7 +532,7 @@ export class MCPClient {
     this.logger.debug(`Connecting to SSE endpoint: ${cfg.url}`);
     const requestInit: RequestInit = { ...cfg.requestInit };
     if (cfg.headers) {
-      requestInit.headers = { ...cfg.headers, ...(requestInit.headers as Record<string, string>) };
+      requestInit.headers = mergeHeaders(requestInit.headers, cfg.headers);
     }
     return new SSEClientTransport(new URL(cfg.url), { requestInit });
   }
@@ -660,7 +678,8 @@ export class MCPClient {
       const timeout = options.timeout ?? this.options.timeout;
       const result = await this.withRetry(
         async () => this.client!.request(request, CallToolResultSchema, { timeout }),
-        options.retries
+        options.retries,
+        false
       );
       this.logger.debug(`Tool ${options.name} executed in ${elapsed()}ms`);
       return result;
@@ -970,33 +989,38 @@ export class MCPClient {
 
     // Not connected at all
     if (!this.client || !this.transport) {
-      return {
+      const status: HealthStatus = {
         healthy: false,
         checkedAt,
         latencyMs: -1,
         pid: null,
         message: 'Client is not connected',
       };
+      this.lastHealthStatus = status;
+      return status;
     }
 
     // For stdio transport, check if the server process is still alive (zombie detection)
     if (this.transportType === 'stdio') {
       const pid = this.getStdioPid();
       if (pid !== null && !isProcessAlive(pid)) {
-        return {
+        const status: HealthStatus = {
           healthy: false,
           checkedAt,
           latencyMs: -1,
           pid,
           message: `Server process (PID ${pid}) is no longer running`,
         };
+        this.lastHealthStatus = status;
+        return status;
       }
     }
 
-    // Send a lightweight request to verify MCP responsiveness
+    // Send a lightweight `ping` (protocol-level liveness probe). Unlike
+    // `tools/list`, this works for servers that expose no tools.
     try {
       const start = startTimer();
-      await this.client.request({ method: 'tools/list', params: {} }, ListToolsResultSchema);
+      await this.client.ping();
       const latencyMs = start();
 
       const pid = this.getStdioPid();
@@ -1082,26 +1106,51 @@ export class MCPClient {
     let wasHealthy: boolean | null = null;
 
     const check = async () => {
-      const status = await this.isHealthy();
-      options.onCheck?.(status);
+      let status: HealthStatus;
+      try {
+        status = await this.isHealthy();
+      } catch (error) {
+        this.logger.warn('Health monitor: health check threw —', error);
+        return;
+      }
+
+      this.safeCallback(options.onCheck, status, 'onCheck');
 
       if (!status.healthy && wasHealthy !== false) {
         wasHealthy = false;
-        options.onUnhealthy?.(status);
+        this.safeCallback(options.onUnhealthy, status, 'onUnhealthy');
         this.logger.warn(`Health monitor: server unhealthy — ${status.message}`);
       } else if (status.healthy && wasHealthy === false) {
         wasHealthy = true;
-        options.onRecovery?.(status);
+        this.safeCallback(options.onRecovery, status, 'onRecovery');
         this.logger.info('Health monitor: server recovered');
       } else if (status.healthy) {
         wasHealthy = true;
       }
     };
 
-    // Run first check immediately
-    check();
-    this.healthMonitorTimer = setInterval(check, interval);
+    // Run first check immediately. Errors are handled inside `check`; the
+    // explicit `void` documents the intentional fire-and-forget call.
+    void check();
+    this.healthMonitorTimer = setInterval(() => void check(), interval);
     this.logger.debug(`Health monitor started (interval: ${interval}ms)`);
+  }
+
+  /**
+   * Invoke a health-monitor callback without letting a throw escape into the
+   * interval (which would become an unhandled rejection).
+   */
+  private safeCallback(
+    callback: ((status: HealthStatus) => void) | undefined,
+    status: HealthStatus,
+    name: string
+  ): void {
+    if (!callback) return;
+    try {
+      callback(status);
+    } catch (error) {
+      this.logger.warn(`Health monitor: ${name} callback threw —`, error);
+    }
   }
 
   /**
@@ -1155,8 +1204,13 @@ export class MCPClient {
     throw new MCPServerError(`${operation} failed: ${message}`, operation, serverCode);
   }
 
-  private async withRetry<T>(operation: () => Promise<T>, retries?: number): Promise<T> {
-    const maxAttempts = retries !== undefined ? retries + 1 : this.retryOptions.maxAttempts;
+  private async withRetry<T>(
+    operation: () => Promise<T>,
+    retries?: number,
+    allowDefaultRetries = true
+  ): Promise<T> {
+    const maxAttempts =
+      retries !== undefined ? retries + 1 : allowDefaultRetries ? this.retryOptions.maxAttempts : 1;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
@@ -1182,6 +1236,32 @@ export class MCPClient {
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
+}
+
+/**
+ * Merge connection `headers` into an existing `HeadersInit` without losing
+ * entries when the base is a `Headers` instance or an array of tuples.
+ * Base values take precedence over `extra` (matching the previous behaviour).
+ */
+function mergeHeaders(
+  base: RequestInit['headers'] | undefined,
+  extra: Record<string, string>
+): Record<string, string> {
+  const merged: Record<string, string> = {};
+  if (base) {
+    if (typeof Headers !== 'undefined' && base instanceof Headers) {
+      base.forEach((value, key) => {
+        merged[key] = value;
+      });
+    } else if (Array.isArray(base)) {
+      for (const [key, value] of base as [string, string][]) {
+        merged[key] = value;
+      }
+    } else {
+      Object.assign(merged, base as Record<string, string>);
+    }
+  }
+  return { ...extra, ...merged };
 }
 
 /**

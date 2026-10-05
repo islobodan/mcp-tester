@@ -448,6 +448,27 @@ export function validateSamplingRequest(request: unknown): asserts request is {
       'MCP_INVALID_SAMPLING'
     );
   }
+
+  if (!('maxTokens' in req) || req.maxTokens === undefined || req.maxTokens === null) {
+    throw new MCPClientError(
+      'Sampling request must include a numeric "maxTokens".' + ' Example: maxTokens: 100',
+      'MCP_INVALID_SAMPLING'
+    );
+  }
+
+  if (typeof req.maxTokens !== 'number' || Number.isNaN(req.maxTokens)) {
+    throw new MCPClientError(
+      `Sampling request "maxTokens" must be a number, got ${typeof req.maxTokens}.`,
+      'MCP_INVALID_SAMPLING'
+    );
+  }
+
+  if (!Number.isInteger(req.maxTokens) || req.maxTokens <= 0) {
+    throw new MCPClientError(
+      `Sampling request "maxTokens" must be a positive integer, got ${req.maxTokens}.`,
+      'MCP_INVALID_SAMPLING'
+    );
+  }
 }
 
 /**
