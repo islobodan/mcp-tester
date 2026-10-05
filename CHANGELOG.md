@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - CI uses `npm audit --omit=dev` instead of the deprecated `npm audit --production` alias.
 
+### Added
+- Exported the `TransportType` type (returned by `MCPClient.getTransportType()`), which typedoc previously flagged as referenced but undocumented.
+
 ## [1.4.2] - 2026-10-05
 
 ### Fixed

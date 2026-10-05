@@ -68,29 +68,15 @@ jobs:
           echo "Generating release notes for version $VERSION"
 
           if [ -f "CHANGELOG.md" ]; then
-            # Extract changelog content for the version
-            awk -v version="[$VERSION]" '
-              $0 == "## " version {
-                in_version = 1
-                print
-                next
-              }
-              in_version && /^## / {
-                exit
-              }
-              in_version {
-                print
-              }
-            ' CHANGELOG.md > release_notes.txt
+            # Extract this version's section: from its `## [x.y.z]` header
+            # up to (but not including) the next `## ` heading.
+            awk -v version="$VERSION" '
+              index($0, "## [" version "]") == 1 { in_version = 1; next }
+              in_version && /^## \[/ { exit }
+              in_version { print }
+            ' CHANGELOG.md > final_notes.txt
 
-            if [ -s release_notes.txt ]; then
-              # Convert to GitHub-friendly markdown
-              sed -i '' 's/^### /**### /' release_notes.txt
-              sed -i '' 's/^- /- /g' release_notes.txt
-
-              # Remove version header and format
-              tail -n +2 release_notes.txt > final_notes.txt
-
+            if [ -s final_notes.txt ]; then
               # Set output
               {
                 echo 'notes<<EOF'
@@ -156,26 +142,26 @@ jobs:
         node-version: [20, 21]
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
+      - name: Extract version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install published package
-        run: npm install mcp-tester@${{ steps.get_version.outputs.VERSION }}
+        run: npm install "@slbdn/mcp-tester@${{ steps.get_version.outputs.VERSION }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Verify package installation
         run: |
-          if [ -d "node_modules/mcp-tester" ]; then
+          if [ -d "node_modules/@slbdn/mcp-tester" ]; then
             echo "✓ Package installed successfully"
-            ls -la node_modules/mcp-tester/
+            ls -la node_modules/@slbdn/mcp-tester/
           else
             echo "✗ Package installation failed"
             exit 1
@@ -183,8 +169,8 @@ jobs:
 
       - name: Verify package exports
         run: |
-          node -e "const pkg = require('./node_modules/mcp-tester/package.json'); console.log('Main:', pkg.main); console.log('Types:', pkg.types); console.log('Exports:', JSON.stringify(pkg.exports, null, 2));"
+          node -e "const pkg = require('./node_modules/@slbdn/mcp-tester/package.json'); console.log('Main:', pkg.main); console.log('Types:', pkg.types);"
 
       - name: Quick import test
         run: |
-          node -e "import { MCPClient } from 'mcp-tester'; console.log('✓ Package imports correctly');"
+          node --input-type=module -e "import { MCPClient } from '@slbdn/mcp-tester'; if (!MCPClient) throw new Error('MCPClient export missing'); console.log('✓ Package imports correctly');"

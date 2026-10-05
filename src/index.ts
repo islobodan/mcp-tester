@@ -42,6 +42,7 @@ export {
   type HealthStatus,
   type HealthMonitorOptions,
 } from './client/index.js';
+export type { TransportType } from './utils/validation.js';
 export {
   MCPClientError,
   MCPTimeoutError,
