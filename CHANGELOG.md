@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Starter templates** under `templates/` with a new `mcp-tester create <template> <dest>` CLI command:
+  - `minimal-jest` — one test file, one mock server, zero ceremony.
+  - `standard-jest` — per-capability test files, HTML reporter, GitHub Actions matrix.
+  - `full-stack` — real TS server, code generation scripts (`npm run gen:tests` / `gen:types`), typed tool calls, parallel stress tests.
+- `create list` shows available templates. `__NAME__` placeholders in `package.json` are substituted with the destination directory name. `--no-install` skips `npm install`; `--git` initializes a repo.
+- Documentation: [`docs/starter-templates.md`](docs/starter-templates.md) and a new README section.
+
+### Fixed
+- `generateTests` (stdio variant) now respects the `includeTools` / `includeResources` / `includePrompts` flags when fetching from the server, matching the behaviour of `generateTestsFromClient`. Previously it always called `listResources` and `listPrompts` even when the output flags said to skip them — causing generation to fail against servers that don't declare those capabilities.
+
 ## [1.4.3] - 2026-10-05
 
 ### Security

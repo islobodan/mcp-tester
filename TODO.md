@@ -849,17 +849,22 @@ new ConsoleLogger({
 
 ---
 
-### [ ] 34. Create Starter Templates
+### [x] 34. Create Starter Templates
 **Description**: Starter templates for common use cases.
 
 **Tasks**:
-- Create template for simple MCP server
-- Create template for complex MCP server
-- Create template for CI/CD setup
-- Document how to use templates
-- Link from README
+- [x] `minimal-jest` template — one test file, one mock server, zero ceremony
+- [x] `standard-jest` template — per-capability test files, HTML reporter, GitHub Actions matrix
+- [x] `full-stack` template — real TS server, code generation scripts, typed tool calls
+- [x] `mcp-tester create <template> <dest>` CLI command (alias `init`) with `list`, `--no-install`, `--git`, and `__NAME__` substitution
+- [x] Build script (`scripts/copy-templates.mjs`) copies `templates/` to `dist/templates/` so the CLI works after install
+- [x] Documented in `docs/starter-templates.md` and README
+- [x] 4 CLI tests in `src/__tests__/cli.test.ts` (list, scaffold, unknown template, non-empty destination)
+- [x] Smoke-tested end-to-end: each template installs and runs to green (4 + 15 + 10 = 29 tests)
+- [x] `generateTests` stdio variant now respects `includeTools/Resources/Prompts` flags at fetch time (was calling listResources/listPrompts unconditionally)
+- [x] Package name uses `__NAME__` placeholder so the CLI can substitute it from the destination directory
 
-**Impact**: Faster project setup
+**Impact**: Faster project setup; primary adoption vector
 
 **Estimated Effort**: 4-6 hours
 
@@ -1092,12 +1097,12 @@ The following tasks can be completed quickly and provide immediate value:
 ## Progress Tracking
 
 **Total Items**: 52
-**Completed**: 41
+**Completed**: 42
 **In Progress**: 0
 **Postponed**: 1 (item 12 — snapshot testing, deprioritised as poor fit for MCP)
-**Not Started**: 10
+**Not Started**: 9
 
-**Completion Percentage**: 78.8% (41/52)
+**Completion Percentage**: 80.8% (42/52)
 
 ---
 

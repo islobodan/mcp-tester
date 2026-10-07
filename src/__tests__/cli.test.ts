@@ -429,4 +429,73 @@ describe('CLI Tool', () => {
       expect(parsed.tools.length).toBeGreaterThan(0);
     }, 20000);
   });
+
+  describe('create command', () => {
+    const TEMP_TPL_DIR = path.join(__dirname, '../..', 'tmp-create-test');
+
+    afterEach(() => {
+      // Clean up any temp dirs created during the test
+      try {
+        const { rmSync } = require('fs');
+        rmSync(TEMP_TPL_DIR, { recursive: true, force: true });
+      } catch {
+        // best-effort
+      }
+    });
+
+    it('should list available templates', async () => {
+      const { stdout } = await execAsync(`node ${CLI_PATH} create list`);
+      expect(stdout).toContain('Available starter templates:');
+      expect(stdout).toContain('minimal-jest');
+      expect(stdout).toContain('standard-jest');
+      expect(stdout).toContain('full-stack');
+    }, 15000);
+
+    it('should scaffold a template to an empty destination without installing', async () => {
+      const dest = path.join(TEMP_TPL_DIR, 'app');
+      const { stdout } = await execAsync(
+        `node ${CLI_PATH} create minimal-jest "${dest}" --no-install`
+      );
+      expect(stdout).toContain(`Scaffolded "minimal-jest"`);
+      expect(stdout).toContain('Set package name');
+
+      const { existsSync, readFileSync } = await import('fs');
+      expect(existsSync(path.join(dest, 'package.json'))).toBe(true);
+      expect(existsSync(path.join(dest, 'jest.config.js'))).toBe(true);
+      expect(existsSync(path.join(dest, 'tests/server.test.ts'))).toBe(true);
+
+      const pkg = JSON.parse(readFileSync(path.join(dest, 'package.json'), 'utf-8'));
+      expect(pkg.name).toBe('app');
+    }, 15000);
+
+    it('should reject an unknown template', async () => {
+      const dest = path.join(TEMP_TPL_DIR, 'reject');
+      let thrown = false;
+      try {
+        await execAsync(`node ${CLI_PATH} create does-not-exist "${dest}"`);
+      } catch (err) {
+        thrown = true;
+        const message = err instanceof Error ? err.message : String(err);
+        expect(message).toMatch(/Template not found/);
+      }
+      expect(thrown).toBe(true);
+    }, 15000);
+
+    it('should reject a non-empty destination', async () => {
+      const dest = path.join(TEMP_TPL_DIR, 'non-empty');
+      const { mkdirSync, writeFileSync } = await import('fs');
+      mkdirSync(dest, { recursive: true });
+      writeFileSync(path.join(dest, 'preexisting.txt'), 'x');
+
+      let thrown = false;
+      try {
+        await execAsync(`node ${CLI_PATH} create minimal-jest "${dest}" --no-install`);
+      } catch (err) {
+        thrown = true;
+        const message = err instanceof Error ? err.message : String(err);
+        expect(message).toMatch(/not empty/);
+      }
+      expect(thrown).toBe(true);
+    }, 15000);
+  });
 });

@@ -1,0 +1,27 @@
+{
+  "name": "__NAME__",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Standard MCP server test scaffold using @slbdn/mcp-tester + Jest (tools, resources, prompts, fixtures, CI)",
+  "scripts": {
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
+    "test:report": "node --experimental-vm-modules node_modules/jest/bin/jest.js --reporters=default --reporters=jest-html-reporters"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@slbdn/mcp-tester": "^1.4.3",
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.0.0",
+    "jest": "^30.5.2",
+    "jest-html-reporters": "^3.0.11",
+    "ts-jest": "^29.4.11",
+    "typescript": "^5.3.0"
+  }
+}

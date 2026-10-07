@@ -1,0 +1,8 @@
+node_modules/
+dist/
+reports/
+coverage/
+src/generated-types.ts
+tests/generated.test.ts
+*.log
+.DS_Store

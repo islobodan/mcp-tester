@@ -1,0 +1,31 @@
+{
+  "name": "__NAME__",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Full-stack MCP tester project: code generation, typed tools, CI matrix, and a real TypeScript server",
+  "scripts": {
+    "build": "tsc",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
+    "gen:tests": "tsx scripts/generate-tests.ts",
+    "gen:types": "tsx scripts/generate-types.ts",
+    "server": "tsx src/server.ts"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@slbdn/mcp-tester": "^1.4.3",
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.0.0",
+    "jest": "^30.5.2",
+    "jest-html-reporters": "^3.0.11",
+    "ts-jest": "^29.4.11",
+    "tsx": "^4.23.15",
+    "typescript": "^5.3.0"
+  }
+}

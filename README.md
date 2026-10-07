@@ -285,6 +285,18 @@ const result = await client.callTool({
 
 Supports: primitives, enums, nested objects, arrays, `oneOf`/`anyOf`/`allOf`, `$ref`, `const`.
 
+## Starter Templates
+
+Three ready-to-use scaffolds for new projects. Pick the size that matches your need:
+
+```bash
+npx @slbdn/mcp-tester create minimal-jest my-server-tests   # Tiny: one test file
+npx @slbdn/mcp-tester create standard-jest my-server-tests  # Real-world: CI + HTML report
+npx @slbdn/mcp-tester create full-stack my-server-tests     # Library: code generation + typed tools
+```
+
+Each scaffolds a runnable project with a mock server, then runs `npm install`. Use `--no-install` to skip, `--git` to init a repo. See [docs/starter-templates.md](docs/starter-templates.md) for details.
+
 ## Speed Up Your Tests with Parallel Execution
 
 MCP Tester is built for concurrency. Fire off multiple tool calls at once — no waiting in line:

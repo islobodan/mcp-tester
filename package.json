@@ -14,8 +14,8 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "build": "tsc && node scripts/copy-templates.mjs",
+    "dev": "tsc --watch && node scripts/copy-templates.mjs",
     "docs": "typedoc",
     "test": "jest",
     "test:watch": "jest --watch",

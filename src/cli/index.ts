@@ -586,6 +586,143 @@ withTransport(
     }
   );
 
+// ─── Create scaffold from a starter template ────────────────────────────
+
+program
+  .command('create')
+  .alias('init')
+  .description('Scaffold a new project from a starter template')
+  .argument('<template>', 'Template name (use "list" to show available templates)')
+  .argument('[dest]', 'Destination directory', '.')
+  .option('--no-install', 'Skip running npm install after copy')
+  .option('--git', 'Initialize a git repository in the destination')
+  .action(async (template: string, dest: string, opts: Record<string, unknown>) => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const { fileURLToPath } = await import('url');
+
+    // Locate the templates directory. In dev this is at the repo root;
+    // after `npm run build` it's mirrored under dist/templates.
+    const cliFile = fileURLToPath(import.meta.url);
+    const candidates = [
+      path.join(path.dirname(cliFile), '..', 'templates'), // dist/cli/index.js -> dist/templates
+      path.join(path.dirname(cliFile), '..', '..', 'templates'), // src/cli/index.ts -> repo templates/
+    ];
+    const templatesDir = candidates.find((p) => fs.existsSync(p));
+
+    if (template === 'list' || template === '--list' || template === '-l') {
+      if (!templatesDir) {
+        console.error('❌ Could not locate templates directory.');
+        process.exit(1);
+      }
+      const entries = fs
+        .readdirSync(templatesDir, { withFileTypes: true })
+        .filter((e) => e.isDirectory());
+      console.log('Available starter templates:');
+      for (const e of entries) {
+        console.log(`  - ${e.name}`);
+      }
+      console.log('\nUsage: mcp-tester create <template> [dest]');
+      return;
+    }
+
+    if (!templatesDir) {
+      console.error('❌ Could not locate templates directory.');
+      console.error('   Searched:');
+      for (const p of candidates) console.error(`     - ${p}`);
+      process.exit(1);
+    }
+
+    const templateDir = path.join(templatesDir, template);
+    if (!fs.existsSync(templateDir)) {
+      console.error(`❌ Template not found: ${template}`);
+      console.error(
+        `   Available: ${fs
+          .readdirSync(templatesDir)
+          .filter((n) => fs.statSync(path.join(templatesDir, n)).isDirectory())
+          .join(', ')}`
+      );
+      process.exit(1);
+    }
+
+    const destAbs = path.resolve(process.cwd(), dest);
+    if (fs.existsSync(destAbs) && fs.readdirSync(destAbs).length > 0) {
+      console.error(`❌ Destination directory is not empty: ${destAbs}`);
+      console.error('   Please specify an empty or non-existent directory.');
+      process.exit(1);
+    }
+
+    fs.mkdirSync(destAbs, { recursive: true });
+
+    // Recursive copy, excluding node_modules and .git
+    const exclude = new Set(['node_modules', '.git']);
+    function copyDir(src: string, dst: string): void {
+      for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+        if (exclude.has(entry.name)) continue;
+        const s = path.join(src, entry.name);
+        const d = path.join(dst, entry.name);
+        if (entry.isDirectory()) {
+          fs.mkdirSync(d, { recursive: true });
+          copyDir(s, d);
+        } else if (entry.isFile()) {
+          fs.copyFileSync(s, d);
+        }
+      }
+    }
+    copyDir(templateDir, destAbs);
+
+    console.log(`✅ Scaffolded "${template}" → ${destAbs}`);
+
+    // Substitute __NAME__ placeholders in package.json
+    const pkgPath = path.join(destAbs, 'package.json');
+    if (fs.existsSync(pkgPath)) {
+      try {
+        const pkgRaw = fs.readFileSync(pkgPath, 'utf-8');
+        const dirName = path.basename(destAbs);
+        const safeName = dirName.replace(/[^a-zA-Z0-9._-]/g, '-').toLowerCase();
+        if (pkgRaw.includes('__NAME__')) {
+          fs.writeFileSync(pkgPath, pkgRaw.replace(/__NAME__/g, safeName));
+          console.log(`✓ Set package name to "${safeName}"`);
+        }
+      } catch {
+        // best-effort
+      }
+    }
+
+    if (opts['install'] !== false) {
+      console.log('\nInstalling dependencies (this may take a minute)...');
+      try {
+        const { spawnSync } = await import('child_process');
+        const result = spawnSync('npm', ['install', '--silent'], {
+          cwd: destAbs,
+          stdio: 'inherit',
+        });
+        if (result.status === 0) {
+          console.log('\n✅ Dependencies installed.');
+          console.log('\nNext steps:');
+          console.log(`  cd ${dest}`);
+          console.log('  npm test');
+        } else {
+          console.log('\n⚠️  npm install failed; run it manually after fixing any issues.');
+        }
+      } catch (err) {
+        console.log(
+          `\n⚠️  Could not run npm install: ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
+    }
+
+    if (opts['git']) {
+      try {
+        const { spawnSync } = await import('child_process');
+        spawnSync('git', ['init', '-q'], { cwd: destAbs, stdio: 'inherit' });
+        console.log('✓ Initialized git repository');
+      } catch (err) {
+        console.log(`⚠️  git init failed: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+  });
+
 // ─── Help ────────────────────────────────────────────────────────────────
 
 program.addHelpText(

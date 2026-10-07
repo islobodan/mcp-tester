@@ -360,9 +360,9 @@ export async function generateTests(options: GenerateTestOptions): Promise<strin
     });
 
     const [tools, resources, prompts] = await Promise.all([
-      client.listTools(),
-      client.listResources(),
-      client.listPrompts(),
+      options.includeTools === false ? Promise.resolve([]) : client.listTools(),
+      options.includeResources === false ? Promise.resolve([]) : client.listResources(),
+      options.includePrompts === false ? Promise.resolve([]) : client.listPrompts(),
     ]);
 
     const server: StdioServerConfig = { command: options.command, args: options.args };
