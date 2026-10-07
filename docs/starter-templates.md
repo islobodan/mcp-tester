@@ -105,6 +105,6 @@ Templates live in [`templates/`](../templates/) and are copied verbatim by the C
 1. Create `templates/<your-template>/` with the files above.
 2. Use `__NAME__` as the `package.json` `name` field if you want it substituted on scaffold.
 3. Rebuild: `npm run build` (copies `templates/` → `dist/templates/`).
-4. Run `npm run gen:docs` if you want this page updated automatically (the table is generated).
+4. Update the comparison table and sections on this page by hand.
 
 The CLI discovers templates by scanning the directory at runtime — no code changes needed.

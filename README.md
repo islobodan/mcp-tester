@@ -522,6 +522,10 @@ mcp-tester/
 │   ├── mock-server.js           # Basic standalone MCP server
 │   ├── simple-server.ts         # Minimal TypeScript MCP server
 │   └── stateful-server.ts        # Stateful MCP server (counter + todos)
+├── templates/                    # Starter templates (mcp-tester create <template>)
+│   ├── minimal-jest/             # One test file, one mock server
+│   ├── standard-jest/            # Per-capability tests, HTML report, CI matrix
+│   └── full-stack/               # TS server + code generation + typed tools
 └── docs/                        # Documentation
 ```
 

@@ -12,7 +12,7 @@
  * Usage: `npm run test:package`
  */
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -60,6 +60,15 @@ try {
   `;
   const result = run('node', ['--input-type=module', '-e', check], work);
   console.log(result.trim());
+
+  console.log('▶ Scaffolding a template via the packed CLI...');
+  run('npx', ['mcp-tester', 'create', 'minimal-jest', 'scaffolded', '--no-install'], work);
+  const scaffoldedPkg = readFileSync(join(work, 'scaffolded', 'package.json'), 'utf8');
+  if (!scaffoldedPkg.includes('"name": "scaffolded"')) {
+    throw new Error('Scaffolded package.json was not name-substituted from the destination dir');
+  }
+  console.log('  create minimal-jest → scaffolded OK (name substituted)');
+
   console.log('✔ Package smoke test passed');
 } catch (error) {
   console.error('✗ Package smoke test failed');

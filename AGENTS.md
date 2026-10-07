@@ -126,9 +126,19 @@ examples/
 ├── assert-example.ts        # Assert utilities usage
 ├── everything-server-test.ts # Test against real MCP server
 └── mock-server.js           # Standalone MCP server for testing
+
+templates/                       # Starter templates (shipped in dist/templates)
+├── minimal-jest/            # One test file, one mock server
+├── standard-jest/           # Per-capability tests, HTML report, CI matrix
+└── full-stack/              # TS server, code generation, typed tools
+
+scripts/
+└── copy-templates.mjs       # Build step: mirrors templates/ → dist/templates/
 ```
 
-**Build Output**: `dist/` directory (JavaScript + TypeScript declaration files)
+**Build Output**: `dist/` directory (JavaScript + TypeScript declaration files, plus `dist/templates/`)
+
+**CLI `create` command**: `mcp-tester create <template> <dest>` scaffolds a template (see `docs/starter-templates.md`). Template discovery uses `createRequire` + cwd walk-up — **not `import.meta`** (TS1343 under ts-jest; same constraint as `utils/version.ts`).
 
 ## Naming Conventions & Style
 

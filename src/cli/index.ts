@@ -599,18 +599,37 @@ program
   .action(async (template: string, dest: string, opts: Record<string, unknown>) => {
     const fs = await import('fs');
     const path = await import('path');
-    const { fileURLToPath } = await import('url');
+    const { createRequire } = await import('module');
 
-    // Locate the templates directory. In dev this is at the repo root;
-    // after `npm run build` it's mirrored under dist/templates.
-    const cliFile = fileURLToPath(import.meta.url);
-    const candidates = [
-      path.join(path.dirname(cliFile), '..', 'templates'), // dist/cli/index.js -> dist/templates
-      path.join(path.dirname(cliFile), '..', '..', 'templates'), // src/cli/index.ts -> repo templates/
-    ];
-    const templatesDir = candidates.find((p) => fs.existsSync(p));
+    // Locate the templates directory without `import.meta` (TS1343 under
+    // ts-jest — same reason utils/version.ts uses createRequire). Order:
+    // 1. The installed package root (works for npx / global installs).
+    // 2. Walking up from cwd (works in the repo: templates/ at the root).
+    const looksLikeTemplatesDir = (dir: string): boolean => {
+      try {
+        return fs
+          .readdirSync(dir, { withFileTypes: true })
+          .some((e) => e.isDirectory() && fs.existsSync(path.join(dir, e.name, 'package.json')));
+      } catch {
+        return false;
+      }
+    };
 
-    if (template === 'list' || template === '--list' || template === '-l') {
+    const candidates: string[] = [];
+    try {
+      const requireFromCwd = createRequire(path.join(process.cwd(), 'noop.js'));
+      const pkgRoot = path.dirname(requireFromCwd.resolve('@slbdn/mcp-tester/package.json'));
+      candidates.push(path.join(pkgRoot, 'dist', 'templates')); // installed package
+    } catch {
+      // Not resolvable (e.g. running inside the repo itself) — keep looking.
+    }
+    for (let dir = process.cwd(); ; dir = path.dirname(dir)) {
+      candidates.push(path.join(dir, 'templates'));
+      if (dir === path.parse(dir).root) break;
+    }
+    const templatesDir = candidates.find((p) => looksLikeTemplatesDir(p));
+
+    if (template === 'list') {
       if (!templatesDir) {
         console.error('❌ Could not locate templates directory.');
         process.exit(1);
@@ -633,6 +652,12 @@ program
       process.exit(1);
     }
 
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(template)) {
+      console.error(`❌ Invalid template name: ${template}`);
+      console.error('   Only letters, digits and ".", "_", "-" are allowed.');
+      process.exit(1);
+    }
+
     const templateDir = path.join(templatesDir, template);
     if (!fs.existsSync(templateDir)) {
       console.error(`❌ Template not found: ${template}`);
@@ -646,10 +671,16 @@ program
     }
 
     const destAbs = path.resolve(process.cwd(), dest);
-    if (fs.existsSync(destAbs) && fs.readdirSync(destAbs).length > 0) {
-      console.error(`❌ Destination directory is not empty: ${destAbs}`);
-      console.error('   Please specify an empty or non-existent directory.');
-      process.exit(1);
+    if (fs.existsSync(destAbs)) {
+      if (!fs.statSync(destAbs).isDirectory()) {
+        console.error(`❌ Destination exists but is not a directory: ${destAbs}`);
+        process.exit(1);
+      }
+      if (fs.readdirSync(destAbs).length > 0) {
+        console.error(`❌ Destination directory is not empty: ${destAbs}`);
+        console.error('   Please specify an empty or non-existent directory.');
+        process.exit(1);
+      }
     }
 
     fs.mkdirSync(destAbs, { recursive: true });
@@ -696,6 +727,8 @@ program
         const result = spawnSync('npm', ['install', '--silent'], {
           cwd: destAbs,
           stdio: 'inherit',
+          // Windows resolves npm via npm.cmd, which needs a shell to spawn.
+          shell: process.platform === 'win32',
         });
         if (result.status === 0) {
           console.log('\n✅ Dependencies installed.');
@@ -715,8 +748,16 @@ program
     if (opts['git']) {
       try {
         const { spawnSync } = await import('child_process');
-        spawnSync('git', ['init', '-q'], { cwd: destAbs, stdio: 'inherit' });
-        console.log('✓ Initialized git repository');
+        const result = spawnSync('git', ['init', '-q'], {
+          cwd: destAbs,
+          stdio: 'inherit',
+          shell: process.platform === 'win32',
+        });
+        if (result.status === 0) {
+          console.log('✓ Initialized git repository');
+        } else {
+          console.log('⚠️  git init failed; run it manually if you want version control.');
+        }
       } catch (err) {
         console.log(`⚠️  git init failed: ${err instanceof Error ? err.message : String(err)}`);
       }
@@ -748,6 +789,10 @@ Examples:
   # Generate tests and types (stdio)
   mcp-tester generate node ./server.js -o server.test.ts
   mcp-tester generate-types node ./server.js -o server.d.ts
+
+  # Scaffold a new project from a starter template
+  mcp-tester create list
+  mcp-tester create minimal-jest my-server-tests
 
 Short aliases: lt (list-tools), ct (call-tool), rr (read-resource), gp (get-prompt), gen (generate)
 `

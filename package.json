@@ -15,7 +15,8 @@
   ],
   "scripts": {
     "build": "tsc && node scripts/copy-templates.mjs",
-    "dev": "tsc --watch && node scripts/copy-templates.mjs",
+    "predev": "node scripts/copy-templates.mjs",
+    "dev": "tsc --watch",
     "docs": "typedoc",
     "test": "jest",
     "test:watch": "jest --watch",

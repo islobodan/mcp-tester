@@ -2,7 +2,8 @@ import { exec } from 'child_process';
 import { spawn } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
-import { readFileSync } from 'fs';
+import os from 'os';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
 
 const execAsync = promisify(exec);
 const CLI_PATH = path.join(__dirname, '../..', 'dist/cli/index.js');
@@ -431,16 +432,11 @@ describe('CLI Tool', () => {
   });
 
   describe('create command', () => {
-    const TEMP_TPL_DIR = path.join(__dirname, '../..', 'tmp-create-test');
+    // Unique temp dir outside the repo so a crashed run can't dirty git status.
+    const TEMP_TPL_DIR = path.join(os.tmpdir(), `mcp-tester-create-test-${process.pid}`);
 
     afterEach(() => {
-      // Clean up any temp dirs created during the test
-      try {
-        const { rmSync } = require('fs');
-        rmSync(TEMP_TPL_DIR, { recursive: true, force: true });
-      } catch {
-        // best-effort
-      }
+      rmSync(TEMP_TPL_DIR, { recursive: true, force: true });
     });
 
     it('should list available templates', async () => {
@@ -459,7 +455,6 @@ describe('CLI Tool', () => {
       expect(stdout).toContain(`Scaffolded "minimal-jest"`);
       expect(stdout).toContain('Set package name');
 
-      const { existsSync, readFileSync } = await import('fs');
       expect(existsSync(path.join(dest, 'package.json'))).toBe(true);
       expect(existsSync(path.join(dest, 'jest.config.js'))).toBe(true);
       expect(existsSync(path.join(dest, 'tests/server.test.ts'))).toBe(true);
@@ -483,7 +478,6 @@ describe('CLI Tool', () => {
 
     it('should reject a non-empty destination', async () => {
       const dest = path.join(TEMP_TPL_DIR, 'non-empty');
-      const { mkdirSync, writeFileSync } = await import('fs');
       mkdirSync(dest, { recursive: true });
       writeFileSync(path.join(dest, 'preexisting.txt'), 'x');
 
@@ -494,6 +488,35 @@ describe('CLI Tool', () => {
         thrown = true;
         const message = err instanceof Error ? err.message : String(err);
         expect(message).toMatch(/not empty/);
+      }
+      expect(thrown).toBe(true);
+    }, 15000);
+
+    it('should reject a path-traversal template name', async () => {
+      const dest = path.join(TEMP_TPL_DIR, 'traversal');
+      let thrown = false;
+      try {
+        await execAsync(`node ${CLI_PATH} create ../../../../../tmp "${dest}" --no-install`);
+      } catch (err) {
+        thrown = true;
+        const message = err instanceof Error ? err.message : String(err);
+        expect(message).toMatch(/Invalid template name/);
+      }
+      expect(thrown).toBe(true);
+    }, 15000);
+
+    it('should reject a destination that is an existing file', async () => {
+      const dest = path.join(TEMP_TPL_DIR, 'a-file');
+      mkdirSync(TEMP_TPL_DIR, { recursive: true });
+      writeFileSync(dest, 'x');
+
+      let thrown = false;
+      try {
+        await execAsync(`node ${CLI_PATH} create minimal-jest "${dest}" --no-install`);
+      } catch (err) {
+        thrown = true;
+        const message = err instanceof Error ? err.message : String(err);
+        expect(message).toMatch(/not a directory/);
       }
       expect(thrown).toBe(true);
     }, 15000);
