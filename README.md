@@ -410,6 +410,10 @@ import {
 
 beforeAll(() => setupJestMatchers());
 
+// For type-safe matcher autocompletion, copy the augmentation into your
+// project. See `node_modules/@slbdn/mcp-tester/jest.d.ts` for the source
+// and full instructions.
+
 // Collection matchers
 expect(tools).toHaveTool('echo');
 expect(resources).toHaveResource('config://settings');
