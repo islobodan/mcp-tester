@@ -22,6 +22,7 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import {
   type GeneratedCase,
   type CaseExpectation,
+  caseKey,
   mergeAndValidateCases,
 } from '../generate-cases.js';
 
@@ -304,7 +305,7 @@ export class OpenAICompatProvider implements AIProvider {
     for (const raw of rawCases) {
       const c = coerceCase(raw, this.name);
       if (!c) continue;
-      const key = `${c.tool}::${JSON.stringify(c.args)}`;
+      const key = caseKey(c);
       if (seen.has(key)) continue;
       seen.add(key);
       cases.push(c);

@@ -416,6 +416,27 @@ describe('mergeAndValidateCases', () => {
     expect(rejected).toHaveLength(0);
   });
 
+  it('does not schema-validate observe-expectation cases', () => {
+    // The rules engine's maxLength probe intentionally exceeds the bound.
+    const observeCase: GeneratedCase = {
+      tool: 'echo',
+      title: 'one past maxLength',
+      args: { message: 'xxxx' },
+      expectation: 'observe',
+      rationale: 'server-defined behaviour',
+      source: 'rule:max-length',
+    };
+    const bounded = new Map([
+      [
+        'echo',
+        toolWith({ type: 'object', properties: { message: { type: 'string', maxLength: 3 } } }),
+      ],
+    ]);
+    const { cases, rejected } = mergeAndValidateCases([[observeCase]], bounded);
+    expect(cases).toHaveLength(1);
+    expect(rejected).toHaveLength(0);
+  });
+
   it('leaves cases alone when the tool has no schema registered', () => {
     const schemaless = new Map([['free', toolWith({ type: 'object' }, 'free')]]);
     const c: GeneratedCase = {
@@ -502,6 +523,41 @@ describe('suggestEdgeCases: new rules', () => {
     expect(schemaCase).toBeDefined();
     // extra prop is a number, but additionalProperties says string
     expect(schemaCase?.args['__mcp_tester_unknown__']).toBe(12345);
+  });
+
+  it('uses a string to violate an additionalProperties number schema', () => {
+    const tool = toolWith({
+      type: 'object',
+      properties: { name: { type: 'string' } },
+      additionalProperties: { type: 'number' },
+    });
+    const cases = suggestEdgeCases(tool);
+    const schemaCase = cases.find((c) => c.source === 'rule:additional-properties-schema');
+    expect(schemaCase).toBeDefined();
+    // A number would satisfy { type: 'number' }; a string violates it.
+    expect(schemaCase?.args['__mcp_tester_unknown__']).toBe('not-a-number');
+  });
+
+  it('infers a violating value for a constraint-only additionalProperties schema', () => {
+    const tool = toolWith({
+      type: 'object',
+      properties: { name: { type: 'string' } },
+      additionalProperties: { minLength: 5 },
+    });
+    const cases = suggestEdgeCases(tool);
+    const schemaCase = cases.find((c) => c.source === 'rule:additional-properties-schema');
+    expect(schemaCase).toBeDefined();
+    expect(schemaCase?.args['__mcp_tester_unknown__']).toBe(12345);
+  });
+
+  it('emits no additionalProperties case for a type union (no guaranteed violation)', () => {
+    const tool = toolWith({
+      type: 'object',
+      properties: { name: { type: 'string' } },
+      additionalProperties: { type: ['string', 'number'] },
+    });
+    const cases = suggestEdgeCases(tool);
+    expect(cases.find((c) => c.source === 'rule:additional-properties-schema')).toBeUndefined();
   });
 });
 

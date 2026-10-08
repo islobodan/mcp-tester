@@ -275,6 +275,38 @@ function validateValueAgainstSchema(
 const INVALID_STRING = '__mcp_tester_invalid__';
 
 /**
+ * Choose a value guaranteed to violate an `additionalProperties` sub-schema,
+ * or `undefined` when no single value can be guaranteed to violate it (e.g. a
+ * `type` union). The value's JSON type is picked to mismatch the schema:
+ * numeric schemas get a string, everything else gets a number.
+ */
+function additionalPropsViolatingValue(ap: Record<string, unknown>): unknown {
+  const type = ap.type;
+  if (type === 'number' || type === 'integer') return 'not-a-number';
+  // string | boolean | array | object | null all reject the number 12345.
+  if (typeof type === 'string') return 12345;
+  // A union accepts multiple JSON types; no single value is guaranteed wrong.
+  if (Array.isArray(type)) return undefined;
+  // No `type` keyword: infer the intended type from constraint keywords.
+  if (
+    typeof ap.minLength === 'number' ||
+    typeof ap.maxLength === 'number' ||
+    typeof ap.pattern === 'string'
+  ) {
+    return 12345;
+  }
+  if (
+    typeof ap.minimum === 'number' ||
+    typeof ap.maximum === 'number' ||
+    typeof ap.exclusiveMinimum === 'number' ||
+    typeof ap.exclusiveMaximum === 'number'
+  ) {
+    return 'not-a-number';
+  }
+  return undefined;
+}
+
+/**
  * Derive deterministic edge cases for one tool from its `inputSchema`.
  *
  * Rules (each emitted only when the schema actually constrains it):
@@ -550,14 +582,15 @@ export function suggestEdgeCases(tool: Tool): GeneratedCase[] {
     );
   } else if (schema.additionalProperties && typeof schema.additionalProperties === 'object') {
     const ap = schema.additionalProperties as Record<string, unknown>;
-    if (ap.type && ap.type !== 'boolean' && ap.type !== 'null') {
+    const violating = additionalPropsViolatingValue(ap);
+    if (violating !== undefined) {
       withArgs(
         (args) => {
-          args['__mcp_tester_unknown__'] = 12345;
+          args['__mcp_tester_unknown__'] = violating;
         },
-        `rejects an unknown property that violates additionalProperties schema (type ${String(ap.type)})`,
+        `rejects an unknown property that violates additionalProperties schema`,
         'error',
-        `schema restricts additional properties to type "${String(ap.type)}"`,
+        `schema restricts additional properties; an extra value that violates it should be rejected`,
         'rule:additional-properties-schema'
       );
     }
@@ -599,6 +632,11 @@ function stableStringify(value: unknown): string {
  * Merge case lists, dropping later duplicates (same tool + args) and cases
  * whose args fail schema validation.
  *
+ * Only `success` cases are validated: `error` and `observe` cases intentionally
+ * probe invalid input (a rejected tool call, or server-defined behaviour just
+ * past a bound), so requiring them to satisfy the schema would discard the
+ * rules engine's own output.
+ *
  * @returns Accepted cases plus the number of rejected ones (for logging).
  */
 export function mergeAndValidateCases(
@@ -616,9 +654,9 @@ export function mergeAndValidateCases(
 
       const schema = schemas.get(c.tool)?.inputSchema;
       if (schema) {
-        // 'error'-expectation cases intentionally violate the schema; skip
-        // validation for them so the rules engine's own output survives.
-        if (c.expectation !== 'error') {
+        // Only success cases must satisfy the schema; error/observe cases
+        // deliberately violate it.
+        if (c.expectation === 'success') {
           const reason = validateArgsAgainstSchema(c.args, schema);
           if (reason) {
             rejected.push({ c, reason });
