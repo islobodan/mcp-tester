@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.4] - 2026-10-08
+
+### Fixed
+- Rebuilt the README architecture diagram. Its box borders were misaligned (right edges varied by up to six columns, so the boxes did not line up), and the `MCP Server (child process)` label was wrong for the HTTP/SSE transports, which connect to a remote server rather than spawning a process. The diagram now has consistently aligned borders and shows the tested capabilities (`Tools`, `Resources`, `Prompts`, `Sampling`, `Elicitation`, `Notifications`).
+
 ## [1.5.3] - 2026-10-08
 
 ### Fixed
