@@ -408,6 +408,17 @@ describe('parseJsonLoose', () => {
     expect(parseJsonLoose(content)).toEqual({ cases: [{ tool: 't', args: {} }] });
   });
 
+  it('finds a nested object when the outer braces are not valid JSON', () => {
+    const content = '{ unquoted: {"cases":[{"tool":"t","args":{}}]} }';
+    expect(parseJsonLoose(content)).toEqual({ cases: [{ tool: 't', args: {} }] });
+  });
+
+  it('falls back to prose JSON when a fence holds unparseable text', () => {
+    const content =
+      '```json\n{this is not json}\n```\nReal payload: {"cases":[{"tool":"t","args":{}}]}';
+    expect(parseJsonLoose(content)).toEqual({ cases: [{ tool: 't', args: {} }] });
+  });
+
   it('returns null when no JSON object is present', () => {
     expect(parseJsonLoose('no json here, just text')).toBeNull();
   });

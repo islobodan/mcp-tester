@@ -138,17 +138,16 @@ export function parseJsonLoose(content: string): { cases?: unknown } | null {
 
   // 1. Prefer a fenced code block (with or without a language hint) if any.
   const fenceRe = /```(?:[a-zA-Z0-9_-]+)?\s*([\s\S]*?)```/g;
-  let candidate: string | null = null;
   for (const m of content.matchAll(fenceRe)) {
-    if (m[1] && m[1].includes('{')) {
-      candidate = m[1];
-      break;
-    }
+    if (!m[1] || !m[1].includes('{')) continue;
+    const fenced = extractLargestJsonObject(m[1]);
+    if (fenced) return fenced;
+    // Fall through: the fence may hold prose or a non-JSON snippet while the
+    // real payload sits outside it, so keep trying other fences/content.
   }
 
   // 2. Otherwise, scan for the largest parseable JSON object directly.
-  const haystack = candidate ?? content;
-  return extractLargestJsonObject(haystack);
+  return extractLargestJsonObject(content);
 }
 
 /**
@@ -166,15 +165,19 @@ function extractLargestJsonObject(text: string): { cases?: unknown } | null {
     const end = scanJsonObjectEnd(text, i);
     if (end === -1) continue;
     const slice = text.slice(i, end + 1);
-    if (slice.length <= bestLen) continue; // monotonic: longer = better
     try {
       const parsed = JSON.parse(slice) as { cases?: unknown };
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        best = parsed;
-        bestLen = slice.length;
+        if (slice.length > bestLen) {
+          best = parsed;
+          bestLen = slice.length;
+        }
+        // Any `{` strictly inside this well-formed object can only parse to a
+        // shorter object, so skip past it (keeps the scan linear for valid JSON).
+        i = end;
       }
     } catch {
-      // not a valid object; keep scanning
+      // not a valid object; keep scanning inside it for a nested one
     }
   }
 
@@ -260,8 +263,6 @@ export class OpenAICompatProvider implements AIProvider {
   private readonly strictJson: boolean;
   /** Tracks whether this provider has already observed a `response_format` rejection. */
   private responseFormatDisabled = false;
-  /** serverLabel from the most recent analysis, used when serialising cache files. */
-  private lastAnalysisServerLabel: string | undefined;
 
   constructor(options: OpenAICompatOptions = {}) {
     this.baseUrl = (options.baseUrl || DEFAULT_AI_BASE_URL).replace(/\/+$/, '');
@@ -278,7 +279,6 @@ export class OpenAICompatProvider implements AIProvider {
 
   async suggestCases(analysis: ServerAnalysis): Promise<GeneratedCase[]> {
     if (analysis.tools.length === 0) return [];
-    this.lastAnalysisServerLabel = analysis.serverLabel;
 
     const cacheKey = this.cacheKeyFor(analysis);
     const cached = this.readCache(cacheKey);
@@ -311,7 +311,7 @@ export class OpenAICompatProvider implements AIProvider {
       cases.push(c);
     }
 
-    this.writeCache(cacheKey, cases);
+    this.writeCache(cacheKey, cases, analysis.serverLabel);
     return cases;
   }
 
@@ -466,17 +466,13 @@ export class OpenAICompatProvider implements AIProvider {
     }
   }
 
-  private writeCache(key: string, cases: GeneratedCase[]): void {
+  private writeCache(key: string, cases: GeneratedCase[], serverLabel?: string): void {
     if (!this.cacheDir) return;
     try {
       mkdirSync(this.cacheDir, { recursive: true });
       writeFileSync(
         join(this.cacheDir, key),
-        JSON.stringify(
-          { model: this.model, serverLabel: this.lastAnalysisServerLabel, cases },
-          null,
-          2
-        ),
+        JSON.stringify({ model: this.model, serverLabel, cases }, null, 2),
         'utf-8'
       );
     } catch {

@@ -467,6 +467,33 @@ describe('suggestEdgeCases: new rules', () => {
     expect(patternCase?.expectation).toBe('error');
   });
 
+  it('picks a string that actually violates the declared pattern', () => {
+    // The sentinel starts with '_', which the pattern matches, so the rule
+    // must fall back to a different candidate.
+    const tool = toolWith({
+      type: 'object',
+      properties: { code: { type: 'string', pattern: '^__mcp_tester_invalid__$' } },
+      required: ['code'],
+    });
+    const cases = suggestEdgeCases(tool);
+    const patternCase = cases.find((c) => c.source === 'rule:pattern');
+    expect(patternCase).toBeDefined();
+    expect(patternCase?.args['code']).not.toBe('__mcp_tester_invalid__');
+    expect(new RegExp('^__mcp_tester_invalid__$').test(String(patternCase?.args['code']))).toBe(
+      false
+    );
+  });
+
+  it('emits no pattern case when the regex matches everything', () => {
+    const tool = toolWith({
+      type: 'object',
+      properties: { code: { type: 'string', pattern: '.*' } },
+      required: ['code'],
+    });
+    const cases = suggestEdgeCases(tool);
+    expect(cases.find((c) => c.source === 'rule:pattern')).toBeUndefined();
+  });
+
   it('emits a case for exclusiveMinimum / exclusiveMaximum', () => {
     const tool = toolWith({
       type: 'object',
@@ -608,6 +635,37 @@ describe('validateArgsAgainstSchema: new rules', () => {
       /additionalProperties: type string/
     );
     expect(validateArgsAgainstSchema({ extra: 'ok' }, schema)).toBeNull();
+  });
+
+  it('checks enum/pattern/numeric constraints on additionalProperties values', () => {
+    const enumSchema = {
+      type: 'object' as const,
+      properties: {},
+      additionalProperties: { enum: ['a', 'b'] },
+    };
+    expect(validateArgsAgainstSchema({ extra: 'c' }, enumSchema)).toMatch(
+      /additionalProperties: must be one of/
+    );
+    expect(validateArgsAgainstSchema({ extra: 'a' }, enumSchema)).toBeNull();
+
+    const patternSchema = {
+      type: 'object' as const,
+      properties: {},
+      additionalProperties: { type: 'string', pattern: '^A' },
+    };
+    expect(validateArgsAgainstSchema({ extra: 'B' }, patternSchema)).toMatch(
+      /additionalProperties: does not match pattern/
+    );
+
+    const numberSchema = {
+      type: 'object' as const,
+      properties: {},
+      additionalProperties: { type: 'number', minimum: 10 },
+    };
+    expect(validateArgsAgainstSchema({ extra: 5 }, numberSchema)).toMatch(
+      /additionalProperties: below minimum/
+    );
+    expect(validateArgsAgainstSchema({ extra: 15 }, numberSchema)).toBeNull();
   });
 
   it('ignores invalid regex patterns in schemas', () => {

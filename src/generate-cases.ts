@@ -260,6 +260,10 @@ function validateValueAgainstSchema(
   if (schema.type && !typeMatches(value, schema.type as string | string[])) {
     return `type ${String(schema.type)} expected, got ${jsonTypeOf(value)}`;
   }
+  const enumValues = schema['enum'] as unknown[] | undefined;
+  if (enumValues && !enumValues.includes(value)) {
+    return `must be one of ${JSON.stringify(enumValues)}`;
+  }
   if (typeof value === 'string') {
     if (typeof schema.minLength === 'number' && value.length < schema.minLength) {
       return `shorter than minLength ${schema.minLength}`;
@@ -267,12 +271,65 @@ function validateValueAgainstSchema(
     if (typeof schema.maxLength === 'number' && value.length > schema.maxLength) {
       return `longer than maxLength ${schema.maxLength}`;
     }
+    if (typeof schema.pattern === 'string') {
+      try {
+        if (!new RegExp(schema.pattern).test(value)) {
+          return `does not match pattern /${schema.pattern}/`;
+        }
+      } catch {
+        // Invalid regex in schema — ignore rather than rejecting every case.
+      }
+    }
+  }
+  if (typeof value === 'number') {
+    if (typeof schema.minimum === 'number' && value < schema.minimum) {
+      return `below minimum ${schema.minimum}`;
+    }
+    if (typeof schema.maximum === 'number' && value > schema.maximum) {
+      return `above maximum ${schema.maximum}`;
+    }
+    if (typeof schema.exclusiveMinimum === 'number' && value <= schema.exclusiveMinimum) {
+      return `must be > ${schema.exclusiveMinimum} (exclusive)`;
+    }
+    if (typeof schema.exclusiveMaximum === 'number' && value >= schema.exclusiveMaximum) {
+      return `must be < ${schema.exclusiveMaximum} (exclusive)`;
+    }
+  }
+  if (Array.isArray(value)) {
+    if (typeof schema.minItems === 'number' && value.length < schema.minItems) {
+      return `has fewer than minItems ${schema.minItems}`;
+    }
+    if (typeof schema.maxItems === 'number' && value.length > schema.maxItems) {
+      return `has more than maxItems ${schema.maxItems}`;
+    }
+    if (schema.uniqueItems === true && hasDuplicates(value)) {
+      return `has duplicate items (uniqueItems is true)`;
+    }
   }
   return null;
 }
 
 /** Sentinel value used to violate string enums and string constraints. */
 const INVALID_STRING = '__mcp_tester_invalid__';
+
+/**
+ * Pick a printable string that does NOT match `pattern`, so the
+ * not-matching-pattern case genuinely violates it.
+ *
+ * @returns A violating string, or `undefined` when the pattern is invalid or
+ *   matches every candidate (e.g. `.*`), in which case the caller must skip
+ *   the case rather than emit a bogus `error` expectation.
+ */
+function violatingStringForPattern(pattern: string): string | undefined {
+  let re: RegExp;
+  try {
+    re = new RegExp(pattern);
+  } catch {
+    // Invalid regex: the pattern can never be enforced by the server either.
+    return undefined;
+  }
+  return [INVALID_STRING, '!!!', '@@@', ' ', '0', 'Z'].find((c) => !re.test(c));
+}
 
 /**
  * Choose a value guaranteed to violate an `additionalProperties` sub-schema,
@@ -416,18 +473,20 @@ export function suggestEdgeCases(tool: Tool): GeneratedCase[] {
       );
     }
     if (typeof prop.pattern === 'string') {
-      // Use a string that almost certainly won't match any user pattern.
-      // The sentinel is a 16-char base64-like token with no letters, so
-      // letter-required patterns (\d, [a-z], etc.) will reject it.
-      withArgs(
-        (args) => {
-          args[key] = INVALID_STRING;
-        },
-        `rejects "${key}" not matching pattern /${prop.pattern}/`,
-        'error',
-        `"${key}" is constrained to pattern /${prop.pattern}/`,
-        'rule:pattern'
-      );
+      const violating = violatingStringForPattern(prop.pattern);
+      // Skip patterns that accept every candidate (e.g. `.*`); otherwise the
+      // "error" case would actually succeed against a conforming server.
+      if (violating !== undefined) {
+        withArgs(
+          (args) => {
+            args[key] = violating;
+          },
+          `rejects "${key}" not matching pattern /${prop.pattern}/`,
+          'error',
+          `"${key}" is constrained to pattern /${prop.pattern}/`,
+          'rule:pattern'
+        );
+      }
     }
   }
 
