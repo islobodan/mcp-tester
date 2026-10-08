@@ -532,3 +532,70 @@ describe('generateTests', () => {
     }, 15000);
   });
 });
+
+// ─── Escaping (regression: must produce valid JS for names with quotes/backslashes) ───
+
+import { buildTestFile, escapeJsString } from '../generate-tests.js';
+
+describe('generateTests escaping', () => {
+  describe('escapeJsString', () => {
+    it('escapes single quotes by default', () => {
+      expect(escapeJsString("it's")).toBe("it\\'s");
+    });
+    it('escapes double quotes when requested', () => {
+      expect(escapeJsString('say "hi"', '"')).toBe('say \\"hi\\"');
+    });
+    it('escapes backslashes', () => {
+      expect(escapeJsString('a\\b')).toBe('a\\\\b');
+    });
+    it('escapes newlines, tabs, and control chars', () => {
+      expect(escapeJsString('a\nb\tc')).toBe('a\\nb\\tc');
+    });
+    it('does not touch the other quote character', () => {
+      expect(escapeJsString(`a"b'c`, "'")).toBe(`a"b\\'c`);
+    });
+  });
+
+  it('escapes quotes and backslashes in tool/resource/prompt names', () => {
+    const tools = [
+      {
+        name: `weird"name\\tool`,
+        description: "has 'quotes' and \\backslashes\\",
+        inputSchema: { type: 'object' as const, properties: {} },
+      },
+    ];
+    const resources = [{ uri: `weird"uri\\with/slashes`, name: 'res' }];
+    const prompts = [
+      {
+        name: `weird'prompt\\name`,
+        arguments: [{ name: 'arg1', required: true }],
+      },
+    ];
+    const code = buildTestFile(
+      tools,
+      resources,
+      prompts,
+      {
+        framework: 'jest',
+        description: "Server with 'quotes' and \\backslashes",
+      },
+      { command: 'node', args: ['./mock.js'] }
+    );
+
+    // Single-quoted describe label escapes ' and \.
+    expect(code).toContain("describe('Server with \\'quotes\\' and \\\\backslashes'");
+    // Tool name with double-quote and backslash escapes inside it() text and
+    // the single-quoted call argument.
+    expect(code).toContain('it(\'should have tool "weird\\"name\\\\tool"\'');
+    expect(code).toContain("name: 'weird\"name\\\\tool'");
+    // Resource URI with quote/backslash escapes in both it() text and the
+    // readResource argument.
+    expect(code).toContain('it(\'should have resource "weird\\"uri\\\\with/slashes"\'');
+    expect(code).toContain("expect(resources).toHaveResource('weird\"uri\\\\with/slashes')");
+    expect(code).toContain("await client.readResource('weird\"uri\\\\with/slashes')");
+    // Prompt name with single-quote and backslash escapes.
+    expect(code).toContain("it('should have prompt \"weird'prompt\\\\name\"'");
+    expect(code).toContain("expect(prompts).toHavePrompt('weird\\'prompt\\\\name')");
+    expect(code).toContain("await client.getPrompt('weird\\'prompt\\\\name'");
+  });
+});

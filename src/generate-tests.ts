@@ -119,7 +119,7 @@ function generateCaseTest(c: GeneratedCase): string[] {
     lines.push(
       `    // verify: expected ${c.expectation} but server returned ${c.observed} — adjust manually`
     );
-    lines.push(`    it.skip('${escapeSingleQuotes(c.title)}', async () => {`);
+    lines.push(`    it.skip('${escapeJsString(c.title)}', async () => {`);
     lines.push('      const result = await client.callTool({');
     lines.push(`        name: '${toolNameLiteral(c.tool)}',`);
     lines.push(`        arguments: ${argsStr},`);
@@ -130,7 +130,7 @@ function generateCaseTest(c: GeneratedCase): string[] {
   }
 
   if (c.expectation === 'observe') {
-    lines.push(`    it('${escapeSingleQuotes(c.title)}', async () => {`);
+    lines.push(`    it('${escapeJsString(c.title)}', async () => {`);
     lines.push('      const result = await client.callTool({');
     lines.push(`        name: '${toolNameLiteral(c.tool)}',`);
     lines.push(`        arguments: ${argsStr},`);
@@ -140,7 +140,7 @@ function generateCaseTest(c: GeneratedCase): string[] {
     lines.push('      console.log(`[${c.tool}] ${JSON.stringify(result)}`);');
     lines.push('    });');
   } else if (c.expectation === 'error') {
-    lines.push(`    it('${escapeSingleQuotes(c.title)}', async () => {`);
+    lines.push(`    it('${escapeJsString(c.title)}', async () => {`);
     lines.push('      const result = await client.callTool({');
     lines.push(`        name: '${toolNameLiteral(c.tool)}',`);
     lines.push(`        arguments: ${argsStr},`);
@@ -148,7 +148,7 @@ function generateCaseTest(c: GeneratedCase): string[] {
     lines.push('      expect(isToolError(result)).toBe(true);');
     lines.push('    });');
   } else {
-    lines.push(`    it('${escapeSingleQuotes(c.title)}', async () => {`);
+    lines.push(`    it('${escapeJsString(c.title)}', async () => {`);
     lines.push('      const result = await client.callTool({');
     lines.push(`        name: '${toolNameLiteral(c.tool)}',`);
     lines.push(`        arguments: ${argsStr},`);
@@ -159,14 +159,24 @@ function generateCaseTest(c: GeneratedCase): string[] {
   return lines;
 }
 
-/** Escape single quotes and backslashes for use inside a single-quoted literal. */
-function escapeSingleQuotes(s: string): string {
-  return s.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+/** Escape a string for use inside a single- or double-quoted JavaScript literal. */
+export function escapeJsString(s: string, quote: "'" | '"' = "'"): string {
+  // Escape backslashes first, then the chosen quote, then newlines/control chars.
+  return (
+    s
+      .replace(/\\/g, '\\\\')
+      .replace(new RegExp(quote, 'g'), `\\${quote}`)
+      .replace(/\n/g, '\\n')
+      .replace(/\r/g, '\\r')
+      .replace(/\t/g, '\\t')
+      // eslint-disable-next-line no-control-regex -- intentional: we want to escape ASCII control chars in user-provided strings
+      .replace(/[\u0000-\u001f]/g, (ch) => `\\u${ch.charCodeAt(0).toString(16).padStart(4, '0')}`)
+  );
 }
 
 /** Emit a safe single-quoted string literal for a tool name. */
 function toolNameLiteral(name: string): string {
-  return escapeSingleQuotes(name);
+  return escapeJsString(name, "'");
 }
 
 /**
@@ -190,17 +200,17 @@ function generateToolTests(tools: Tool[], cases: GeneratedCase[] = []): string {
     const argsStr = Object.keys(sampleArgs).length > 0 ? JSON.stringify(sampleArgs) : '{}';
 
     lines.push('');
-    lines.push(`    it('should have tool "${tool.name}"', async () => {`);
+    lines.push(`    it('should have tool "${escapeJsString(tool.name, '"')}"', async () => {`);
     lines.push('      const tools = await client.listTools();');
-    lines.push(`      expect(tools).toHaveTool('${tool.name}');`);
+    lines.push(`      expect(tools).toHaveTool('${toolNameLiteral(tool.name)}');`);
     lines.push('    });');
     lines.push('');
 
     // Call test. Generated arguments are guesses, and some tools intentionally
     // return/throw errors — so accept a successful result or a tool-level error.
-    lines.push(`    it('should call "${tool.name}"', async () => {`);
+    lines.push(`    it('should call "${escapeJsString(tool.name, '"')}"', async () => {`);
     lines.push('      const result = await client.callTool({');
-    lines.push(`        name: '${tool.name}',`);
+    lines.push(`        name: '${toolNameLiteral(tool.name)}',`);
     lines.push(`        arguments: ${argsStr},`);
     lines.push('      }).catch((error: unknown) => error);');
     lines.push('      expect(result).toBeDefined();');
@@ -227,13 +237,19 @@ function generateResourceTests(resources: Resource[]): string {
 
   for (const resource of resources) {
     lines.push('');
-    lines.push(`    it('should have resource "${resource.uri}"', async () => {`);
+    lines.push(
+      `    it('should have resource "${escapeJsString(resource.uri, '"')}"', async () => {`
+    );
     lines.push('      const resources = await client.listResources();');
-    lines.push(`      expect(resources).toHaveResource('${resource.uri}');`);
+    lines.push(`      expect(resources).toHaveResource('${escapeJsString(resource.uri, "'")}');`);
     lines.push('    });');
     lines.push('');
-    lines.push(`    it('should read resource "${resource.uri}"', async () => {`);
-    lines.push(`      const result = await client.readResource('${resource.uri}');`);
+    lines.push(
+      `    it('should read resource "${escapeJsString(resource.uri, '"')}"', async () => {`
+    );
+    lines.push(
+      `      const result = await client.readResource('${escapeJsString(resource.uri, "'")}');`
+    );
     lines.push('      expect(result.contents).toBeDefined();');
     lines.push('      expect(result.contents.length).toBeGreaterThan(0);');
     lines.push('    });');
@@ -265,13 +281,15 @@ function generatePromptTests(prompts: Prompt[]): string {
     const argsStr = Object.keys(promptArgs).length > 0 ? `, ${JSON.stringify(promptArgs)}` : '';
 
     lines.push('');
-    lines.push(`    it('should have prompt "${prompt.name}"', async () => {`);
+    lines.push(`    it('should have prompt "${escapeJsString(prompt.name, '"')}"', async () => {`);
     lines.push('      const prompts = await client.listPrompts();');
-    lines.push(`      expect(prompts).toHavePrompt('${prompt.name}');`);
+    lines.push(`      expect(prompts).toHavePrompt('${escapeJsString(prompt.name, "'")}');`);
     lines.push('    });');
     lines.push('');
-    lines.push(`    it('should get prompt "${prompt.name}"', async () => {`);
-    lines.push(`      const result = await client.getPrompt('${prompt.name}'${argsStr});`);
+    lines.push(`    it('should get prompt "${escapeJsString(prompt.name, '"')}"', async () => {`);
+    lines.push(
+      `      const result = await client.getPrompt('${escapeJsString(prompt.name, "'")}'${argsStr});`
+    );
     lines.push('      expect(result.messages).toBeDefined();');
     lines.push('      expect(result.messages.length).toBeGreaterThan(0);');
     lines.push('    });');
@@ -296,8 +314,11 @@ type TestBuildOptions = Pick<
 
 /**
  * Generate a complete test file.
+ *
+ * @internal Exported for testing; consumers should use {@link generateTests}
+ * or {@link generateTestsFromClient}.
  */
-function buildTestFile(
+export function buildTestFile(
   tools: Tool[],
   resources: Resource[],
   prompts: Prompt[],
@@ -336,10 +357,10 @@ function buildTestFile(
   // Header comment
   const header = [
     '/**',
-    ` * Generated test file for: ${description}`,
+    ` * Generated test file for: ${description.replace(/\*\//g, '*\\/')}`,
     ' *',
     ` * Framework: ${framework}`,
-    ` * Server: ${serverLabel}`,
+    ` * Server: ${serverLabel.replace(/\*\//g, '*\\/')}`,
     ` * Tools: ${tools.length} | Resources: ${resources.length} | Prompts: ${prompts.length}`,
     cases.length > 0 ? ` * Derived cases: ${cases.length} (edge/AI)` : null,
     ' *',
@@ -369,7 +390,7 @@ function buildTestFile(
 ${importLines.join('\n')}
 
 ${beforeAllLine}
-describe('${description}', () => {
+describe('${escapeJsString(description, "'")}', () => {
   let client: MCPClient;
 
   beforeEach(async () => {

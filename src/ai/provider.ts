@@ -321,11 +321,13 @@ export function createProviderFromEnv(
 }
 
 /**
- * Convenience: propose AI cases and merge them with the deterministic rules,
- * validating everything against the tools' real schemas.
+ * Convenience: ask the AI provider to suggest test cases, then validate them
+ * against the tools' real input schemas. Does NOT merge with deterministic
+ * rules — callers wanting the union should call {@link suggestEdgeCases} (or
+ * `suggestEdgeCasesForTools`) themselves and concatenate.
  *
- * @returns Merged cases, rejected entries, and the provider that was used
- *   (null when only rules ran).
+ * @returns Validated cases, rejected entries with reasons, and the provider
+ *   name (for diagnostic logging).
  */
 export async function suggestCasesWithAI(
   analysis: ServerAnalysis,
