@@ -25,6 +25,7 @@ export default {
     '!src/**/*.test.ts',
     // Barrel entry points are thin re-export surfaces.
     '!src/index.ts',
+    '!src/browser.ts',
     '!src/client/index.ts',
     // The CLI is exercised end-to-end via child_process in cli.test.ts; its
     // branches cannot be instrumented across the process boundary.

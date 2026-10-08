@@ -37,6 +37,9 @@ jobs:
       - name: Build TypeScript
         run: npm run build
 
+      - name: Check browser bundle
+        run: npm run test:browser
+
       - name: Run linter
         run: npm run lint
 

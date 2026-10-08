@@ -1,5 +1,6 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import type { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { WebSocketClientTransport } from '@modelcontextprotocol/sdk/client/websocket.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
@@ -129,13 +130,32 @@ export interface SseServerConfig {
 }
 
 /**
+ * Configuration for connecting to a remote MCP server via the **WebSocket** transport.
+ *
+ * Uses the browser-native `WebSocket` API, which makes this the recommended
+ * transport when running `mcp-tester` in a browser or edge runtime. Requires a
+ * global `WebSocket` implementation (browsers, Node.js >= 22, Deno, Bun).
+ */
+export interface WebSocketServerConfig {
+  /** Always `'websocket'`. */
+  transport: 'websocket';
+  /** The WebSocket server URL (e.g. `ws://localhost:3000`). */
+  url: string;
+}
+
+/**
  * Union of all supported server transport configurations.
  *
  * - `StdioServerConfig` (default) — local process via stdin/stdout
  * - `StreamableHttpServerConfig` — modern HTTP transport
  * - `SseServerConfig` — legacy SSE transport
+ * - `WebSocketServerConfig` — browser-friendly WebSocket transport
  */
-export type ServerConfig = StdioServerConfig | StreamableHttpServerConfig | SseServerConfig;
+export type ServerConfig =
+  | StdioServerConfig
+  | StreamableHttpServerConfig
+  | SseServerConfig
+  | WebSocketServerConfig;
 
 /**
  * @deprecated Use {@link StdioServerConfig} instead. Kept as an alias for backward compatibility.
@@ -427,13 +447,15 @@ export class MCPClient {
         ? 'http'
         : (config as { transport?: string }).transport === 'sse'
           ? 'sse'
-          : 'stdio';
+          : (config as { transport?: string }).transport === 'websocket'
+            ? 'websocket'
+            : 'stdio';
     this.transportType = transportType;
 
     this.logger.info(`Starting MCP client: ${this.options.name} v${this.options.version}`);
 
     try {
-      this.transport = this.createTransport(config, transportType);
+      this.transport = await this.createTransport(config, transportType);
 
       this.client = new Client(
         {
@@ -491,7 +513,7 @@ export class MCPClient {
       const connStr =
         transportType === 'stdio'
           ? `${(config as StdioServerConfig).command}${(config as StdioServerConfig).args ? ' ' + (config as StdioServerConfig).args!.join(' ') : ''}`
-          : (config as StreamableHttpServerConfig | SseServerConfig).url;
+          : (config as StreamableHttpServerConfig | SseServerConfig | WebSocketServerConfig).url;
       throw new MCPConnectionError(
         `Failed to connect to MCP server via ${transportType}: ${error instanceof Error ? error.message : String(error)}`,
         connStr
@@ -501,13 +523,20 @@ export class MCPClient {
 
   /**
    * Creates the appropriate transport instance based on the config type.
+   *
+   * Async because the stdio transport is loaded lazily (`await import`) so that
+   * browser bundlers never pull in Node-only modules for HTTP/SSE/WebSocket.
    */
-  private createTransport(config: ServerConfig, transportType: TransportType): Transport {
+  private async createTransport(
+    config: ServerConfig,
+    transportType: TransportType
+  ): Promise<Transport> {
     if (transportType === 'stdio') {
       const cfg = config as StdioServerConfig;
       this.logger.debug(`Server command: ${cfg.command}`, cfg.args || []);
-      const mergedEnv = mergeEnvironments(process.env, cfg.env);
-      return new StdioClientTransport({
+      const { StdioClientTransport: StdioTransport } = await import('../utils/stdio-transport.js');
+      const mergedEnv = mergeEnvironments(getProcessEnv(), cfg.env);
+      return new StdioTransport({
         command: cfg.command,
         args: cfg.args || [],
         env: mergedEnv,
@@ -525,6 +554,12 @@ export class MCPClient {
         requestInit,
         sessionId: cfg.sessionId,
       });
+    }
+
+    if (transportType === 'websocket') {
+      const cfg = config as WebSocketServerConfig;
+      this.logger.debug(`Connecting to WebSocket endpoint: ${cfg.url}`);
+      return new WebSocketClientTransport(new URL(cfg.url));
     }
 
     // SSE
@@ -1267,12 +1302,26 @@ function mergeHeaders(
 /**
  * Check if a process with the given PID is still alive.
  * Uses signal 0 (does not actually send a signal, just checks existence).
+ *
+ * Always returns `true` in environments without a `process` object (browsers),
+ * where stdio transport is unavailable anyway.
  */
 function isProcessAlive(pid: number): boolean {
+  if (typeof process === 'undefined' || typeof process.kill !== 'function') {
+    return true;
+  }
   try {
     process.kill(pid, 0);
     return true;
   } catch {
     return false;
   }
+}
+
+/**
+ * Return `process.env` in Node, or an empty object in browsers/edge runtimes
+ * where `process` is not defined.
+ */
+function getProcessEnv(): Record<string, string | undefined> {
+  return typeof process !== 'undefined' && process.env ? process.env : {};
 }

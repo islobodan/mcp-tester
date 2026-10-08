@@ -3,6 +3,10 @@
   "version": "1.5.4",
   "description": "Minimal MCP client implementation for CI/CD testing of MCP servers",
   "main": "dist/index.js",
+  "browser": {
+    "./dist/index.js": "./dist/browser.js",
+    "./dist/utils/stdio-transport.js": false
+  },
   "types": "dist/index.d.ts",
   "type": "module",
   "sideEffects": false,
@@ -24,6 +28,7 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:package": "node scripts/smoke-test-package.mjs",
+    "test:browser": "node scripts/check-browser-bundle.mjs",
     "benchmark": "tsx src/__tests__/benchmarks.ts",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
@@ -77,6 +82,7 @@
     "@types/node": "^20.19.41",
     "@typescript-eslint/eslint-plugin": "^8.60.0",
     "@typescript-eslint/parser": "^8.60.0",
+    "esbuild": "^0.28.2",
     "eslint": "^8.56.0",
     "fast-check": "^4.8.0",
     "husky": "^9.1.7",

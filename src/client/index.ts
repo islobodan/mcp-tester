@@ -4,6 +4,7 @@ export type {
   StdioServerConfig,
   StreamableHttpServerConfig,
   SseServerConfig,
+  WebSocketServerConfig,
   /** @deprecated Use StdioServerConfig */
   MCPServerConfig,
   MCPClientOptions,

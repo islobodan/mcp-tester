@@ -1,5 +1,18 @@
 /**
- * MCP Tester - A minimal MCP client implementation for CI/CD testing.
+ * MCP Tester — browser-safe entry point.
+ *
+ * This module is selected automatically by browser bundlers via the
+ * `"browser"` field in `package.json`. Import the package normally and the
+ * bundler will substitute this entry for the Node entry point.
+ *
+ * It exports only code that runs in browsers/edge runtimes: the MCP client
+ * (HTTP, SSE and WebSocket transports), assertion helpers, and custom
+ * matchers. Node-only features are deliberately omitted:
+ *
+ * - **stdio** transport (spawns a child process)
+ * - test/code generation (`generateTests`, `generateTypes`) which reads files
+ *   and the package version via Node APIs
+ * - the AI provider (`OpenAICompatProvider`) which uses `node:crypto`/`node:fs`
  *
  * @packageDocumentation
  *
@@ -7,22 +20,9 @@
  * ```typescript
  * import { MCPClient } from '@slbdn/mcp-tester';
  *
- * const client = new MCPClient({
- *   name: 'test-client',
- *   version: '1.0.0',
- * });
- *
- * await client.start({
- *   command: 'node',
- *   args: ['./server.js'],
- * });
- *
+ * const client = new MCPClient();
+ * await client.start({ transport: 'websocket', url: 'wss://example.com/mcp' });
  * const tools = await client.listTools();
- * const result = await client.callTool({
- *   name: 'my-tool',
- *   arguments: { input: 'test' },
- * });
- *
  * await client.stop();
  * ```
  */
@@ -95,13 +95,6 @@ export {
   assertHasResource,
   assertHasPrompt,
 } from './matchers.js';
-export { generateTests, generateTestsFromClient } from './generate-tests.js';
-export type {
-  GenerateTestOptions,
-  GenerateTestsFromClientOptions,
-  GenerationMode,
-  AIOptions,
-} from './generate-tests.js';
 export {
   type GeneratedCase,
   type CaseExpectation,
@@ -112,16 +105,3 @@ export {
   validateArgsAgainstSchema,
   mergeAndValidateCases,
 } from './generate-cases.js';
-export {
-  type AIProvider,
-  type ServerAnalysis,
-  type OpenAICompatOptions,
-  OpenAICompatProvider,
-  createProviderFromEnv,
-  suggestCasesWithAI,
-  DEFAULT_AI_BASE_URL,
-  DEFAULT_AI_MODEL,
-} from './ai/provider.js';
-export { generateTypes, generateTypesFromClient } from './generate-types.js';
-export type { GenerateTypesOptions, GenerateTypesFromClientOptions } from './generate-types.js';
-export { getPackageVersion } from './utils/version.js';

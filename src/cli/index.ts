@@ -13,7 +13,7 @@ const program = new Command();
 
 program
   .name('mcp-tester')
-  .description('CLI tool for testing MCP servers (stdio, HTTP, and SSE transports)')
+  .description('CLI tool for testing MCP servers (stdio, HTTP, SSE, and WebSocket transports)')
   .version(getPackageVersion(), '-V, --version');
 
 // Global options. Commander stores these on the root program, not on each
@@ -37,8 +37,16 @@ function withGlobals(opts: Record<string, unknown>): Record<string, unknown> {
  */
 function withTransport(cmd: Command): Command {
   return cmd
-    .option('-T, --transport <type>', 'Transport: stdio (default), http, or sse', undefined)
-    .option('--url <url>', 'Server URL for http/sse (e.g. http://localhost:3000/mcp)', undefined)
+    .option(
+      '-T, --transport <type>',
+      'Transport: stdio (default), http, sse, or websocket',
+      undefined
+    )
+    .option(
+      '--url <url>',
+      'Server URL for http/sse/websocket (e.g. http://localhost:3000/mcp)',
+      undefined
+    )
     .option(
       '--headers <json>',
       'HTTP headers as JSON (e.g. \'{"Authorization":"Bearer x"}\')',
@@ -51,8 +59,8 @@ function withTransport(cmd: Command): Command {
 /**
  * Build a ServerConfig from the global options and positional command/args.
  *
- * - If `--url` is provided → use HTTP/SSE transport
- * - If `--transport http|sse` without `--url` → treat first positional arg as URL
+ * - If `--url` is provided → use HTTP/SSE/WebSocket transport
+ * - If `--transport http|sse|websocket` without `--url` → treat first positional arg as URL
  * - Otherwise → stdio with command + args
  */
 function resolveServerConfig(
@@ -64,8 +72,9 @@ function resolveServerConfig(
   const url = opts['url'] ? String(opts['url']) : undefined;
   const headersRaw = opts['headers'] ? String(opts['headers']) : undefined;
 
-  if (transport && transport !== 'stdio' && transport !== 'http' && transport !== 'sse') {
-    console.error(`❌ Unknown transport "${transport}". Use stdio, http, or sse.`);
+  const remoteTransports = ['http', 'sse', 'websocket'];
+  if (transport && transport !== 'stdio' && !remoteTransports.includes(transport)) {
+    console.error(`❌ Unknown transport "${transport}". Use stdio, http, sse, or websocket.`);
     process.exit(1);
   }
 
@@ -79,14 +88,15 @@ function resolveServerConfig(
     }
   }
 
-  // HTTP or SSE transport. A `--url` alone implies HTTP; an explicit
-  // non-stdio `--transport` uses the positional command as the URL.
-  if (url || transport === 'http' || transport === 'sse') {
+  // Remote transports. A `--url` alone implies HTTP; an explicit non-stdio
+  // `--transport` uses the positional command as the URL.
+  if (url || remoteTransports.includes(transport)) {
     if (transport === 'stdio') {
-      console.error('❌ --url requires --transport http or sse (not stdio).');
+      console.error('❌ --url requires --transport http, sse, or websocket (not stdio).');
       process.exit(1);
     }
-    const actualTransport: 'http' | 'sse' = transport === 'sse' ? 'sse' : 'http';
+    const actualTransport: 'http' | 'sse' | 'websocket' =
+      transport === 'sse' ? 'sse' : transport === 'websocket' ? 'websocket' : 'http';
     const actualUrl = url || command;
     if (!actualUrl) {
       console.error(
@@ -97,9 +107,10 @@ function resolveServerConfig(
     return { transport: actualTransport, url: actualUrl, headers } as ServerConfig;
   }
 
-  // Auto-detect: if command looks like a URL, use HTTP
-  if (command && (command.startsWith('http://') || command.startsWith('https://'))) {
-    return { transport: 'http', url: command, headers } as ServerConfig;
+  // Auto-detect: if command looks like a URL, use the matching remote transport.
+  if (command && /^(https?|wss?):\/\//.test(command)) {
+    const isWebSocket = command.startsWith('ws://') || command.startsWith('wss://');
+    return { transport: isWebSocket ? 'websocket' : 'http', url: command, headers } as ServerConfig;
   }
 
   // Default: stdio
@@ -140,7 +151,7 @@ withTransport(
   program
     .command('test')
     .description('Test MCP server connection and list available capabilities')
-    .argument('[command]', 'Command to run (stdio) or URL (http/sse)')
+    .argument('[command]', 'Command to run (stdio) or URL (http/sse/websocket)')
     .argument('[args...]', 'Arguments for the server command')
 ).action(async (command: string | undefined, args: string[], opts: Record<string, unknown>) => {
   const config = resolveServerConfig(opts, command, args);
@@ -217,7 +228,7 @@ withTransport(
     .command('list-tools')
     .alias('lt')
     .description('List all available tools from the MCP server')
-    .argument('[command]', 'Command to run (stdio) or URL (http/sse)')
+    .argument('[command]', 'Command to run (stdio) or URL (http/sse/websocket)')
     .argument('[args...]', 'Arguments for the server command')
 )
   .option('--json', 'Output as JSON')
@@ -258,7 +269,7 @@ withTransport(
     .alias('ct')
     .description('Call a tool on the MCP server')
     .argument('<tool-name>', 'Name of the tool to call')
-    .argument('[command]', 'Command to run (stdio) or URL (http/sse)')
+    .argument('[command]', 'Command to run (stdio) or URL (http/sse/websocket)')
     .argument('[args...]', 'Arguments for the server command')
 )
   .option('--params <json>', 'Tool parameters as JSON string')
@@ -327,7 +338,7 @@ withTransport(
     .alias('rr')
     .description('Read a resource from the MCP server')
     .argument('<uri>', 'URI of the resource to read')
-    .argument('[command]', 'Command to run (stdio) or URL (http/sse)')
+    .argument('[command]', 'Command to run (stdio) or URL (http/sse/websocket)')
     .argument('[args...]', 'Arguments for the server command')
 )
   .option('--json', 'Output as JSON')
@@ -376,7 +387,7 @@ withTransport(
     .alias('gp')
     .description('Get a prompt from the MCP server')
     .argument('<name>', 'Name of the prompt')
-    .argument('[command]', 'Command to run (stdio) or URL (http/sse)')
+    .argument('[command]', 'Command to run (stdio) or URL (http/sse/websocket)')
     .argument('[args...]', 'Arguments for the server command')
 )
   .option('--args <json>', 'Prompt arguments as JSON string')
@@ -437,7 +448,7 @@ withTransport(
     .command('generate')
     .alias('gen')
     .description('Generate test file from MCP server inspection')
-    .argument('[command]', 'Command to run (stdio) or URL (http/sse)')
+    .argument('[command]', 'Command to run (stdio) or URL (http/sse/websocket)')
     .argument('[args...]', 'Arguments for the server command')
 )
   .option('-o, --output <file>', 'Output file path (prints to stdout if omitted)')
@@ -558,7 +569,7 @@ withTransport(
     .command('generate-types')
     .alias('gen-types')
     .description('Generate TypeScript type declarations from MCP server tool schemas')
-    .argument('[command]', 'Command to run (stdio) or URL (http/sse)')
+    .argument('[command]', 'Command to run (stdio) or URL (http/sse/websocket)')
     .argument('[args...]', 'Arguments for the server command')
 )
   .option('-o, --output <file>', 'Output file path (prints to stdout if omitted)')
@@ -818,6 +829,9 @@ Examples:
 
   # SSE transport
   mcp-tester test --transport sse --url http://localhost:3000/sse
+
+  # WebSocket transport
+  mcp-tester test --transport websocket --url ws://localhost:3000
 
   # With custom headers
   mcp-tester test --transport http --url https://api.example.com/mcp --headers '{"Authorization":"Bearer token"}'

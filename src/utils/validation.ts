@@ -10,15 +10,16 @@ import { MCPClientError } from './errors.js';
 /**
  * Transport types supported by MCPClient.
  */
-export type TransportType = 'stdio' | 'http' | 'sse';
+export type TransportType = 'stdio' | 'http' | 'sse' | 'websocket';
 
 /**
  * Validate `start()` config.
  *
- * Supports three transport types:
+ * Supports four transport types:
  * - **stdio** (default): `{ command, args, env, startupDelay }`
  * - **http**: `{ transport: 'http', url, headers, sessionId }`
  * - **sse**: `{ transport: 'sse', url, headers }`
+ * - **websocket**: `{ transport: 'websocket', url }`
  */
 export function validateServerConfig(config: unknown): void {
   if (config === null || config === undefined) {
@@ -44,14 +45,14 @@ export function validateServerConfig(config: unknown): void {
   // Determine transport type
   const transport = (cfg.transport as string) || 'stdio';
 
-  if (transport === 'http' || transport === 'sse') {
-    validateHttpConfig(cfg, transport);
+  if (transport === 'http' || transport === 'sse' || transport === 'websocket') {
+    validateUrlConfig(cfg, transport);
   } else if (transport === 'stdio') {
     validateStdioConfig(cfg);
   } else {
     throw new MCPClientError(
       `Unknown transport type "${transport}".` +
-        ' Supported values: "stdio" (default), "http", "sse".',
+        ' Supported values: "stdio" (default), "http", "sse", "websocket".',
       'MCP_INVALID_CONFIG'
     );
   }
@@ -152,11 +153,25 @@ function validateStdioConfig(cfg: Record<string, unknown>): void {
 /**
  * Validate HTTP/SSE transport config — url is required.
  */
-function validateHttpConfig(cfg: Record<string, unknown>, transport: 'http' | 'sse'): void {
-  const example =
-    transport === 'http'
-      ? '{ transport: "http", url: "http://localhost:3000/mcp" }'
-      : '{ transport: "sse", url: "http://localhost:3000/sse" }';
+function validateUrlConfig(
+  cfg: Record<string, unknown>,
+  transport: 'http' | 'sse' | 'websocket'
+): void {
+  const examples: Record<'http' | 'sse' | 'websocket', { config: string; url: string }> = {
+    http: {
+      config: '{ transport: "http", url: "http://localhost:3000/mcp" }',
+      url: '"http://localhost:3000/mcp"',
+    },
+    sse: {
+      config: '{ transport: "sse", url: "http://localhost:3000/sse" }',
+      url: '"http://localhost:3000/sse"',
+    },
+    websocket: {
+      config: '{ transport: "websocket", url: "ws://localhost:3000" }',
+      url: '"ws://localhost:3000"',
+    },
+  };
+  const { config: example, url: urlExample } = examples[transport];
 
   // url
   if (!('url' in cfg) || cfg.url === undefined || cfg.url === null) {
@@ -186,18 +201,18 @@ function validateHttpConfig(cfg: Record<string, unknown>, transport: 'http' | 's
     new URL(cfg.url);
   } catch {
     throw new MCPClientError(
-      `Server config.url is not a valid URL: "${cfg.url}".` +
-        ` Example: ${transport === 'http' ? 'http://localhost:3000/mcp' : 'http://localhost:3000/sse'}`,
+      `Server config.url is not a valid URL: "${cfg.url}".` + ` Example: ${urlExample}`,
       'MCP_INVALID_CONFIG'
     );
   }
 
-  // Must be http or https
+  // Protocol must match the transport
   const parsed = new URL(cfg.url);
-  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+  const allowedProtocols = transport === 'websocket' ? ['ws:', 'wss:'] : ['http:', 'https:'];
+  if (!allowedProtocols.includes(parsed.protocol)) {
     throw new MCPClientError(
-      `Server config.url protocol must be http or https, got "${parsed.protocol}".` +
-        ` Example: ${transport === 'http' ? 'http://localhost:3000/mcp' : 'http://localhost:3000/sse'}`,
+      `Server config.url protocol must be ${transport === 'websocket' ? 'ws or wss' : 'http or https'}, got "${parsed.protocol}".` +
+        ` Example: ${urlExample}`,
       'MCP_INVALID_CONFIG'
     );
   }

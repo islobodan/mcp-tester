@@ -236,12 +236,18 @@ describe('Input Validation', () => {
 
   describe('validateServerConfig — unknown transport', () => {
     it('should reject unknown transport type', () => {
-      expect(() => validateServerConfig({ transport: 'websocket', url: 'ws://localhost' })).toThrow(
+      expect(() => validateServerConfig({ transport: 'grpc', url: 'grpc://localhost' })).toThrow(
         MCPClientError
       );
-      expect(() => validateServerConfig({ transport: 'websocket', url: 'ws://localhost' })).toThrow(
+      expect(() => validateServerConfig({ transport: 'grpc', url: 'grpc://localhost' })).toThrow(
         /unknown transport/i
       );
+    });
+
+    it('should accept the websocket transport type', () => {
+      expect(() =>
+        validateServerConfig({ transport: 'websocket', url: 'ws://localhost' })
+      ).not.toThrow();
     });
   });
 

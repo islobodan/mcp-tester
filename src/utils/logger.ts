@@ -84,7 +84,8 @@ const COLORS: Record<string, string> = {
  * Check if stderr is a TTY (terminal).
  */
 function isTTY(): boolean {
-  return process.stderr?.isTTY ?? false;
+  // `process` is not defined in browsers, so guard before touching it.
+  return typeof process !== 'undefined' && process.stderr?.isTTY === true;
 }
 
 /**
