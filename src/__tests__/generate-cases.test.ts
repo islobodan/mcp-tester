@@ -51,6 +51,10 @@ describe('generateSampleValue', () => {
     expect(arr).toEqual(['example', 'example']);
   });
 
+  it('falls back to "example" items when an array has no items schema', () => {
+    expect(generateSampleValue({ type: 'array', minItems: 2 })).toEqual(['example', 'example']);
+  });
+
   it('generates objects with all required properties', () => {
     const value = generateSampleValue({
       type: 'object',
@@ -703,5 +707,161 @@ describe('caseKey is order-independent', () => {
     };
     const b: GeneratedCase = { ...a, args: { foo: 2 } };
     expect(caseKey(a)).not.toBe(caseKey(b));
+  });
+});
+
+describe('validateArgsAgainstSchema: type edge cases', () => {
+  it('accepts a missing schema', () => {
+    expect(validateArgsAgainstSchema({}, undefined as unknown as Tool['inputSchema'])).toBeNull();
+  });
+
+  it('reports null as its own JSON type', () => {
+    const schema = {
+      type: 'object' as const,
+      properties: { x: { type: 'string' } },
+    };
+    expect(validateArgsAgainstSchema({ x: null }, schema)).toContain('got null');
+  });
+
+  it('accepts a property with no declared type', () => {
+    const schema = { type: 'object' as const, properties: { x: {} } };
+    expect(validateArgsAgainstSchema({ x: 1 }, schema)).toBeNull();
+  });
+
+  it('accepts a value matching one branch of a union type', () => {
+    const schema = {
+      type: 'object' as const,
+      properties: { x: { type: ['string', 'number'] } },
+    };
+    expect(validateArgsAgainstSchema({ x: 1 }, schema)).toBeNull();
+    expect(validateArgsAgainstSchema({ x: 'ok' }, schema)).toBeNull();
+    expect(validateArgsAgainstSchema({ x: true }, schema)).toContain('should be');
+  });
+
+  it('rejects a value equal to exclusiveMaximum', () => {
+    const schema = {
+      type: 'object' as const,
+      properties: { x: { type: 'number', exclusiveMaximum: 5 } },
+    };
+    expect(validateArgsAgainstSchema({ x: 5 }, schema)).toMatch(/exclusive/);
+    expect(validateArgsAgainstSchema({ x: 4 }, schema)).toBeNull();
+  });
+});
+
+describe('validateArgsAgainstSchema: additionalProperties sub-schema constraints', () => {
+  const wrap = (additionalProperties: Record<string, unknown>): Tool['inputSchema'] => ({
+    type: 'object',
+    properties: {},
+    additionalProperties,
+  });
+
+  it('enforces string length constraints on extra strings', () => {
+    const min = wrap({ type: 'string', minLength: 3 });
+    expect(validateArgsAgainstSchema({ extra: 'ab' }, min)).toMatch(/shorter than minLength/);
+    expect(validateArgsAgainstSchema({ extra: 'abc' }, min)).toBeNull();
+
+    const max = wrap({ type: 'string', maxLength: 1 });
+    expect(validateArgsAgainstSchema({ extra: 'ab' }, max)).toMatch(/longer than maxLength/);
+  });
+
+  it('enforces numeric bounds on extra numbers', () => {
+    const maximum = wrap({ type: 'number', maximum: 5 });
+    expect(validateArgsAgainstSchema({ extra: 6 }, maximum)).toMatch(/above maximum/);
+
+    const exclMin = wrap({ type: 'number', exclusiveMinimum: 5 });
+    expect(validateArgsAgainstSchema({ extra: 5 }, exclMin)).toContain('must be > 5');
+
+    const exclMax = wrap({ type: 'number', exclusiveMaximum: 5 });
+    expect(validateArgsAgainstSchema({ extra: 5 }, exclMax)).toContain('must be < 5');
+  });
+
+  it('enforces array constraints on extra arrays', () => {
+    const minItems = wrap({ type: 'array', minItems: 2 });
+    expect(validateArgsAgainstSchema({ extra: [] }, minItems)).toMatch(/fewer than minItems/);
+
+    const maxItems = wrap({ type: 'array', maxItems: 1 });
+    expect(validateArgsAgainstSchema({ extra: [1, 2] }, maxItems)).toMatch(/more than maxItems/);
+
+    const unique = wrap({ type: 'array', uniqueItems: true });
+    expect(validateArgsAgainstSchema({ extra: [1, 1] }, unique)).toMatch(/duplicate items/);
+  });
+});
+
+describe('suggestEdgeCases: additional rule branches', () => {
+  it('skips required properties that have no matching schema property', () => {
+    const cases = suggestEdgeCases(
+      toolWith({
+        type: 'object',
+        properties: { a: { type: 'string' } },
+        required: ['a', 'missing'],
+      })
+    );
+    const requiredCases = cases.filter((c) => c.source === 'rule:required');
+    expect(requiredCases).toHaveLength(1);
+    expect(requiredCases[0].title).toContain('"a"');
+  });
+
+  it('derives an invalid value for a numeric enum', () => {
+    const cases = suggestEdgeCases(
+      toolWith({
+        type: 'object',
+        properties: { level: { type: 'integer', enum: [1, 2, 3] } },
+        required: ['level'],
+      })
+    );
+    const enumCase = cases.find((c) => c.source === 'rule:enum');
+    expect(enumCase?.args['level']).toBe(4);
+  });
+
+  it('emits no enum case for enums of other JSON types', () => {
+    const cases = suggestEdgeCases(
+      toolWith({
+        type: 'object',
+        properties: { flag: { type: 'boolean', enum: [true, false] } },
+      })
+    );
+    expect(cases.find((c) => c.source === 'rule:enum')).toBeUndefined();
+  });
+
+  it('emits a wrong-type case for required object properties', () => {
+    const cases = suggestEdgeCases(
+      toolWith({
+        type: 'object',
+        properties: { payload: { type: 'object', properties: { a: { type: 'string' } } } },
+        required: ['payload'],
+      })
+    );
+    const typeCase = cases.find((c) => c.source === 'rule:type');
+    expect(typeCase?.args['payload']).toBe('not-an-object');
+  });
+
+  it('fills maxItems overflow with "example" when items schema is absent', () => {
+    const cases = suggestEdgeCases(
+      toolWith({
+        type: 'object',
+        properties: { tags: { type: 'array', maxItems: 2 } },
+        required: ['tags'],
+      })
+    );
+    const maxCase = cases.find((c) => c.source === 'rule:max-items');
+    expect(maxCase?.args['tags']).toEqual(['example', 'example', 'example']);
+  });
+
+  it('infers violating values from constraint-only additionalProperties schemas', () => {
+    const withAp = (additionalProperties: Record<string, unknown>) =>
+      suggestEdgeCases(
+        toolWith({ type: 'object', properties: { name: { type: 'string' } }, additionalProperties })
+      ).find((c) => c.source === 'rule:additional-properties-schema');
+
+    // string-keyword schemas reject a number
+    expect(withAp({ maxLength: 3 })?.args['__mcp_tester_unknown__']).toBe(12345);
+    expect(withAp({ pattern: '^A' })?.args['__mcp_tester_unknown__']).toBe(12345);
+    // numeric-keyword schemas reject a string
+    expect(withAp({ minimum: 5 })?.args['__mcp_tester_unknown__']).toBe('not-a-number');
+    expect(withAp({ maximum: 5 })?.args['__mcp_tester_unknown__']).toBe('not-a-number');
+    expect(withAp({ exclusiveMinimum: 5 })?.args['__mcp_tester_unknown__']).toBe('not-a-number');
+    expect(withAp({ exclusiveMaximum: 5 })?.args['__mcp_tester_unknown__']).toBe('not-a-number');
+    // no recognizable constraint: no guaranteed violation
+    expect(withAp({})).toBeUndefined();
   });
 });
