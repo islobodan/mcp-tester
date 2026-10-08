@@ -60,12 +60,12 @@ standard-jest/
 │   ├── tools.test.ts             # list, schemas, calls (incl. timeout)
 │   ├── resources.test.ts
 │   └── prompts.test.ts
-└── .github/workflows/test.yml    # Node 20/21 matrix + report upload
+└── .github/workflows/test.yml    # Node 20/22 matrix + report upload
 ```
 
 **Run:** `npm install && npm test` (≈4.5s, 15 tests)
 **HTML report:** `reports/test-report.html`
-**CI:** matrix on Node 20 and 21 with HTML artifact upload
+**CI:** matrix on Node 20 and 22 with HTML artifact upload
 
 ### `full-stack`
 ```
@@ -85,7 +85,7 @@ full-stack/
 │   ├── server.test.ts            # lifecycle, health, tool listing
 │   ├── tools.test.ts             # happy-path + edge cases
 │   └── parallel.test.ts          # Promise.all stress tests
-└── .github/workflows/test.yml    # build + test on Node 20/21
+└── .github/workflows/test.yml    # build + test on Node 20/22
 ```
 
 **Run:** `npm install && npm run build && npm test` (≈2s, 10 tests)

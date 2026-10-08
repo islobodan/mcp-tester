@@ -15,7 +15,7 @@ standard-jest/
 │   ├── resources.test.ts     # Resource listing and reads
 │   └── prompts.test.ts       # Prompt listing and gets
 ├── .github/workflows/
-│   └── test.yml              # CI matrix (Node 20, 21) + HTML report upload
+│   └── test.yml              # CI matrix (Node 20, 22) + HTML report upload
 ├── jest.config.js
 ├── tsconfig.json
 └── package.json
@@ -34,7 +34,7 @@ Open `reports/test-report.html` for the visual report.
 - **Test split**: separate files per capability for clearer failure attribution.
 - **HTML reporter**: jest-html-reporters preconfigured.
 - **Coverage**: `npm run test:coverage` runs with text/lcov reporters.
-- **CI workflow**: GitHub Actions matrix on Node 20 and 21.
+- **CI workflow**: GitHub Actions matrix on Node 20 and 22.
 - **Timeout testing**: demonstrates `timeout` per-call option.
 
 ## Point this at your own server
