@@ -42,7 +42,7 @@ const client = new MCPClient({
 
 ### `start(config: ServerConfig): Promise<void>`
 
-Start the client and connect to an MCP server. Supports three transport types:
+Start the client and connect to an MCP server. Supports four transport types:
 
 #### Stdio (default)
 
@@ -570,16 +570,66 @@ All matchers support `.not` negation and work identically in Jest and Vitest.
 
 ## Types
 
-### MCPServerConfig
+### ServerConfig
+
+Union of every transport configuration accepted by `start()`:
 
 ```typescript
-interface MCPServerConfig {
+type ServerConfig =
+  | StdioServerConfig
+  | StreamableHttpServerConfig
+  | SseServerConfig
+  | WebSocketServerConfig;
+
+type TransportType = 'stdio' | 'http' | 'sse' | 'websocket';
+```
+
+### StdioServerConfig (default)
+
+```typescript
+interface StdioServerConfig {
+  transport?: 'stdio';
   command: string;
   args?: string[];
   env?: Record<string, string | undefined>;
-  startupDelay?: number;
+  startupDelay?: number; // default 0
 }
 ```
+
+### StreamableHttpServerConfig
+
+```typescript
+interface StreamableHttpServerConfig {
+  transport: 'http';
+  url: string;
+  headers?: Record<string, string>;
+  sessionId?: string;
+  requestInit?: RequestInit;
+}
+```
+
+### SseServerConfig (deprecated)
+
+```typescript
+interface SseServerConfig {
+  transport: 'sse';
+  url: string;
+  headers?: Record<string, string>;
+  requestInit?: RequestInit;
+}
+```
+
+### WebSocketServerConfig
+
+```typescript
+interface WebSocketServerConfig {
+  transport: 'websocket';
+  url: string; // ws:// or wss://
+}
+```
+
+> `MCPServerConfig` is a deprecated alias for `StdioServerConfig`, kept for
+> backward compatibility.
 
 ### MCPClientOptions
 

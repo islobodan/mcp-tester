@@ -39,6 +39,9 @@ jobs:
       - name: Build TypeScript
         run: npm run build
 
+      - name: Check browser bundle
+        run: npm run test:browser
+
       - name: Run tests
         run: npm test
 

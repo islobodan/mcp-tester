@@ -8,6 +8,7 @@ Guide to writing and running tests with MCP Tester.
 npm test                # Run all tests
 npm run test:watch      # Watch mode (auto-rerun on changes)
 npm run test:coverage   # Run with coverage report
+npm run test:browser    # Bundle-check the browser build (esbuild)
 npm run lint            # Lint code
 ```
 
@@ -20,6 +21,8 @@ src/__tests__/
 ├── advanced.test.ts             # Sampling, elicitation
 ├── real-server.test.ts          # Integration tests (stdio transport)
 ├── everything-server.test.ts    # Full integration (server-everything)
+├── http-transport.test.ts       # Streamable HTTP / SSE transport
+├── websocket-transport.test.ts  # WebSocket transport (in-process double)
 ├── cli.test.ts                  # CLI tool tests
 └── fixtures/
     └── mock-server.ts           # In-memory mock MCP server

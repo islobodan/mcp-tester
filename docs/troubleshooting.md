@@ -114,8 +114,8 @@ Coverage thresholds: **80%** for branches, functions, lines, and statements.
 
 ## Known Limitations
 
-- Supports **stdio**, **Streamable HTTP**, and **SSE** transports
-- Designed for **Node.js** servers (other runtimes may need adjustments)
+- Supports **stdio**, **Streamable HTTP**, **SSE**, and **WebSocket** transports
+- Node.js by default; the HTTP/SSE/WebSocket transports also run in browsers and edge runtimes (see [Browser Support](./browser.md))
 - Mock server has configurable delays, failures, stateful tools, and validation
 
 ## Vitest
@@ -137,3 +137,24 @@ If you get TypeScript errors with custom matchers, make sure your `tsconfig.json
   "include": ["node_modules/@slbdn/mcp-tester/vitest.d.ts"]
 }
 ```
+
+## Browser and Edge Runtimes
+
+**"Module not found: node:child_process" / "cross-spawn" in a browser build**
+Your bundler is not honouring the `browser` field. Ensure it targets `browser`
+(Webpack `target: 'web'`, Vite `build.target` not `ssr`, esbuild
+`platform: 'browser'`). The repo's `npm run test:browser` script is a minimal
+reference. Do not import `@slbdn/mcp-tester/dist/...` deep paths — import the
+package root so the browser entry point is selected.
+
+**"WebSocket is not defined" (Node.js)**
+The WebSocket transport needs a global `WebSocket`. Node.js 22+ provides one;
+on older versions enable it with `--experimental-websocket` or set a polyfill
+such as `ws` on `globalThis`.
+
+**CORS errors against a remote MCP server**
+The server must allow your origin and, for Streamable HTTP, the
+`mcp-session-id` header. This is a browser/network constraint — configure the
+server, not the client.
+
+See [Browser Support](./browser.md) for the full matrix.

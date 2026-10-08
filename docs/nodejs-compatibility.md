@@ -6,8 +6,8 @@
 |----------------|--------|-------|
 | 18.x | ⚠️ Not Supported | ESM limitations — upgrade recommended |
 | 20.x (LTS) | ✅ Fully Supported | **Recommended** (minimum required version) |
-| 21.x | ✅ Fully Supported | Latest stable |
-| 22.x+ | ✅ Compatible | Tested, works |
+| 21.x | ⚠️ Not Supported | End-of-life; dropped from the test matrix in 1.5.2 |
+| 22.x+ | ✅ Fully Supported | Latest LTS, tested |
 
 ## Requirements
 
@@ -35,6 +35,20 @@ Targets TypeScript 5.3+ with ES2022 output.
 - ✅ macOS (Intel & Apple Silicon)
 - ✅ Linux (Ubuntu, Debian, CentOS, Alpine)
 - ✅ Windows 10/11 (via WSL or native Node.js)
+
+## Browser and Edge Runtimes
+
+Modern browsers and edge runtimes (Cloudflare Workers, Deno Deploy, Vercel
+Edge) are supported for the network transports:
+
+| Runtime | stdio | http | sse | websocket |
+|---------|:-----:|:----:|:---:|:---------:|
+| Node.js ≥ 20 | ✅ | ✅ | ✅ | ✅ (global `WebSocket` on ≥ 22) |
+| Browsers | ❌ | ✅ | ✅ | ✅ |
+| Edge runtimes | ❌ | ✅ | ✅ | ✅ |
+
+Bundlers select the browser entry point automatically via the `browser` field.
+See [Browser Support](./browser.md) for details.
 
 ## CI/CD Version Specification
 
