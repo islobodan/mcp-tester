@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.2] - 2026-10-08
+
+### Fixed
+- **`npm ci` failed on Node 20 / npm 10, blocking the 1.5.1 publish.** The 1.5.1 lockfile was left inconsistent by `npm audit fix`: it dropped the top-level `@emnapi/core` and `@emnapi/runtime` entries that satisfy `@napi-rs/wasm-runtime`'s peer dependencies. npm 11 (which wrote the lock) tolerated this, but npm 10's stricter `npm ci` sync check rejected it with `EUSAGE` (`Missing: @emnapi/core@1.11.3 from lock file`). The entries are restored; `npm ci` and `npm audit --audit-level=high` both pass on npm 10.
+  - 1.5.1 was never published to npm; this release supersedes it and carries the same security updates described below.
+
+### Changed
+- CI and the release verification job now run on Node.js 20 and 22 instead of 20 and 21. Node 21 is end-of-life and is outside the `engines` range of Jest 30 and several dev dependencies (`glob@13`, `minimatch@10`, `lru-cache@11`, `eslint-visitor-keys@5`, …), which produced `EBADENGINE` warnings during install. The starter-template CI matrices were updated to match.
+
 ## [1.5.1] - 2026-10-08
 
 ### Security
