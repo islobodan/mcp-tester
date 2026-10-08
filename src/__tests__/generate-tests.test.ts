@@ -1,5 +1,6 @@
 import { generateTests, generateTestsFromClient } from '../generate-tests.js';
 import type { GenerateTestOptions } from '../generate-tests.js';
+import type { GeneratedCase } from '../generate-cases.js';
 import { OpenAICompatProvider } from '../ai/provider.js';
 import { MCPClient } from '../client/MCPClient.js';
 import fs from 'fs';
@@ -535,7 +536,7 @@ describe('generateTests', () => {
 
 // ─── Escaping (regression: must produce valid JS for names with quotes/backslashes) ───
 
-import { buildTestFile, escapeJsString } from '../generate-tests.js';
+import { buildTestFile, escapeJsString, escapeLineComment } from '../generate-tests.js';
 
 describe('generateTests escaping', () => {
   describe('escapeJsString', () => {
@@ -563,11 +564,23 @@ describe('generateTests escaping', () => {
         description: "has 'quotes' and \\backslashes\\",
         inputSchema: { type: 'object' as const, properties: {} },
       },
+      {
+        name: `single'quote-tool`,
+        description: 'x',
+        inputSchema: { type: 'object' as const, properties: {} },
+      },
     ];
-    const resources = [{ uri: `weird"uri\\with/slashes`, name: 'res' }];
+    const resources = [
+      { uri: `weird"uri\\with/slashes`, name: 'res' },
+      { uri: `weird'uri`, name: 'res2' },
+    ];
     const prompts = [
       {
         name: `weird'prompt\\name`,
+        arguments: [{ name: 'arg1', required: true }],
+      },
+      {
+        name: `weird"prompt`,
         arguments: [{ name: 'arg1', required: true }],
       },
     ];
@@ -584,18 +597,64 @@ describe('generateTests escaping', () => {
 
     // Single-quoted describe label escapes ' and \.
     expect(code).toContain("describe('Server with \\'quotes\\' and \\\\backslashes'");
-    // Tool name with double-quote and backslash escapes inside it() text and
-    // the single-quoted call argument.
-    expect(code).toContain('it(\'should have tool "weird\\"name\\\\tool"\'');
-    expect(code).toContain("name: 'weird\"name\\\\tool'");
-    // Resource URI with quote/backslash escapes in both it() text and the
-    // readResource argument.
-    expect(code).toContain('it(\'should have resource "weird\\"uri\\\\with/slashes"\'');
-    expect(code).toContain("expect(resources).toHaveResource('weird\"uri\\\\with/slashes')");
-    expect(code).toContain("await client.readResource('weird\"uri\\\\with/slashes')");
-    // Prompt name with single-quote and backslash escapes.
-    expect(code).toContain("it('should have prompt \"weird'prompt\\\\name\"'");
-    expect(code).toContain("expect(prompts).toHavePrompt('weird\\'prompt\\\\name')");
-    expect(code).toContain("await client.getPrompt('weird\\'prompt\\\\name'");
+    // Titles are single-quoted, so a single quote inside the name must be
+    // escaped — the literal double quotes around it are plain characters.
+    expect(code).toContain(`it('should have tool "single\\'quote-tool"', async () => {`);
+    expect(code).toContain(`it('should call "single\\'quote-tool"', async () => {`);
+    expect(code).toContain(`it('should have resource "weird\\'uri"', async () => {`);
+    expect(code).toContain(`it('should read resource "weird\\'uri"', async () => {`);
+    expect(code).toContain(`it('should have prompt "weird\\'prompt\\\\name"', async () => {`);
+    expect(code).toContain(`it('should get prompt "weird\\'prompt\\\\name"', async () => {`);
+    // A double quote needs no escaping inside a single-quoted title.
+    expect(code).toContain(`it('should have prompt "weird"prompt"', async () => {`);
+    // Backslashes/quotes in call arguments stay escaped for a single-quoted literal.
+    expect(code).toContain(`name: 'weird"name\\\\tool'`);
+    expect(code).toContain(`expect(resources).toHaveResource('weird"uri\\\\with/slashes')`);
+    expect(code).toContain(`await client.readResource('weird"uri\\\\with/slashes')`);
+    expect(code).toContain(`expect(prompts).toHavePrompt('weird\\'prompt\\\\name')`);
+    expect(code).toContain(`await client.getPrompt('weird\\'prompt\\\\name'`);
+  });
+
+  describe('escapeLineComment', () => {
+    it('collapses newlines and control characters to spaces', () => {
+      expect(escapeLineComment('a\nb\rc\td')).toBe('a b c d');
+    });
+
+    it('collapses unicode line separators', () => {
+      expect(escapeLineComment('a\u2028b\u2029c')).toBe('a b c');
+    });
+
+    it('leaves ordinary text untouched', () => {
+      expect(escapeLineComment('plain rationale')).toBe('plain rationale');
+    });
+  });
+
+  it('cannot inject code through a model rationale', () => {
+    const tools = [
+      {
+        name: 'echo',
+        description: 'x',
+        inputSchema: { type: 'object' as const, properties: { message: { type: 'string' } } },
+      },
+    ];
+    const evil: GeneratedCase = {
+      tool: 'echo',
+      title: 'innocent',
+      args: { message: 'hi' },
+      expectation: 'success',
+      rationale: "ok\n} });\nrequire('node:child_process').execSync('touch /tmp/PWNED');\n//",
+      source: 'ai:evil-model',
+    };
+    const code = buildTestFile(tools, [], [], {}, { command: 'node', args: ['server.js'] }, [evil]);
+
+    // The whole rationale is collapsed onto a single comment line.
+    expect(code).toContain(
+      "// ai:evil-model — ok } }); require('node:child_process').execSync('touch /tmp/PWNED'); //"
+    );
+    // The injected statement is never emitted as executable code.
+    const executable = code
+      .split('\n')
+      .filter((l) => l.includes('execSync') && !l.trimStart().startsWith('//'));
+    expect(executable).toHaveLength(0);
   });
 });

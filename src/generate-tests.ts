@@ -112,7 +112,7 @@ function generateCaseTest(c: GeneratedCase): string[] {
   const lines: string[] = [];
   const argsStr = JSON.stringify(c.args);
 
-  lines.push(`    // ${c.source} — ${c.rationale}`);
+  lines.push(`    // ${c.source} — ${escapeLineComment(c.rationale)}`);
   // --verify found the server behaving differently than predicted: keep the
   // case for visibility but skip it, and say what actually happened.
   if (c.observed && c.expectation !== 'observe' && c.observed !== c.expectation) {
@@ -137,7 +137,7 @@ function generateCaseTest(c: GeneratedCase): string[] {
     lines.push('      }).catch((error: unknown) => error);');
     lines.push('      // Observation only — record what the server actually does.');
     lines.push('      expect(result).toBeDefined();');
-    lines.push('      console.log(`[${c.tool}] ${JSON.stringify(result)}`);');
+    lines.push(`      console.log('[${toolNameLiteral(c.tool)}]', JSON.stringify(result));`);
     lines.push('    });');
   } else if (c.expectation === 'error') {
     lines.push(`    it('${escapeJsString(c.title)}', async () => {`);
@@ -157,6 +157,17 @@ function generateCaseTest(c: GeneratedCase): string[] {
     lines.push('    });');
   }
   return lines;
+}
+
+/**
+ * Collapse control characters (including line terminators) so untrusted text
+ * can be embedded in a `//` line comment without terminating it. Model-provided
+ * rationales are the main caller — a raw newline would otherwise let the text
+ * escape the comment and become executable test code.
+ */
+export function escapeLineComment(s: string): string {
+  // eslint-disable-next-line no-control-regex -- intentional: collapse control chars and line terminators
+  return s.replace(/[\u0000-\u001f\u2028\u2029]+/g, ' ');
 }
 
 /** Escape a string for use inside a single- or double-quoted JavaScript literal. */
@@ -200,7 +211,7 @@ function generateToolTests(tools: Tool[], cases: GeneratedCase[] = []): string {
     const argsStr = Object.keys(sampleArgs).length > 0 ? JSON.stringify(sampleArgs) : '{}';
 
     lines.push('');
-    lines.push(`    it('should have tool "${escapeJsString(tool.name, '"')}"', async () => {`);
+    lines.push(`    it('should have tool "${escapeJsString(tool.name, "'")}"', async () => {`);
     lines.push('      const tools = await client.listTools();');
     lines.push(`      expect(tools).toHaveTool('${toolNameLiteral(tool.name)}');`);
     lines.push('    });');
@@ -208,7 +219,7 @@ function generateToolTests(tools: Tool[], cases: GeneratedCase[] = []): string {
 
     // Call test. Generated arguments are guesses, and some tools intentionally
     // return/throw errors — so accept a successful result or a tool-level error.
-    lines.push(`    it('should call "${escapeJsString(tool.name, '"')}"', async () => {`);
+    lines.push(`    it('should call "${escapeJsString(tool.name, "'")}"', async () => {`);
     lines.push('      const result = await client.callTool({');
     lines.push(`        name: '${toolNameLiteral(tool.name)}',`);
     lines.push(`        arguments: ${argsStr},`);
@@ -238,14 +249,14 @@ function generateResourceTests(resources: Resource[]): string {
   for (const resource of resources) {
     lines.push('');
     lines.push(
-      `    it('should have resource "${escapeJsString(resource.uri, '"')}"', async () => {`
+      `    it('should have resource "${escapeJsString(resource.uri, "'")}"', async () => {`
     );
     lines.push('      const resources = await client.listResources();');
     lines.push(`      expect(resources).toHaveResource('${escapeJsString(resource.uri, "'")}');`);
     lines.push('    });');
     lines.push('');
     lines.push(
-      `    it('should read resource "${escapeJsString(resource.uri, '"')}"', async () => {`
+      `    it('should read resource "${escapeJsString(resource.uri, "'")}"', async () => {`
     );
     lines.push(
       `      const result = await client.readResource('${escapeJsString(resource.uri, "'")}');`
@@ -281,12 +292,12 @@ function generatePromptTests(prompts: Prompt[]): string {
     const argsStr = Object.keys(promptArgs).length > 0 ? `, ${JSON.stringify(promptArgs)}` : '';
 
     lines.push('');
-    lines.push(`    it('should have prompt "${escapeJsString(prompt.name, '"')}"', async () => {`);
+    lines.push(`    it('should have prompt "${escapeJsString(prompt.name, "'")}"', async () => {`);
     lines.push('      const prompts = await client.listPrompts();');
     lines.push(`      expect(prompts).toHavePrompt('${escapeJsString(prompt.name, "'")}');`);
     lines.push('    });');
     lines.push('');
-    lines.push(`    it('should get prompt "${escapeJsString(prompt.name, '"')}"', async () => {`);
+    lines.push(`    it('should get prompt "${escapeJsString(prompt.name, "'")}"', async () => {`);
     lines.push(
       `      const result = await client.getPrompt('${escapeJsString(prompt.name, "'")}'${argsStr});`
     );
@@ -482,7 +493,10 @@ async function buildCases(
   const schemas = new Map(tools.map((t) => [t.name, t]));
   const { cases, rejected } = mergeAndValidateCases([ruleCases, aiCases], schemas);
 
-  const dropped = rejected.length;
+  // Only AI cases can be rejected (rule cases are exempt from schema
+  // validation), but count by source so the diagnostic stays correct if that
+  // ever changes.
+  const dropped = rejected.filter((r) => r.c.source.startsWith('ai:')).length;
   const note =
     dropped > 0
       ? `AI suggested cases: ${aiCases.length}, kept after schema validation: ${aiCases.length - dropped} (dropped ${dropped})`
