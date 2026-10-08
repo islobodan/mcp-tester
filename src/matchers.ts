@@ -10,39 +10,54 @@ import { AssertionError } from './assert.js';
 
 // ─── Type Declarations ──────────────────────────────────────────────────────
 
+/**
+ * The matcher signatures, declared once so both augmentation targets below
+ * stay in sync.
+ */
+export interface MCPMatchers<R = void> {
+  // Collection matchers
+  toHaveTool(toolName: string): R;
+  toHaveResource(uri: string): R;
+  toHavePrompt(promptName: string): R;
+  toHaveToolWithSchema(toolName: string): R;
+  toHaveToolCount(count: number): R;
+  toHaveResourceCount(count: number): R;
+  toHavePromptCount(count: number): R;
+  toHaveResourceByName(name: string): R;
+  toHavePromptWithArgs(promptName: string): R;
+
+  // Tool result matchers
+  toReturnText(expected?: string): R;
+  toReturnTextContaining(substring: string): R;
+  toReturnError(): R;
+  toReturnOk(): R;
+  toReturnJson(expected: unknown): R;
+  toReturnContentCount(count: number): R;
+  toReturnImage(): R;
+
+  // Resource result matchers
+  toReturnResourceText(expected?: string): R;
+  toReturnResourceTextContaining(substring: string): R;
+
+  // Prompt result matchers
+  toReturnPromptTextContaining(substring: string): R;
+  toReturnPromptMessageCount(count: number): R;
+}
+
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace jest {
-    interface Matchers<R> {
-      // Collection matchers
-      toHaveTool(toolName: string): R;
-      toHaveResource(uri: string): R;
-      toHavePrompt(promptName: string): R;
-      toHaveToolWithSchema(toolName: string): R;
-      toHaveToolCount(count: number): R;
-      toHaveResourceCount(count: number): R;
-      toHavePromptCount(count: number): R;
-      toHaveResourceByName(name: string): R;
-      toHavePromptWithArgs(promptName: string): R;
-
-      // Tool result matchers
-      toReturnText(expected?: string): R;
-      toReturnTextContaining(substring: string): R;
-      toReturnError(): R;
-      toReturnOk(): R;
-      toReturnJson(expected: unknown): R;
-      toReturnContentCount(count: number): R;
-      toReturnImage(): R;
-
-      // Resource result matchers
-      toReturnResourceText(expected?: string): R;
-      toReturnResourceTextContaining(substring: string): R;
-
-      // Prompt result matchers
-      toReturnPromptTextContaining(substring: string): R;
-      toReturnPromptMessageCount(count: number): R;
-    }
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type -- module augmentation requires an interface
+    interface Matchers<R> extends MCPMatchers<R> {}
   }
+}
+
+// Jest 30: `expect()` from `@jest/globals` returns the `Matchers` interface
+// from the `expect` package, so augment that too — the global `jest.Matchers`
+// above alone no longer reaches jest 30's expect results.
+declare module 'expect' {
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type, @typescript-eslint/no-unused-vars -- module augmentation requires an interface; T matches `expect`'s arity
+  interface Matchers<R extends void | Promise<void>, T = unknown> extends MCPMatchers<R> {}
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────

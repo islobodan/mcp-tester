@@ -5,12 +5,12 @@ This guide helps AI agents work effectively in mcp-tester repository. It documen
 ## Roadmap
 
 For planned improvements, features, and enhancements, see [TODO.md](./TODO.md). The TODO.md file contains:
-- **48 tracked items** organized by priority (Critical, High, Medium, Low)
-- Critical bug fixes and code quality improvements (items 40-48)
+- **52 tracked items** organized by priority (Critical, High, Medium, Low)
+- Critical bug fixes and code quality improvements (items 40-52)
 - Detailed task descriptions and effort estimates
 - Progress tracking with status indicators: `[ ]` (not started), `[/]` (in progress), `[x]` (completed)
 - Quick wins that can be completed in under 1 hour
-- Current completion: 62.5% (30 completed)
+- Current completion: 82.7% (43 completed)
 
 ## Project Overview
 
@@ -97,6 +97,9 @@ src/
 ├── assert.ts                 # Assertion utilities (framework-agnostic)
 ├── matchers.ts               # Custom Jest/Vitest matchers
 ├── generate-tests.ts         # Test code generator from server inspection
+├── generate-cases.ts         # Edge-case rules engine (GeneratedCase, schema rules)
+├── ai/
+│   └── provider.ts           # OpenAI-compatible AI case provider (fetch-based)
 ├── generate-types.ts         # TypeScript type generator from tool schemas
 ├── client/
 │   ├── MCPClient.ts         # Main client wrapper class (~400 lines)
@@ -327,29 +330,30 @@ describe('Integration', () => {
 ```
 
 ### Current Test Suite
-- **Total Tests**: 669 tests (all passing)
-- **Test Suites**: 18
-- **Test Categories**:
-  - Basic Operations: 4 tests
-  - Tools (in-memory): 11 tests
-  - Resources (in-memory): 5 tests
-  - Prompts (in-memory): 4 tests
-  - Advanced Features: 3 tests
-  - Real Server (stdio): 14 tests
-  - Everything Server: 37 tests
-  - CLI Tool: 35 tests
-  - Assertions: 67 tests
-  - Matchers: 49 tests
-  - Error Classes: 28 tests
-  - Masking: 27 tests
-  - Logger: 22 tests
-  - Validation: 91 tests
-  - Generate Tests: 21 tests
-  - Property-Based: 73 tests
-  - Mock Server: 68 tests
-  - Generate Types: 59 tests
-  - Health Checks: 17 tests
-  - HTTP Transport: 15 tests
+- **Total Tests**: 795 tests (all passing)
+- **Test Suites**: 21
+- **Tests by file** (run `npx jest --json` to refresh):
+  - `validation.test.ts`: 109
+  - `matchers.test.ts`: 78
+  - `property-based.test.ts`: 73
+  - `mock-server.test.ts`: 68
+  - `assert.test.ts`: 67
+  - `generate-types.test.ts`: 65
+  - `cli.test.ts`: 46
+  - `generate-cases.test.ts`: 39
+  - `everything-server.test.ts`: 37
+  - `generate-tests.test.ts`: 35
+  - `masking.test.ts`: 32
+  - `errors.test.ts`: 28
+  - `resources-prompts.test.ts`: 23
+  - `logger.test.ts`: 22
+  - `ai-provider.test.ts`: 20
+  - `health-check.test.ts`: 17
+  - `http-transport.test.ts`: 15
+  - `real-server.test.ts`: 14
+  - `client.test.ts`: 3
+  - `version.test.ts`: 3
+  - `advanced.test.ts`: 1
 
 ## Important Gotchas & Non-Obvious Patterns
 
@@ -612,7 +616,10 @@ chore: maintenance tasks
 | `src/assert.ts` | Assertion utilities (framework-agnostic) |
 | `src/matchers.ts` | Custom Jest/Vitest matchers |
 | `src/generate-tests.ts` | Test code generator (generateTests function) |
+| `src/generate-cases.ts` | Edge-case rules engine (GeneratedCase, schema-derived cases, validation) |
+| `src/ai/provider.ts` | OpenAI-compatible AI case provider (OpenAICompatProvider, createProviderFromEnv) |
 | `src/generate-types.ts` | TypeScript type generator from tool schemas (generateTypes) |
+| `docs/ai-generation.md` | Edge cases, LLM integration, `--verify` guide |
 | `vitest.d.ts` | Vitest type declarations for matchers |
 | `src/__tests__/fixtures/mock-server.ts` | In-memory mock server for unit tests |
 | `examples/mock-server.js` | Basic standalone MCP server (echo, add, delay, error_tool) |
@@ -739,11 +746,11 @@ chore: maintenance tasks
 
 ## Project Statistics
 
-- **Total Lines of Code**: ~1,500 lines (excluding tests)
-- **Test Coverage**: 68/61/60/68 (statements/branches/functions/lines) with per-file floors
-- **Tests**: 306 (all passing, 11 suites)
+- **Total Lines of Code**: ~6,600 lines (excluding tests)
+- **Test Coverage**: 91/86/95/91 (statements/branches/functions/lines) with per-file floors
+- **Tests**: 793 (all passing, 21 suites)
 - **Build Time**: ~3 seconds
-- **Test Execution Time**: ~97 seconds
+- **Test Execution Time**: ~110 seconds
 - **Node.js Versions Tested**: 20, 21
 - **SDK Version**: 1.29.0
 - **Pre-commit Hooks**: Husky + lint-staged (eslint + prettier)

@@ -9,6 +9,38 @@ import { MCPClient } from './client/MCPClient.js';
 import type { ServerConfig, StdioServerConfig } from './client/MCPClient.js';
 import type { Tool, Resource, Prompt } from '@modelcontextprotocol/sdk/types.js';
 import { getPackageVersion } from './utils/version.js';
+import {
+  type GeneratedCase,
+  generateToolArgs,
+  suggestEdgeCasesForTools,
+  mergeAndValidateCases,
+} from './generate-cases.js';
+import {
+  type AIProvider,
+  type ServerAnalysis,
+  type OpenAICompatOptions,
+  createProviderFromEnv,
+} from './ai/provider.js';
+
+/**
+ * How test cases are derived.
+ *
+ * - `'static'` — the classic generator: one listing test + one probe call per
+ *   tool. @defaultValue
+ * - `'edge'` — additionally derives boundary/invalid cases from each tool's
+ *   JSON Schema (offline, deterministic).
+ * - `'ai'` — edge cases plus AI-suggested cases. Requires a provider (see
+ *   {@link GenerateTestOptions.provider} or the `MCP_TESTER_AI_*` env vars);
+ *   falls back to `'edge'` with a warning unless {@link GenerateTestOptions.requireAi}
+ *   is set.
+ */
+export type GenerationMode = 'static' | 'edge' | 'ai';
+
+/** AI configuration accepted by the generate functions. */
+export interface AIOptions extends OpenAICompatOptions {
+  /** Fail instead of falling back to deterministic cases when AI is unavailable. @defaultValue false */
+  requireAi?: boolean;
+}
 
 /**
  * Options for test generation.
@@ -32,67 +64,15 @@ export interface GenerateTestOptions {
   timeout?: number;
   /** Description for the test suite. */
   description?: string;
-}
-
-/**
- * Generate sample arguments from a JSON Schema property.
- */
-function generateSampleValue(schema: Record<string, unknown>): unknown {
-  const type = schema.type as string | undefined;
-  const examples = schema.examples as unknown[];
-  const enumValues = schema['enum'] as unknown[];
-
-  if (enumValues && enumValues.length > 0) return enumValues[0];
-  if (examples && examples.length > 0) return examples[0];
-  if (schema.default !== undefined) return schema.default;
-
-  switch (type) {
-    case 'string':
-      return schema.description
-        ? `example-${String(schema.description).toLowerCase().replace(/\s+/g, '-')}`
-        : 'example';
-    case 'number':
-    case 'integer':
-      return 42;
-    case 'boolean':
-      return true;
-    case 'array':
-      if (schema.items && typeof schema.items === 'object') {
-        return [generateSampleValue(schema.items as Record<string, unknown>)];
-      }
-      return [];
-    case 'object':
-      return {};
-    default:
-      return 'example';
-  }
-}
-
-/**
- * Generate sample arguments from a tool's input schema.
- */
-function generateToolArgs(tool: Tool): Record<string, unknown> {
-  const schema = tool.inputSchema;
-  if (!schema || !schema.properties) return {};
-
-  const args: Record<string, unknown> = {};
-  const props = schema.properties as Record<string, Record<string, unknown>>;
-  const required = new Set((schema.required as string[]) || []);
-
-  // Generate values for all required fields, and optional ones with defaults
-  for (const [key, propSchema] of Object.entries(props)) {
-    if (required.has(key) || propSchema.default !== undefined) {
-      args[key] = generateSampleValue(propSchema);
-    }
-  }
-
-  // If no required fields, generate at least one so the test is useful
-  if (Object.keys(args).length === 0 && Object.keys(props).length > 0) {
-    const firstKey = Object.keys(props)[0];
-    args[firstKey] = generateSampleValue(props[firstKey]);
-  }
-
-  return args;
+  /** How test cases are derived. @defaultValue 'static' */
+  mode?: GenerationMode;
+  /** Pre-built AI provider; overrides env-based discovery. */
+  provider?: AIProvider;
+  /** AI provider configuration (used when `provider` is not supplied). */
+  ai?: AIOptions;
+  /** Dry-run every derived case against the live server and annotate the
+   *  generated tests with what actually happens. @defaultValue false */
+  verify?: boolean;
 }
 
 /**
@@ -126,12 +106,84 @@ function formatServerLabel(server: ServerConfig): string {
 }
 
 /**
+ * Render one derived test case as an `it(...)` block.
+ */
+function generateCaseTest(c: GeneratedCase): string[] {
+  const lines: string[] = [];
+  const argsStr = JSON.stringify(c.args);
+
+  lines.push(`    // ${c.source} — ${c.rationale}`);
+  // --verify found the server behaving differently than predicted: keep the
+  // case for visibility but skip it, and say what actually happened.
+  if (c.observed && c.expectation !== 'observe' && c.observed !== c.expectation) {
+    lines.push(
+      `    // verify: expected ${c.expectation} but server returned ${c.observed} — adjust manually`
+    );
+    lines.push(`    it.skip('${escapeSingleQuotes(c.title)}', async () => {`);
+    lines.push('      const result = await client.callTool({');
+    lines.push(`        name: '${toolNameLiteral(c.tool)}',`);
+    lines.push(`        arguments: ${argsStr},`);
+    lines.push('      }).catch((error: unknown) => error);');
+    lines.push('      expect(result).toBeDefined();');
+    lines.push('    });');
+    return lines;
+  }
+
+  if (c.expectation === 'observe') {
+    lines.push(`    it('${escapeSingleQuotes(c.title)}', async () => {`);
+    lines.push('      const result = await client.callTool({');
+    lines.push(`        name: '${toolNameLiteral(c.tool)}',`);
+    lines.push(`        arguments: ${argsStr},`);
+    lines.push('      }).catch((error: unknown) => error);');
+    lines.push('      // Observation only — record what the server actually does.');
+    lines.push('      expect(result).toBeDefined();');
+    lines.push('      console.log(`[${c.tool}] ${JSON.stringify(result)}`);');
+    lines.push('    });');
+  } else if (c.expectation === 'error') {
+    lines.push(`    it('${escapeSingleQuotes(c.title)}', async () => {`);
+    lines.push('      const result = await client.callTool({');
+    lines.push(`        name: '${toolNameLiteral(c.tool)}',`);
+    lines.push(`        arguments: ${argsStr},`);
+    lines.push('      }).catch((error: unknown) => error);');
+    lines.push('      expect(isToolError(result)).toBe(true);');
+    lines.push('    });');
+  } else {
+    lines.push(`    it('${escapeSingleQuotes(c.title)}', async () => {`);
+    lines.push('      const result = await client.callTool({');
+    lines.push(`        name: '${toolNameLiteral(c.tool)}',`);
+    lines.push(`        arguments: ${argsStr},`);
+    lines.push('      }).catch((error: unknown) => error);');
+    lines.push('      expect(isToolError(result)).toBe(false);');
+    lines.push('    });');
+  }
+  return lines;
+}
+
+/** Escape single quotes and backslashes for use inside a single-quoted literal. */
+function escapeSingleQuotes(s: string): string {
+  return s.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+/** Emit a safe single-quoted string literal for a tool name. */
+function toolNameLiteral(name: string): string {
+  return escapeSingleQuotes(name);
+}
+
+/**
  * Generate tool test cases.
  */
-function generateToolTests(tools: Tool[]): string {
+function generateToolTests(tools: Tool[], cases: GeneratedCase[] = []): string {
   if (tools.length === 0) return '';
 
   const lines: string[] = ["  describe('Tools', () => {"];
+
+  if (cases.length > 0) {
+    lines.push('    const isToolError = (res: unknown): boolean =>');
+    lines.push('      res instanceof Error ||');
+    lines.push(
+      '      (typeof res === "object" && res !== null && (res as { isError?: unknown }).isError === true);'
+    );
+  }
 
   for (const tool of tools) {
     const sampleArgs = generateToolArgs(tool);
@@ -153,6 +205,12 @@ function generateToolTests(tools: Tool[]): string {
     lines.push('      }).catch((error: unknown) => error);');
     lines.push('      expect(result).toBeDefined();');
     lines.push('    });');
+
+    // Derived edge/AI cases for this tool.
+    for (const c of cases.filter((c) => c.tool === tool.name)) {
+      lines.push('');
+      lines.push(...generateCaseTest(c));
+    }
   }
 
   lines.push('  });');
@@ -244,7 +302,8 @@ function buildTestFile(
   resources: Resource[],
   prompts: Prompt[],
   options: TestBuildOptions,
-  server: ServerConfig
+  server: ServerConfig,
+  cases: GeneratedCase[] = []
 ): string {
   const framework = options.framework || 'jest';
   const description = options.description || 'MCP Server';
@@ -282,14 +341,17 @@ function buildTestFile(
     ` * Framework: ${framework}`,
     ` * Server: ${serverLabel}`,
     ` * Tools: ${tools.length} | Resources: ${resources.length} | Prompts: ${prompts.length}`,
+    cases.length > 0 ? ` * Derived cases: ${cases.length} (edge/AI)` : null,
     ' *',
     ` * Generated by @slbdn/mcp-tester v${getPackageVersion()}`,
     ' * Run: npx jest --testTimeout=30000 (or npx vitest run)',
     ' */',
-  ].join('\n');
+  ]
+    .filter((line): line is string => line !== null)
+    .join('\n');
 
   // Test sections
-  const toolTests = options.includeTools !== false ? generateToolTests(tools) : '';
+  const toolTests = options.includeTools !== false ? generateToolTests(tools, cases) : '';
   const resourceTests = options.includeResources !== false ? generateResourceTests(resources) : '';
   const promptTests = options.includePrompts !== false ? generatePromptTests(prompts) : '';
 
@@ -340,6 +402,100 @@ ${sections.join('\n\n')}
 `;
 }
 
+/** Options {@link buildCases} actually needs. */
+type CaseBuildOptions = Pick<GenerateTestOptions, 'mode' | 'provider' | 'ai' | 'includeTools'>;
+
+/**
+ * Derive test cases for the requested {@link GenerationMode}.
+ *
+ * - `static` → no extra cases
+ * - `edge` → deterministic schema rules
+ * - `ai` → rules + AI-suggested cases (validated against the real schemas)
+ *
+ * @returns The cases, a diagnostics string (or null), and whether AI ran.
+ */
+async function buildCases(
+  tools: Tool[],
+  options: CaseBuildOptions,
+  serverLabel?: string
+): Promise<{ cases: GeneratedCase[]; note: string | null; usedAI: boolean }> {
+  const mode = options.mode ?? 'static';
+  if (mode === 'static' || options.includeTools === false || tools.length === 0) {
+    return { cases: [], note: null, usedAI: false };
+  }
+
+  const ruleCases = suggestEdgeCasesForTools(tools);
+  if (mode === 'edge') {
+    return { cases: ruleCases, note: null, usedAI: false };
+  }
+
+  // mode === 'ai'
+  const provider = options.provider ?? createProviderFromEnv();
+  if (!provider) {
+    if (options.ai?.requireAi) {
+      throw new Error(
+        'AI generation requested with requireAi, but no provider is available. ' +
+          'Set MCP_TESTER_AI_API_KEY (and optionally MCP_TESTER_AI_BASE_URL / MCP_TESTER_AI_MODEL), ' +
+          'or pass a provider.'
+      );
+    }
+    return {
+      cases: ruleCases,
+      note:
+        'No AI provider configured (set MCP_TESTER_AI_API_KEY); ' +
+        'fell back to deterministic edge cases.',
+      usedAI: false,
+    };
+  }
+
+  const analysis: ServerAnalysis = {
+    serverLabel,
+    tools: tools.map((t) => ({
+      name: t.name,
+      description: t.description,
+      inputSchema: t.inputSchema,
+    })),
+  };
+
+  const aiCases = await provider.suggestCases(analysis);
+  const schemas = new Map(tools.map((t) => [t.name, t]));
+  const { cases, rejected } = mergeAndValidateCases([ruleCases, aiCases], schemas);
+
+  const dropped = rejected.length;
+  const note =
+    dropped > 0
+      ? `AI suggested cases: ${aiCases.length}, kept after schema validation: ${aiCases.length - dropped} (dropped ${dropped})`
+      : null;
+
+  return { cases, note, usedAI: true };
+}
+
+/**
+ * Dry-run every derived case against the live server and record what actually
+ * happens in `case.observed`. The renderer turns mismatches into `it.skip`
+ * blocks with an explanatory comment.
+ */
+async function verifyCases(
+  client: MCPClient,
+  cases: GeneratedCase[],
+  timeout: number
+): Promise<void> {
+  for (const c of cases) {
+    if (c.expectation === 'observe') continue;
+    try {
+      const result = await client.callTool({
+        name: c.tool,
+        arguments: c.args,
+        timeout: Math.min(timeout, 15_000),
+      });
+      const isError = (result as { isError?: boolean }).isError === true;
+      c.observed = isError ? 'error' : 'success';
+    } catch {
+      c.observed = 'error';
+    }
+  }
+}
+
 /**
  * Connect to an MCP server, inspect capabilities, and generate a test file.
  *
@@ -366,7 +522,13 @@ export async function generateTests(options: GenerateTestOptions): Promise<strin
     ]);
 
     const server: StdioServerConfig = { command: options.command, args: options.args };
-    return buildTestFile(tools, resources, prompts, options, server);
+    const serverLabel = formatServerLabel(server);
+    const { cases, note } = await buildCases(tools, options, serverLabel);
+    if (note) console.warn(`mcp-tester: ${note}`);
+    if (options.verify && cases.length > 0) {
+      await verifyCases(client, cases, options.timeout || 30000);
+    }
+    return buildTestFile(tools, resources, prompts, options, server, cases);
   } finally {
     await client.stop();
   }
@@ -383,6 +545,11 @@ export type GenerateTestsFromClientOptions = Pick<
   | 'includePrompts'
   | 'includeTools'
   | 'includeMatchers'
+  | 'mode'
+  | 'provider'
+  | 'ai'
+  | 'verify'
+  | 'timeout'
 >;
 
 /**
@@ -408,5 +575,11 @@ export async function generateTestsFromClient(
     options.includePrompts === false ? Promise.resolve([]) : client.listPrompts(),
   ]);
 
-  return buildTestFile(tools, resources, prompts, options, server);
+  const { cases, note } = await buildCases(tools, options, formatServerLabel(server));
+  if (note) console.warn(`mcp-tester: ${note}`);
+  if (options.verify && cases.length > 0) {
+    await verifyCases(client, cases, options.timeout || 30000);
+  }
+
+  return buildTestFile(tools, resources, prompts, options, server, cases);
 }

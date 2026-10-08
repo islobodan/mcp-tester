@@ -248,6 +248,34 @@ The generator connects to the server, inspects all tools/resources/prompts, and 
 - Prompt tests with sample arguments
 - Proper `beforeEach`/`afterEach` cleanup
 
+#### Edge Cases & AI-Assisted Generation
+
+Go beyond happy-path calls with schema-derived boundary tests — optionally
+augmented by an LLM (OpenAI, Ollama, LM Studio, or any OpenAI-compatible
+endpoint). The AI only proposes **structured case data**; every case is
+validated against the real schemas and rendered deterministically — the model
+never writes code:
+
+```bash
+# Deterministic edge cases (offline): missing required args, invalid enums,
+# wrong types, boundary values, minItems, additionalProperties
+npx @slbdn/mcp-tester generate node ./server.js --edge-cases -o edge.test.ts
+
+# Add AI-suggested cases (needs MCP_TESTER_AI_API_KEY, or a local base URL)
+MCP_TESTER_AI_API_KEY=sk-... \
+npx @slbdn/mcp-tester generate node ./server.js --ai-generate -o ai.test.ts
+
+# Ollama — no API key needed for localhost
+npx @slbdn/mcp-tester generate node ./server.js \
+  --ai-generate --ai-base-url http://localhost:11434/v1 --ai-model llama3
+
+# Dry-run derived cases against the live server: predictions that fail
+# become it.skip blocks with an explanation instead of broken tests
+npx @slbdn/mcp-tester generate node ./server.js --edge-cases --verify -o edge.test.ts
+```
+
+📖 Full guide: [AI-Assisted Test Generation](./docs/ai-generation.md)
+
 ### Generate TypeScript Types
 
 Connect to any MCP server and generate typed `.d.ts` declarations from tool schemas:
@@ -488,6 +516,7 @@ await runTest("Echo returns input", async () => {
 | [Examples](./docs/examples.md) | Practical code examples |
 | [Advanced Usage](./docs/advanced.md) | Timeouts, retries, concurrency, notifications, logging |
 | [CLI Reference](./docs/cli.md) | CLI commands, options, and output formats |
+| [AI-Assisted Test Generation](./docs/ai-generation.md) | Edge cases, LLM integration, `--verify` |
 | [CI/CD Integration](./docs/cicd.md) | GitHub Actions, CircleCI, Jenkins |
 | [Troubleshooting](./docs/troubleshooting.md) | Common issues and solutions |
 | [Releases](./docs/releases.md) | Release process and commands |

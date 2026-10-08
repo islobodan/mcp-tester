@@ -8,7 +8,7 @@
  *   - Cleanup
  */
 
-import { MCPClient } from '@slbdn/mcp-tester';
+import { MCPClient, setupJestMatchers } from '@slbdn/mcp-tester';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -19,6 +19,7 @@ describe('Mock MCP server', () => {
   let client: MCPClient;
 
   beforeAll(async () => {
+    setupJestMatchers();
     client = new MCPClient({
       name: 'minimal-test',
       version: '0.1.0',
@@ -50,8 +51,7 @@ describe('Mock MCP server', () => {
       name: 'echo',
       arguments: { message: 'hello' },
     });
-    expect(result.content[0].type).toBe('text');
-    expect(result.content[0].text).toBe('hello');
+    expect(result).toReturnText('hello');
   });
 
   it('should add two numbers', async () => {
@@ -59,6 +59,6 @@ describe('Mock MCP server', () => {
       name: 'add',
       arguments: { a: 2, b: 3 },
     });
-    expect(result.content[0].text).toBe('5');
+    expect(result).toReturnText('5');
   });
 });

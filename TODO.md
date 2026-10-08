@@ -936,19 +936,21 @@ new ConsoleLogger({
 
 ---
 
-### [ ] 39. Add AI-Powered Test Generation
+### [x] 39. Add AI-Powered Test Generation
 **Description**: Use AI to generate tests from server analysis.
 
 **Tasks**:
-- Research AI code generation
-- Integrate with AI API (optional)
-- Generate intelligent test cases
-- Suggest edge cases
-- Add `--ai-generate` CLI flag
+- [x] Research AI code generation (design decision: AI emits structured case **data**, never code — deterministic renderer emits the tests; eliminates prompt-injection→code risk)
+- [x] Integrate with AI API (optional) — `OpenAICompatProvider` speaks plain `fetch` to any OpenAI-compatible endpoint (OpenAI, Ollama, LM Studio, vLLM); zero new runtime deps; injectable `fetchImpl`; sha256-keyed disk cache
+- [x] Generate intelligent test cases — `GeneratedCase` data validated against real schemas before rendering (`mergeAndValidateCases`); hallucinated args dropped with a summary line
+- [x] Suggest edge cases — deterministic rules engine (`suggestEdgeCases*`) ships offline: required, enum, min/maxLength, bounds, type, minItems, additionalProperties
+- [x] Add `--ai-generate` CLI flag (+ `--edge-cases`, `--ai-model`, `--ai-base-url`, `--require-ai`, `--verify`)
+- [x] `--verify` dry-runs derived cases against the live server; mismatches become `it.skip` blocks with an explanation
+- [x] Docs (`docs/ai-generation.md`, README, CLI reference) + tests (rules engine, provider with mock fetch, generate-tests modes, CLI flags)
 
 **Impact**: Automated test creation
 
-**Estimated Effort**: 16-24 hours
+**Effort**: ~19 hours (3 phases, delivered in one pass)
 
 ---
 
@@ -1097,12 +1099,12 @@ The following tasks can be completed quickly and provide immediate value:
 ## Progress Tracking
 
 **Total Items**: 52
-**Completed**: 42
+**Completed**: 43
 **In Progress**: 0
 **Postponed**: 1 (item 12 — snapshot testing, deprioritised as poor fit for MCP)
-**Not Started**: 9
+**Not Started**: 8
 
-**Completion Percentage**: 80.8% (42/52)
+**Completion Percentage**: 82.7% (43/52)
 
 ---
 

@@ -95,7 +95,32 @@ export {
   assertHasPrompt,
 } from './matchers.js';
 export { generateTests, generateTestsFromClient } from './generate-tests.js';
-export type { GenerateTestOptions, GenerateTestsFromClientOptions } from './generate-tests.js';
+export type {
+  GenerateTestOptions,
+  GenerateTestsFromClientOptions,
+  GenerationMode,
+  AIOptions,
+} from './generate-tests.js';
+export {
+  type GeneratedCase,
+  type CaseExpectation,
+  type CaseSource,
+  generateToolArgs,
+  suggestEdgeCases,
+  suggestEdgeCasesForTools,
+  validateArgsAgainstSchema,
+  mergeAndValidateCases,
+} from './generate-cases.js';
+export {
+  type AIProvider,
+  type ServerAnalysis,
+  type OpenAICompatOptions,
+  OpenAICompatProvider,
+  createProviderFromEnv,
+  suggestCasesWithAI,
+  DEFAULT_AI_BASE_URL,
+  DEFAULT_AI_MODEL,
+} from './ai/provider.js';
 export { generateTypes, generateTypesFromClient } from './generate-types.js';
 export type { GenerateTypesOptions, GenerateTypesFromClientOptions } from './generate-types.js';
 export { getPackageVersion } from './utils/version.js';

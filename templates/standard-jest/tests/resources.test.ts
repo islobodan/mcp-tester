@@ -4,7 +4,7 @@
 
 import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
 import type { MCPClient } from '@slbdn/mcp-tester';
-import { createConnectedClient } from './helpers.js';
+import { contentText, createConnectedClient, promptText, resourceText } from './helpers.js';
 
 describe('Resources', () => {
   let client: MCPClient;
@@ -28,7 +28,7 @@ describe('Resources', () => {
   it('reads the version resource', async () => {
     const result = await client.readResource('config://version');
     expect(result.contents.length).toBe(1);
-    expect(result.contents[0].text).toBe('1.0.0');
+    expect(resourceText(result)).toBe('1.0.0');
   });
 
   it('rejects unknown resources', async () => {

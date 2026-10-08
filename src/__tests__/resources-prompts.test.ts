@@ -233,7 +233,6 @@ describe('MockMCPServer', () => {
 
     const result = await mockServer.handleToolsList();
 
-    // @ts-expect-error - Custom matcher registered at runtime
     expect(result.tools).toHaveTool('custom_tool');
   });
 
@@ -247,7 +246,6 @@ describe('MockMCPServer', () => {
 
     const result = await mockServer.handleResourcesList();
 
-    // @ts-expect-error - Custom matcher registered at runtime
     expect(result.resources).toHaveResource('custom://resource');
   });
 
@@ -266,7 +264,6 @@ describe('MockMCPServer', () => {
 
     const result = await mockServer.handlePromptsList();
 
-    // @ts-expect-error - Custom matcher registered at runtime
     expect(result.prompts).toHavePrompt('custom_prompt');
   });
 });

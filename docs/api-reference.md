@@ -673,6 +673,102 @@ Health checks detect dead server processes using `process.kill(pid, 0)` (signal 
 
 ---
 
+## Test Generation (Edge Cases & AI)
+
+Beyond `generateTests` / `generateTestsFromClient`, the generator can derive
+boundary and invalid-input test cases from each tool's JSON Schema — either
+deterministically (`mode: 'edge'`) or augmented by an LLM (`mode: 'ai'`).
+See [AI-Assisted Test Generation](./ai-generation.md) for the CLI workflow.
+
+### `GeneratedCase`
+
+```typescript
+interface GeneratedCase {
+  tool: string;                                // tool name
+  title: string;                               // human-readable test title
+  args: Record<string, unknown>;               // arguments to send
+  expectation: 'success' | 'error' | 'observe';
+  rationale: string;                           // why this case exists
+  source: `rule:${string}` | `ai:${string}`;   // provenance, e.g. 'rule:required'
+}
+```
+
+### `suggestEdgeCasesForTools(tools)`
+
+Derive deterministic edge cases from tool schemas (offline, no AI):
+
+```typescript
+import { suggestEdgeCasesForTools } from '@slbdn/mcp-tester';
+
+const cases = suggestEdgeCasesForTools(tools);
+// Rules: required, enum, min-length, max-length, bounds, type,
+//        min-items, additional-properties
+```
+
+### `validateArgsAgainstSchema(args, schema)`
+
+Shallow schema validation used as the AI gate. Returns `null` when acceptable,
+otherwise a human-readable reason:
+
+```typescript
+import { validateArgsAgainstSchema } from '@slbdn/mcp-tester';
+
+validateArgsAgainstSchema({}, echoTool.inputSchema);
+// → 'missing required property "message"'
+```
+
+### `mergeAndValidateCases(groups, schemas)`
+
+Merge case groups (rules + AI), dedupe, drop hallucinated cases:
+
+```typescript
+import { mergeAndValidateCases, suggestEdgeCasesForTools } from '@slbdn/mcp-tester';
+
+const { cases, rejected } = mergeAndValidateCases(
+  [suggestEdgeCasesForTools(tools), aiCases],
+  new Map(tools.map((t) => [t.name, t]))
+);
+// rejected: Array<{ c: GeneratedCase; reason: string }>
+```
+
+Error-expectation cases skip schema validation by design (they intentionally
+violate the schema).
+
+### `OpenAICompatProvider`
+
+AI case suggestions via any OpenAI-compatible `/chat/completions` endpoint:
+
+```typescript
+import { OpenAICompatProvider } from '@slbdn/mcp-tester';
+
+const provider = new OpenAICompatProvider({
+  baseUrl: 'http://localhost:11434/v1',  // default: https://api.openai.com/v1
+  model: 'llama3',                       // default: gpt-4o-mini
+  apiKey: undefined,                     // optional (localhost needs none)
+  timeout: 60_000,                       // request timeout (ms)
+  cacheDir: '.mcp-tester-cache',         // null disables caching
+  // fetchImpl: myFetch,                 // injectable for tests
+});
+
+await provider.suggestCases({ serverLabel: 'my-server', tools });
+// → GeneratedCase[] (source: 'ai:<model>')
+```
+
+`createProviderFromEnv()` builds a provider from `MCP_TESTER_AI_API_KEY`,
+`MCP_TESTER_AI_BASE_URL`, and `MCP_TESTER_AI_MODEL`; a localhost base URL
+counts as configured without a key.
+
+### `generateTests` generation options
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `mode` | `'edge' \| 'ai'` | `undefined` = static (happy path only) |
+| `provider` | `AIProvider` | Explicit provider (skips env lookup) |
+| `ai` | `{ requireAi?: boolean }` | `requireAi` fails instead of falling back |
+| `verify` | `boolean` | Dry-run cases against the live server; mismatches become `it.skip` |
+
+---
+
 Generate TypeScript type declarations from an MCP server's tool schemas.
 
 ```typescript

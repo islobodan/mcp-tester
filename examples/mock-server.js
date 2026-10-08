@@ -100,6 +100,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   if (name === 'delay') {
     const ms = Number(args?.ms);
+    if (!Number.isFinite(ms) || ms < 0 || ms > 60000) {
+      throw new Error(`Invalid delay: "ms" must be a number between 0 and 60000, got ${JSON.stringify(args?.ms)}`);
+    }
     await new Promise((resolve) => setTimeout(resolve, ms));
     return {
       content: [{ type: 'text', text: `Delayed for ${ms}ms` }],

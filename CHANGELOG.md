@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **AI-assisted & schema-driven test-case generation** (TODO #39) — `generate` now goes beyond happy-path calls:
+  - `--edge-cases` — deterministic boundary/invalid cases from each tool's JSON Schema (offline, no AI): missing required args, invalid enums, wrong types, `minLength`/`maxLength`, `minimum`/`maximum` bounds, `minItems`, `additionalProperties: false`. Expectations are `error`, `observe`, or `success`, and every case is tagged with a provenance comment (`// rule:required — ...`).
+  - `--ai-generate` — augments the edge cases with LLM suggestions via any OpenAI-compatible endpoint (OpenAI, Ollama, LM Studio, vLLM). The model only proposes **structured case data** (`GeneratedCase`); every suggestion is validated against the real tool schemas and rendered deterministically — hallucinated arguments are dropped with a summary line, and the model never emits code. Configure via `MCP_TESTER_AI_API_KEY` / `MCP_TESTER_AI_BASE_URL` / `MCP_TESTER_AI_MODEL` or the new `--ai-model` / `--ai-base-url` / `--require-ai` flags. Responses are cached in `.mcp-tester-cache/`.
+  - `--verify` — dry-runs every derived case against the live server before writing the file; predictions that don't hold become `it.skip` blocks with an explanatory comment instead of broken tests.
+  - New modules: `generate-cases.ts` (rules engine, `GeneratedCase`, `suggestEdgeCases*`, `validateArgsAgainstSchema`, `mergeAndValidateCases`) and `ai/provider.ts` (`OpenAICompatProvider` with injectable `fetchImpl`, `createProviderFromEnv`). All exported from the package barrel.
+  - Docs: [`docs/ai-generation.md`](docs/ai-generation.md), README section, CLI reference.
 - **Starter templates** under `templates/` with a new `mcp-tester create <template> <dest>` CLI command:
   - `minimal-jest` — one test file, one mock server, zero ceremony.
   - `standard-jest` — per-capability test files, HTML reporter, GitHub Actions matrix.
@@ -16,7 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation: [`docs/starter-templates.md`](docs/starter-templates.md) and a new README section.
 
 ### Fixed
+- **Jest matcher types were broken for consumers since the Jest 30 upgrade (1.4.3)** — `expect(tools).toHaveTool(...)` produced TS2339 in consumer projects (the global `jest.Matchers` augmentation no longer reaches Jest 30's `expect()` return type). The matchers are now additionally declared against the `expect` package's `Matchers` interface via `MCPMatchers`, so autocomplete/type-checking works in both ts-jest and plain `tsc` setups.
+- Templates now typecheck cleanly under `strict` `tsc --noEmit` (they were only ever compiled by ts-jest's non-strict inline config): `content[0].text`-style union accesses replaced with typed `contentText()` / `promptText()` / `resourceText()` helpers, and full-stack's server handler no longer assumes `arguments` is defined.
 - `generateTests` (stdio variant) now respects the `includeTools` / `includeResources` / `includePrompts` flags when fetching from the server, matching the behaviour of `generateTestsFromClient`. Previously it always called `listResources` and `listPrompts` even when the output flags said to skip them — causing generation to fail against servers that don't declare those capabilities.
+- `examples/mock-server.js`: the `delay` tool now rejects invalid `ms` values (`NaN`, negative, > 60000) instead of passing them to `setTimeout` — caught by the new `--verify` mode.
+- The published package now ships the top-level `docs/*.md` guides, so the README's documentation links resolve on npmjs.com (they previously 404'd — the generated `docs/api/` HTML is still excluded).
 
 ## [1.4.3] - 2026-10-05
 

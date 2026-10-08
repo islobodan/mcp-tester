@@ -112,6 +112,16 @@ mcp-tester gen node ./server.js --framework vitest -o server.test.ts
 # Skip specific sections
 mcp-tester generate node ./server.js --no-resources --no-prompts -o tools-only.test.ts
 
+# Deterministic edge cases (offline)
+mcp-tester generate node ./server.js --edge-cases -o edge.test.ts
+
+# AI-suggested cases (OpenAI-compatible; Ollama needs no key on localhost)
+mcp-tester generate node ./server.js --ai-generate --ai-model llama3 \
+  --ai-base-url http://localhost:11434/v1 -o ai.test.ts
+
+# Dry-run derived cases against the live server
+mcp-tester generate node ./server.js --edge-cases --verify -o edge.test.ts
+
 # Print to stdout (no file)
 mcp-tester generate node ./server.js
 ```
@@ -127,6 +137,14 @@ mcp-tester generate node ./server.js
 | `--no-resources` | | Skip resource tests |
 | `--no-prompts` | | Skip prompt tests |
 | `--no-matchers` | | Skip custom matchers import |
+| `--edge-cases` | off | Add schema-derived boundary/invalid test cases (offline) |
+| `--ai-generate` | off | Edge cases + AI-suggested cases (env: `MCP_TESTER_AI_API_KEY`) |
+| `--ai-model <model>` | `gpt-4o-mini` | AI model name |
+| `--ai-base-url <url>` | `https://api.openai.com/v1` | OpenAI-compatible API base URL |
+| `--require-ai` | off | Fail instead of falling back when AI is unavailable |
+| `--verify` | off | Dry-run derived cases against the live server and annotate mismatches |
+
+See [AI-Assisted Test Generation](./ai-generation.md) for the full workflow.
 
 ### `generate-types` (alias: `gen-types`) — Generate TypeScript Types
 

@@ -4,7 +4,7 @@
 
 import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
 import type { MCPClient } from '@slbdn/mcp-tester';
-import { createConnectedClient } from './helpers.js';
+import { contentText, createConnectedClient } from './helpers.js';
 
 describe('Tools', () => {
   let client: MCPClient;
@@ -39,8 +39,8 @@ describe('Tools', () => {
         name: 'echo',
         arguments: { message: 'hello' },
       });
-      expect(result.content[0].type).toBe('text');
-      expect(result.content[0].text).toBe('hello');
+
+      expect(contentText(result)).toBe('hello');
     });
   });
 
@@ -50,7 +50,7 @@ describe('Tools', () => {
         name: 'add',
         arguments: { a: 2, b: 3 },
       });
-      expect(result.content[0].text).toBe('5');
+      expect(contentText(result)).toBe('5');
     });
 
     it('adds negative numbers', async () => {
@@ -58,7 +58,7 @@ describe('Tools', () => {
         name: 'add',
         arguments: { a: -5, b: 10 },
       });
-      expect(result.content[0].text).toBe('5');
+      expect(contentText(result)).toBe('5');
     });
   });
 
@@ -70,7 +70,7 @@ describe('Tools', () => {
         arguments: { ms: 50 },
       });
       const elapsed = Date.now() - start;
-      expect(result.content[0].text).toBe('waited 50ms');
+      expect(contentText(result)).toBe('waited 50ms');
       expect(elapsed).toBeGreaterThanOrEqual(45);
     });
 

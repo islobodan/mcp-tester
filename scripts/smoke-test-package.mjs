@@ -16,8 +16,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const run = (cmd, args, cwd) =>
-  execFileSync(cmd, args, { cwd, stdio: 'pipe', encoding: 'utf8' });
+const run = (cmd, args, cwd) => execFileSync(cmd, args, { cwd, stdio: 'pipe', encoding: 'utf8' });
 
 const root = process.cwd();
 const work = mkdtempSync(join(tmpdir(), 'mcp-tester-pack-'));
@@ -48,6 +47,14 @@ try {
       'setupVitestMatchers',
       'assert',
       'getPackageVersion',
+      'generateToolArgs',
+      'suggestEdgeCases',
+      'suggestEdgeCasesForTools',
+      'validateArgsAgainstSchema',
+      'mergeAndValidateCases',
+      'OpenAICompatProvider',
+      'createProviderFromEnv',
+      'suggestCasesWithAI',
     ];
     const mod = await import('@slbdn/mcp-tester');
     const missing = expected.filter((name) => !(name in mod));

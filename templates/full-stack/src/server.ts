@@ -57,7 +57,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 }));
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
+  const { name } = request.params;
+  const args = (request.params.arguments ?? {}) as Record<string, unknown>;
   switch (name) {
     case 'greet':
       return { content: [{ type: 'text', text: `Hello, ${args.name}!` }] };

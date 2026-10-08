@@ -4,7 +4,7 @@
 
 import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
 import type { MCPClient } from '@slbdn/mcp-tester';
-import { createConnectedClient } from './helpers.js';
+import { contentText, createConnectedClient } from './helpers.js';
 
 describe('Parallel operations', () => {
   let client: MCPClient;
@@ -26,7 +26,7 @@ describe('Parallel operations', () => {
     const results = await Promise.all(calls);
     expect(results).toHaveLength(20);
     results.forEach((r, i) => {
-      expect(r.content[0].text).toBe(`Hello, User${i}!`);
+      expect(contentText(r)).toBe(`Hello, User${i}!`);
     });
   });
 
@@ -37,8 +37,8 @@ describe('Parallel operations', () => {
       client.callTool({ name: 'uppercase', arguments: { text: 'hi' } }),
     ];
     const [greet, sum, upper] = await Promise.all(calls);
-    expect(greet.content[0].text).toBe('Hello, A!');
-    expect(sum.content[0].text).toBe('6');
-    expect(upper.content[0].text).toBe('HI');
+    expect(contentText(greet)).toBe('Hello, A!');
+    expect(contentText(sum)).toBe('6');
+    expect(contentText(upper)).toBe('HI');
   });
 });

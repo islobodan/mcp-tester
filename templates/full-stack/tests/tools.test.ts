@@ -4,7 +4,7 @@
 
 import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
 import type { MCPClient } from '@slbdn/mcp-tester';
-import { createConnectedClient } from './helpers.js';
+import { contentText, createConnectedClient } from './helpers.js';
 
 describe('Tools', () => {
   let client: MCPClient;
@@ -22,7 +22,7 @@ describe('Tools', () => {
   describe('greet', () => {
     it('greets by name', async () => {
       const result = await client.callTool({ name: 'greet', arguments: { name: 'Alice' } });
-      expect(result.content[0].text).toBe('Hello, Alice!');
+      expect(contentText(result)).toBe('Hello, Alice!');
     });
   });
 
@@ -32,12 +32,12 @@ describe('Tools', () => {
         name: 'sum',
         arguments: { numbers: [1, 2, 3, 4] },
       });
-      expect(result.content[0].text).toBe('10');
+      expect(contentText(result)).toBe('10');
     });
 
     it('returns 0 for an empty array', async () => {
       const result = await client.callTool({ name: 'sum', arguments: { numbers: [] } });
-      expect(result.content[0].text).toBe('0');
+      expect(contentText(result)).toBe('0');
     });
   });
 
@@ -47,7 +47,7 @@ describe('Tools', () => {
         name: 'uppercase',
         arguments: { text: 'hello' },
       });
-      expect(result.content[0].text).toBe('HELLO');
+      expect(contentText(result)).toBe('HELLO');
     });
 
     it('preserves non-letter characters', async () => {
@@ -55,7 +55,7 @@ describe('Tools', () => {
         name: 'uppercase',
         arguments: { text: 'abc 123!' },
       });
-      expect(result.content[0].text).toBe('ABC 123!');
+      expect(contentText(result)).toBe('ABC 123!');
     });
   });
 });

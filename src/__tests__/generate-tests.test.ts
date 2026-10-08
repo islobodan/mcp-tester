@@ -1,5 +1,6 @@
-import { generateTests } from '../generate-tests.js';
+import { generateTests, generateTestsFromClient } from '../generate-tests.js';
 import type { GenerateTestOptions } from '../generate-tests.js';
+import { OpenAICompatProvider } from '../ai/provider.js';
 import { MCPClient } from '../client/MCPClient.js';
 import fs from 'fs';
 
@@ -295,6 +296,239 @@ describe('generateTests', () => {
 
       expect(code).toContain('should connect to the server');
       expect(code).toContain('should list tools');
+    }, 15000);
+  });
+
+  // ─── Generation modes (edge / ai) ─────────────────────────────────────
+
+  describe('mode: edge', () => {
+    it('adds deterministic rule-based cases and the isToolError helper', async () => {
+      if (!serverAvailable) return;
+
+      const code = await generateTests({ ...baseOptions, mode: 'edge' });
+
+      expect(code).toContain('Derived cases:');
+      expect(code).toContain('rule:required');
+      expect(code).toContain('rule:type');
+      expect(code).toContain('const isToolError');
+      expect(code).toContain('expect(isToolError(result)).toBe(true)');
+    }, 20000);
+  });
+
+  describe('mode: static (default)', () => {
+    it('stays free of derived-case artifacts', async () => {
+      if (!serverAvailable) return;
+
+      const code = await generateTests(baseOptions);
+
+      expect(code).not.toContain('rule:');
+      expect(code).not.toContain('isToolError');
+      expect(code).not.toContain('Derived cases');
+    }, 20000);
+  });
+
+  describe('mode: ai', () => {
+    it('falls back to edge cases with a warning when no provider is available', async () => {
+      if (!serverAvailable) return;
+
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        const code = await generateTests({ ...baseOptions, mode: 'ai' });
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining('No AI provider configured'));
+        expect(code).toContain('rule:required'); // fallback ran
+      } finally {
+        warn.mockRestore();
+      }
+    }, 20000);
+
+    it('throws under requireAi when no provider is available', async () => {
+      if (!serverAvailable) return;
+
+      await expect(
+        generateTests({ ...baseOptions, mode: 'ai', ai: { requireAi: true } })
+      ).rejects.toThrow(/no provider is available/);
+    }, 20000);
+
+    it('merges AI cases with rules and annotates provenance', async () => {
+      if (!serverAvailable) return;
+
+      const mockFetch: typeof fetch = async () =>
+        ({
+          ok: true,
+          status: 200,
+          text: async () => '',
+          json: async () => ({
+            choices: [
+              {
+                message: {
+                  content: JSON.stringify({
+                    cases: [
+                      {
+                        tool: 'echo',
+                        title: 'handles unicode messages',
+                        args: { message: 'héllo 🌍' },
+                        expectation: 'success',
+                        rationale: 'unicode should round-trip',
+                      },
+                      {
+                        tool: 'echo',
+                        title: 'hallucinated arg',
+                        args: { nonsense: true },
+                        expectation: 'success',
+                        rationale: 'should be dropped',
+                      },
+                    ],
+                  }),
+                },
+              },
+            ],
+          }),
+        }) as unknown as Response;
+
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        const code = await generateTests({
+          ...baseOptions,
+          mode: 'ai',
+          provider: new OpenAICompatProvider({
+            apiKey: 'test-key',
+            model: 'test-model',
+            cacheDir: null,
+            fetchImpl: mockFetch,
+          }),
+        });
+
+        expect(code).toContain('ai:test-model');
+        expect(code).toContain('handles unicode messages');
+        expect(code).toContain('héllo');
+        expect(code).not.toContain('nonsense'); // hallucinated case dropped
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining('dropped 1'));
+      } finally {
+        warn.mockRestore();
+      }
+    }, 20000);
+  });
+
+  describe('option: verify', () => {
+    it('skips cases whose expectation mismatches observed behavior', async () => {
+      if (!serverAvailable) return;
+
+      const code = await generateTests({ ...baseOptions, mode: 'edge', verify: true });
+
+      // The mock server validates its inputs, so error expectations hold and
+      // remain real assertions. Mismatches would appear as it.skip blocks.
+      const skips = (code.match(/it\.skip\(/g) || []).length;
+      if (skips > 0) {
+        expect(code).toContain('verify: expected');
+      }
+      expect(code).toContain('rule:required');
+      // Every non-skipped error case keeps its assertion.
+      expect(code).toContain('expect(isToolError(result)).toBe(true)');
+    }, 30000);
+  });
+
+  describe('generateTestsFromClient', () => {
+    it('supports edge mode over an existing connection', async () => {
+      if (!serverAvailable) return;
+
+      const client = new MCPClient({ timeout: 10000, logLevel: 'none' });
+      await client.start({ command: MOCK_SERVER_CMD, args: MOCK_SERVER_ARGS });
+      try {
+        const code = await generateTestsFromClient(
+          client,
+          {
+            command: MOCK_SERVER_CMD,
+            args: MOCK_SERVER_ARGS,
+          },
+          { mode: 'edge' }
+        );
+
+        expect(code).toContain("describe('Tools'");
+        expect(code).toContain('rule:required');
+        expect(code).toContain('Derived cases:');
+      } finally {
+        await client.stop();
+      }
+    }, 20000);
+  });
+
+  // ─── CLI flags for generation modes ─────────────────────────────────
+
+  describe('CLI generation flags', () => {
+    const runCLI = (args: string): { status: number; stdout: string; stderr: string } => {
+      const { spawnSync } = require('child_process') as typeof import('child_process');
+      const env = { ...process.env };
+      delete env.MCP_TESTER_AI_API_KEY;
+      delete env.MCP_TESTER_AI_BASE_URL;
+      delete env.MCP_TESTER_AI_MODEL;
+      const result = spawnSync('node', ['dist/cli/index.js', ...args.split(' ')], {
+        encoding: 'utf-8',
+        timeout: 30000,
+        env,
+      });
+      return {
+        status: result.status ?? -1,
+        stdout: result.stdout ?? '',
+        stderr: result.stderr ?? '',
+      };
+    };
+
+    it('--edge-cases generates rule-based cases', () => {
+      if (!serverAvailable) return;
+
+      const outputPath = '/tmp/mcp-tester-cli-edge.test.ts';
+      const r = runCLI(`generate node ${MOCK_SERVER_ARGS.join(' ')} --edge-cases -o ${outputPath}`);
+      expect(r.status).toBe(0);
+      const content = fs.readFileSync(outputPath, 'utf-8');
+      expect(content).toContain('rule:required');
+      expect(content).toContain('Derived cases:');
+    }, 30000);
+
+    it('rejects --edge-cases together with --ai-generate', () => {
+      if (!serverAvailable) return;
+
+      const r = runCLI(`generate node ${MOCK_SERVER_ARGS.join(' ')} --edge-cases --ai-generate`);
+      expect(r.status).toBe(1);
+      expect(r.stderr).toContain('--ai-generate already includes --edge-cases');
+    }, 30000);
+
+    it('--ai-generate without credentials warns and falls back', () => {
+      if (!serverAvailable) return;
+
+      const r = runCLI(
+        `generate node ${MOCK_SERVER_ARGS.join(' ')} --ai-generate -o /tmp/mcp-tester-cli-ai.test.ts`
+      );
+      expect(r.status).toBe(0);
+      expect(r.stderr).toContain('No AI provider configured');
+      expect(fs.readFileSync('/tmp/mcp-tester-cli-ai.test.ts', 'utf-8')).toContain('rule:required');
+    }, 30000);
+
+    it('--ai-generate --require-ai fails loudly without credentials', () => {
+      if (!serverAvailable) return;
+
+      const r = runCLI(`generate node ${MOCK_SERVER_ARGS.join(' ')} --ai-generate --require-ai`);
+      expect(r.status).toBe(1);
+      expect(r.stderr).toContain('no provider is available');
+    }, 30000);
+
+    it('rejects --verify without a case-generating mode', () => {
+      const r = runCLI(`generate node ${MOCK_SERVER_ARGS.join(' ')} --verify`);
+      expect(r.status).toBe(1);
+      expect(r.stderr).toContain('--verify requires --edge-cases or --ai-generate');
+    }, 15000);
+
+    it('rejects AI-only flags without --ai-generate', () => {
+      const r = runCLI(`generate node ${MOCK_SERVER_ARGS.join(' ')} --ai-model gpt-4o`);
+      expect(r.status).toBe(1);
+      expect(r.stderr).toContain('require --ai-generate');
+    }, 15000);
+
+    it('--help documents the new flags', () => {
+      const r = runCLI('generate -h');
+      expect(r.stdout).toContain('--edge-cases');
+      expect(r.stdout).toContain('--ai-generate');
+      expect(r.stdout).toContain('--require-ai');
+      expect(r.stdout).toContain('--verify');
     }, 15000);
   });
 });

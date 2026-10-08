@@ -447,6 +447,21 @@ withTransport(
   .option('--no-prompts', 'Skip prompt tests')
   .option('--no-tools', 'Skip tool tests')
   .option('--no-matchers', 'Skip custom matchers import')
+  .option('--edge-cases', 'Add schema-derived boundary/invalid test cases (offline)')
+  .option(
+    '--ai-generate',
+    'Augment edge cases with AI-suggested cases (needs MCP_TESTER_AI_API_KEY or a local MCP_TESTER_AI_BASE_URL)'
+  )
+  .option('--ai-model <model>', 'AI model name (default: gpt-4o-mini or MCP_TESTER_AI_MODEL)')
+  .option('--ai-base-url <url>', 'OpenAI-compatible API base URL (default: MCP_TESTER_AI_BASE_URL)')
+  .option(
+    '--require-ai',
+    'Fail instead of falling back to deterministic cases when AI is unavailable'
+  )
+  .option(
+    '--verify',
+    'Dry-run derived cases against the live server and annotate the generated tests'
+  )
   .action(
     async (command: string | undefined, serverArgs: string[], opts: Record<string, unknown>) => {
       const framework = String(opts['framework'] || 'jest');
@@ -454,6 +469,19 @@ withTransport(
         console.error('❌ Framework must be "jest" or "vitest"');
         process.exit(1);
       }
+      if (opts['aiGenerate'] && opts['edgeCases']) {
+        console.error('❌ --ai-generate already includes --edge-cases; pass only one');
+        process.exit(1);
+      }
+      if ((opts['aiModel'] || opts['aiBaseUrl'] || opts['requireAi']) && !opts['aiGenerate']) {
+        console.error('❌ --ai-model / --ai-base-url / --require-ai require --ai-generate');
+        process.exit(1);
+      }
+      if (opts['verify'] && !opts['edgeCases'] && !opts['aiGenerate']) {
+        console.error('❌ --verify requires --edge-cases or --ai-generate');
+        process.exit(1);
+      }
+      const mode = opts['aiGenerate'] ? 'ai' : opts['edgeCases'] ? 'edge' : undefined;
 
       try {
         console.error('🔍 Inspecting MCP server...');
@@ -462,18 +490,33 @@ withTransport(
         const config = resolveServerConfig(opts, command, serverArgs);
         const timeout = parseInt(String(merged['timeout'] || '30000'));
 
+        const generationOpts = {
+          framework: framework as 'jest' | 'vitest',
+          description: opts['description'] as string | undefined,
+          includeResources: opts['resources'] !== false,
+          includePrompts: opts['prompts'] !== false,
+          includeTools: opts['tools'] !== false,
+          includeMatchers: opts['matchers'] !== false,
+          mode: mode as 'edge' | 'ai' | undefined,
+          verify: opts['verify'] === true,
+          ...(mode === 'ai'
+            ? {
+                ai: {
+                  ...(opts['aiModel'] ? { model: String(opts['aiModel']) } : {}),
+                  ...(opts['aiBaseUrl'] ? { baseUrl: String(opts['aiBaseUrl']) } : {}),
+                  requireAi: opts['requireAi'] === true,
+                },
+              }
+            : {}),
+        };
+
         let code: string;
         if ('command' in config) {
           code = await generateTests({
             command: config.command,
             args: config.args || [],
-            framework: framework as 'jest' | 'vitest',
-            description: opts['description'] as string | undefined,
-            includeResources: opts['resources'] !== false,
-            includePrompts: opts['prompts'] !== false,
-            includeTools: opts['tools'] !== false,
-            includeMatchers: opts['matchers'] !== false,
             timeout,
+            ...generationOpts,
           });
         } else {
           const client = new MCPClient({
@@ -483,14 +526,7 @@ withTransport(
           });
           try {
             await client.start(config);
-            code = await generateTestsFromClient(client, config, {
-              framework: framework as 'jest' | 'vitest',
-              description: opts['description'] as string | undefined,
-              includeResources: opts['resources'] !== false,
-              includePrompts: opts['prompts'] !== false,
-              includeTools: opts['tools'] !== false,
-              includeMatchers: opts['matchers'] !== false,
-            });
+            code = await generateTestsFromClient(client, config, generationOpts);
           } finally {
             await client.stop();
           }

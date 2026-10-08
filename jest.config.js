@@ -91,6 +91,24 @@ export default {
       functions: 90,
       lines: 80,
     },
+    './src/generate-cases.ts': {
+      statements: 90,
+      branches: 85,
+      functions: 92,
+      lines: 92,
+    },
+    './src/generate-tests.ts': {
+      statements: 85,
+      branches: 68,
+      functions: 95,
+      lines: 88,
+    },
+    './src/ai/provider.ts': {
+      statements: 88,
+      branches: 82,
+      functions: 90,
+      lines: 92,
+    },
   },
   coverageReporters: ['text', 'text-summary', 'lcov', 'json-summary'],
   reporters: [
