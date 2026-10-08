@@ -13,9 +13,9 @@
  *
  * Setup (pick one):
  *
- *   1. Copy this file into your project root (or `tests/`) and include it
- *      in your `tsconfig.json`:
- *        "include": ["jest.d.ts", "tests/**/*.ts"]
+ *   1. Copy this file into your project root (or a `tests/` folder) and
+ *      include it in your `tsconfig.json`:
+ *        "include": ["jest.d.ts", "tests"]
  *
  *   2. Inline the augmentation in your own `tests.d.ts` / `global.d.ts`:
  *        import type { MCPMatchers } from '@slbdn/mcp-tester/dist/matchers';
@@ -35,7 +35,7 @@
  *   beforeAll(() => setupJestMatchers());
  */
 
-import type { MCPMatchers } from './dist/matchers';
+import type { MCPMatchers } from '@slbdn/mcp-tester/dist/matchers';
 
 declare module 'expect' {
   // eslint-disable-next-line @typescript-eslint/no-empty-object-type, @typescript-eslint/no-unused-vars -- module augmentation requires an interface; T matches `expect`'s arity
