@@ -181,6 +181,24 @@ behavior, caches responses in `.mcp-tester-cache/` (set `cacheDir: null` to
 disable), truncates long tool descriptions, and batches at most 40 tools per
 request.
 
+### Provider options reference
+
+| Option | Default | Effect |
+|---|---|---|
+| `apiKey` | *(unset)* | Bearer token. Optional for local gateways (Ollama, LM Studio). |
+| `baseUrl` | `https://api.openai.com/v1` | Chat-completions endpoint. |
+| `model` | `gpt-4o-mini` | Model name. |
+| `timeout` | `60000` | Per-request timeout in ms. |
+| `maxTokens` | `4096` | Cap on completion tokens. |
+| `cacheDir` | `.mcp-tester-cache` | Where to write cache files. `null` disables caching. |
+| `cacheMaxAgeMs` | *(unset)* | When set, cache files older than this are ignored and re-fetched. Useful when iterating on a model. |
+| `strictJson` | `true` | Sends `response_format: { type: 'json_object' }`. Set to `false` for gateways that reject it (Ollama, older vLLM). The provider auto-falls-back on HTTP 400 mentioning `response_format` regardless. |
+| `fetchImpl` | `globalThis.fetch` | Injectable fetch for tests and hermetic CI. |
+
+Cache key includes the model name, the `serverLabel`, and the tool set
+(sorted by name) — so changing any of them invalidates the entry.
+The cache file is JSON: `{ "model", "serverLabel", "cases": [...] }`.
+
 ## Safety and cost notes
 
 - **No code from the model.** AI output is parsed as JSON case data and

@@ -16,7 +16,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync, existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import {
@@ -59,8 +59,27 @@ export interface OpenAICompatOptions {
   maxTokens?: number;
   /** Cache directory; `null` disables caching. @defaultValue '.mcp-tester-cache' */
   cacheDir?: string | null;
-  /** Injectable fetch for tests. @defaultValue globalThis.fetch */
+  /**
+   * Injectable fetch for tests. @defaultValue globalThis.fetch
+   */
   fetchImpl?: typeof fetch;
+  /**
+   * Send OpenAI's `response_format: { type: 'json_object' }` flag. Supported
+   * by OpenAI, Together, Groq, and most modern gateways; some local servers
+   * (Ollama, older vLLM) reject it. Set to `false` if your gateway returns
+   * HTTP 400 mentioning `response_format`. When `true` (default), a 400 that
+   * explicitly blames `response_format` triggers one automatic retry without
+   * the flag.
+   * @defaultValue true
+   */
+  strictJson?: boolean;
+  /**
+   * Maximum age in ms for cached AI responses. When set, cache files older
+   * than this are ignored and re-fetched. Unset (default) means cache never
+   * expires; entries are only invalidated when the model or tool set changes.
+   * @defaultValue undefined
+   */
+  cacheMaxAgeMs?: number;
 }
 
 export const DEFAULT_AI_BASE_URL = 'https://api.openai.com/v1';
@@ -70,6 +89,19 @@ export const DEFAULT_AI_MODEL = 'gpt-4o-mini';
 const MAX_DESCRIPTION_CHARS = 500;
 /** Maximum tools per request. */
 const MAX_TOOLS_PER_REQUEST = 40;
+
+/**
+ * Wraps `statSync` so a transient FS error doesn't crash cache reads. We
+ * return `null` for any failure (missing file, permission, EBUSY) so the
+ * caller falls back to a fresh fetch.
+ */
+function statSyncSafe(file: string): { mtimeMs: number } | null {
+  try {
+    return statSync(file);
+  } catch {
+    return null;
+  }
+}
 
 const SYSTEM_PROMPT = `You are a test designer for MCP (Model Context Protocol) servers.
 Given tool names, descriptions and JSON Schemas, propose edge-case test calls.
@@ -92,18 +124,95 @@ interface RawCase {
   rationale?: unknown;
 }
 
-/** Extract a JSON object from model content, tolerating markdown fences. */
-function parseJsonLoose(content: string): { cases?: unknown } | null {
-  const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const candidate = fenced ? fenced[1] : content;
-  const start = candidate.indexOf('{');
-  const end = candidate.lastIndexOf('}');
-  if (start === -1 || end <= start) return null;
-  try {
-    return JSON.parse(candidate.slice(start, end + 1)) as { cases?: unknown };
-  } catch {
-    return null;
+/**
+ * Extract a JSON object from model content, tolerating markdown fences and
+ * prose around the payload. Uses brace-aware scanning so a `}` inside a
+ * string value or in a nested object doesn't truncate the payload.
+ *
+ * @returns The parsed object, or `null` when no parseable JSON object is
+ *   found in the input.
+ */
+export function parseJsonLoose(content: string): { cases?: unknown } | null {
+  if (typeof content !== 'string' || content.length === 0) return null;
+
+  // 1. Prefer a fenced code block (with or without a language hint) if any.
+  const fenceRe = /```(?:[a-zA-Z0-9_-]+)?\s*([\s\S]*?)```/g;
+  let candidate: string | null = null;
+  for (const m of content.matchAll(fenceRe)) {
+    if (m[1] && m[1].includes('{')) {
+      candidate = m[1];
+      break;
+    }
   }
+
+  // 2. Otherwise, scan for the largest parseable JSON object directly.
+  const haystack = candidate ?? content;
+  return extractLargestJsonObject(haystack);
+}
+
+/**
+ * Find the largest top-level JSON object in `text` that parses successfully.
+ * Walks every `{` candidate, attempts to parse from there using a brace/quote
+ * tracker, and returns the parse with the most characters consumed (longest
+ * valid object).
+ */
+function extractLargestJsonObject(text: string): { cases?: unknown } | null {
+  let best: { cases?: unknown } | null = null;
+  let bestLen = -1;
+
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] !== '{') continue;
+    const end = scanJsonObjectEnd(text, i);
+    if (end === -1) continue;
+    const slice = text.slice(i, end + 1);
+    if (slice.length <= bestLen) continue; // monotonic: longer = better
+    try {
+      const parsed = JSON.parse(slice) as { cases?: unknown };
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        best = parsed;
+        bestLen = slice.length;
+      }
+    } catch {
+      // not a valid object; keep scanning
+    }
+  }
+
+  return best;
+}
+
+/**
+ * Given the index of an opening `{`, return the index of its matching `}`,
+ * honoring strings (including escape sequences) and nested objects/arrays.
+ * Returns `-1` if the object is unterminated.
+ */
+function scanJsonObjectEnd(text: string, start: number): number {
+  if (text[start] !== '{') return -1;
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      if (escape) {
+        escape = false;
+      } else if (ch === '\\') {
+        escape = true;
+      } else if (ch === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+    } else if (ch === '{' || ch === '[') {
+      depth++;
+    } else if (ch === '}' || ch === ']') {
+      depth--;
+      if (depth === 0) return i;
+      if (depth < 0) return -1;
+    }
+  }
+  return -1;
 }
 
 /** Coerce one raw model case into a {@link GeneratedCase}, or null. */
@@ -145,7 +254,13 @@ export class OpenAICompatProvider implements AIProvider {
   private readonly timeout: number;
   private readonly maxTokens: number;
   private readonly cacheDir: string | null;
+  private readonly cacheMaxAgeMs: number | undefined;
   private readonly fetchImpl: typeof fetch;
+  private readonly strictJson: boolean;
+  /** Tracks whether this provider has already observed a `response_format` rejection. */
+  private responseFormatDisabled = false;
+  /** serverLabel from the most recent analysis, used when serialising cache files. */
+  private lastAnalysisServerLabel: string | undefined;
 
   constructor(options: OpenAICompatOptions = {}) {
     this.baseUrl = (options.baseUrl || DEFAULT_AI_BASE_URL).replace(/\/+$/, '');
@@ -154,12 +269,15 @@ export class OpenAICompatProvider implements AIProvider {
     this.timeout = options.timeout ?? 60_000;
     this.maxTokens = options.maxTokens ?? 4096;
     this.cacheDir = options.cacheDir === undefined ? '.mcp-tester-cache' : options.cacheDir;
+    this.cacheMaxAgeMs = options.cacheMaxAgeMs;
     this.fetchImpl = options.fetchImpl ?? globalThis.fetch;
+    this.strictJson = options.strictJson !== false;
     this.name = this.model;
   }
 
   async suggestCases(analysis: ServerAnalysis): Promise<GeneratedCase[]> {
     if (analysis.tools.length === 0) return [];
+    this.lastAnalysisServerLabel = analysis.serverLabel;
 
     const cacheKey = this.cacheKeyFor(analysis);
     const cached = this.readCache(cacheKey);
@@ -206,6 +324,62 @@ export class OpenAICompatProvider implements AIProvider {
       .filter(Boolean)
       .join('\n\n');
 
+    // First attempt: include response_format if strictJson wasn't disabled
+    // (either by the user or by a previous rejection from this provider).
+    const wantsResponseFormat = this.responseFormatDisabled ? false : this.strictJson !== false;
+    const primary = await this.rawChatCompletion(userMessage, wantsResponseFormat);
+    if (primary.kind === 'ok') return primary.content;
+    if (primary.kind === 'timeout') {
+      throw new Error(`AI request timed out after ${primary.ms}ms`);
+    }
+    if (primary.kind !== 'response_format_rejected') {
+      throw new Error(
+        `AI request failed: HTTP ${primary.status} from ${this.baseUrl}/chat/completions${primary.body ? ` — ${primary.body.slice(0, 200)}` : ''}`
+      );
+    }
+
+    // Auto-fallback: server complained about response_format. Disable it
+    // for this provider instance and retry once. We won't fall back a
+    // second time even if the user explicitly set strictJson=true, because
+    // the gateway clearly doesn't support it.
+    this.responseFormatDisabled = true;
+    const retry = await this.rawChatCompletion(userMessage, false);
+    if (retry.kind === 'ok') return retry.content;
+    if (retry.kind === 'timeout') {
+      throw new Error(`AI request timed out after ${retry.ms}ms`);
+    }
+    throw new Error(
+      `AI request failed after response_format fallback: HTTP ${retry.status} from ${this.baseUrl}/chat/completions${retry.body ? ` — ${retry.body.slice(0, 200)}` : ''}`
+    );
+  }
+
+  /**
+   * One HTTP request to the chat-completions endpoint. Categorises the
+   * response so the caller can decide whether to retry without
+   * `response_format` or just throw.
+   */
+  private async rawChatCompletion(
+    userMessage: string,
+    includeResponseFormat: boolean
+  ): Promise<
+    | { kind: 'ok'; content: string }
+    | { kind: 'timeout'; ms: number }
+    | { kind: 'http_error'; status: number; body: string }
+    | { kind: 'response_format_rejected'; status: number; body: string }
+  > {
+    const body: Record<string, unknown> = {
+      model: this.model,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: userMessage },
+      ],
+      temperature: 0.2,
+      max_tokens: this.maxTokens,
+    };
+    if (includeResponseFormat) {
+      body['response_format'] = { type: 'json_object' };
+    }
+
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeout);
     try {
@@ -215,49 +389,53 @@ export class OpenAICompatProvider implements AIProvider {
           'Content-Type': 'application/json',
           ...(this.apiKey ? { Authorization: `Bearer ${this.apiKey}` } : {}),
         },
-        body: JSON.stringify({
-          model: this.model,
-          messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user', content: userMessage },
-          ],
-          temperature: 0.2,
-          max_tokens: this.maxTokens,
-          response_format: { type: 'json_object' },
-        }),
+        body: JSON.stringify(body),
         signal: controller.signal,
       });
 
-      if (!response.ok) {
-        const body = await response.text().catch(() => '');
-        throw new Error(
-          `AI request failed: HTTP ${response.status} from ${this.baseUrl}/chat/completions${body ? ` — ${body.slice(0, 200)}` : ''}`
-        );
+      if (response.ok) {
+        const data = (await response.json()) as {
+          choices?: Array<{ message?: { content?: string } }>;
+        };
+        const content = data.choices?.[0]?.message?.content;
+        if (typeof content !== 'string') {
+          return { kind: 'http_error', status: 502, body: 'no message content in response' };
+        }
+        return { kind: 'ok', content };
       }
 
-      const data = (await response.json()) as {
-        choices?: Array<{ message?: { content?: string } }>;
-      };
-      const content = data.choices?.[0]?.message?.content;
-      if (typeof content !== 'string') {
-        throw new Error('AI response had no message content');
+      const errBody = await response.text().catch(() => '');
+      if (includeResponseFormat && response.status === 400 && /response_format/i.test(errBody)) {
+        return { kind: 'response_format_rejected', status: 400, body: errBody };
       }
-      return content;
+      return { kind: 'http_error', status: response.status, body: errBody };
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error(`AI request timed out after ${this.timeout}ms`);
+        return { kind: 'timeout', ms: this.timeout };
       }
-      throw error instanceof Error ? error : new Error(String(error));
+      const message = error instanceof Error ? error.message : String(error);
+      return { kind: 'http_error', status: 0, body: message };
     } finally {
       clearTimeout(timer);
     }
   }
 
   private cacheKeyFor(analysis: ServerAnalysis): string {
+    // Include serverLabel so two servers with identical tool sets don't
+    // share an entry. Include the tool set in a stable order.
+    const toolsKey = analysis.tools
+      .map((t) => ({
+        name: t.name,
+        description: t.description ? t.description.slice(0, MAX_DESCRIPTION_CHARS) : '',
+        inputSchema: t.inputSchema,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
     const hash = createHash('sha256')
       .update(this.model)
       .update('\u0000')
-      .update(JSON.stringify(analysis.tools))
+      .update(analysis.serverLabel ?? '')
+      .update('\u0000')
+      .update(JSON.stringify(toolsKey))
       .digest('hex');
     return `ai-cases-${hash}.json`;
   }
@@ -267,7 +445,17 @@ export class OpenAICompatProvider implements AIProvider {
     const file = join(this.cacheDir, key);
     try {
       if (!existsSync(file)) return null;
-      const data = JSON.parse(readFileSync(file, 'utf-8')) as { model?: string; cases?: unknown };
+      // Honour cacheMaxAgeMs via mtime. statSync errors are treated as a
+      // miss so a corrupt FS doesn't lock the user out of fresh fetches.
+      if (typeof this.cacheMaxAgeMs === 'number' && this.cacheMaxAgeMs > 0) {
+        const stat = statSyncSafe(file);
+        if (stat && Date.now() - stat.mtimeMs > this.cacheMaxAgeMs) return null;
+      }
+      const data = JSON.parse(readFileSync(file, 'utf-8')) as {
+        model?: string;
+        serverLabel?: string;
+        cases?: unknown;
+      };
       if (data.model !== this.model || !Array.isArray(data.cases)) return null;
       return data.cases
         .map((c) => coerceCase(c, this.name))
@@ -283,7 +471,11 @@ export class OpenAICompatProvider implements AIProvider {
       mkdirSync(this.cacheDir, { recursive: true });
       writeFileSync(
         join(this.cacheDir, key),
-        JSON.stringify({ model: this.model, cases }, null, 2),
+        JSON.stringify(
+          { model: this.model, serverLabel: this.lastAnalysisServerLabel, cases },
+          null,
+          2
+        ),
         'utf-8'
       );
     } catch {

@@ -431,3 +431,163 @@ describe('mergeAndValidateCases', () => {
     expect(rejected).toHaveLength(0);
   });
 });
+
+describe('suggestEdgeCases: new rules', () => {
+  it('emits a case when schema declares a pattern', () => {
+    const tool = toolWith({
+      type: 'object',
+      properties: { code: { type: 'string', pattern: '^[A-Z]{3}$' } },
+      required: ['code'],
+    });
+    const cases = suggestEdgeCases(tool);
+    const patternCase = cases.find((c) => c.source === 'rule:pattern');
+    expect(patternCase).toBeDefined();
+    expect(patternCase?.args['code']).toBe('__mcp_tester_invalid__');
+    expect(patternCase?.expectation).toBe('error');
+  });
+
+  it('emits a case for exclusiveMinimum / exclusiveMaximum', () => {
+    const tool = toolWith({
+      type: 'object',
+      properties: {
+        low: { type: 'number', exclusiveMinimum: 0 },
+        high: { type: 'number', exclusiveMaximum: 100 },
+      },
+      required: ['low', 'high'],
+    });
+    const cases = suggestEdgeCases(tool);
+    const sources = cases.map((c) => c.source);
+    expect(sources.filter((s) => s === 'rule:bounds').length).toBeGreaterThanOrEqual(2);
+    const lowCase = cases.find((c) => c.args['low'] === 0);
+    const highCase = cases.find((c) => c.args['high'] === 100);
+    expect(lowCase?.expectation).toBe('error');
+    expect(highCase?.expectation).toBe('error');
+  });
+
+  it('emits a case for maxItems', () => {
+    const tool = toolWith({
+      type: 'object',
+      properties: { tags: { type: 'array', maxItems: 2, items: { type: 'string' } } },
+      required: ['tags'],
+    });
+    const cases = suggestEdgeCases(tool);
+    const maxCase = cases.find((c) => c.source === 'rule:max-items');
+    expect(maxCase).toBeDefined();
+    expect(Array.isArray(maxCase?.args['tags'])).toBe(true);
+    expect((maxCase?.args['tags'] as unknown[]).length).toBeGreaterThan(2);
+  });
+
+  it('emits a case for uniqueItems with duplicates', () => {
+    const tool = toolWith({
+      type: 'object',
+      properties: { ids: { type: 'array', uniqueItems: true, items: { type: 'string' } } },
+      required: ['ids'],
+    });
+    const cases = suggestEdgeCases(tool);
+    const dupCase = cases.find((c) => c.source === 'rule:unique-items');
+    expect(dupCase).toBeDefined();
+    const ids = dupCase?.args['ids'] as unknown[];
+    expect(ids?.length).toBe(2);
+    expect(ids?.[0]).toBe(ids?.[1]);
+  });
+
+  it('emits a case for additionalProperties as a schema', () => {
+    const tool = toolWith({
+      type: 'object',
+      properties: { name: { type: 'string' } },
+      additionalProperties: { type: 'string' },
+    });
+    const cases = suggestEdgeCases(tool);
+    const schemaCase = cases.find((c) => c.source === 'rule:additional-properties-schema');
+    expect(schemaCase).toBeDefined();
+    // extra prop is a number, but additionalProperties says string
+    expect(schemaCase?.args['__mcp_tester_unknown__']).toBe(12345);
+  });
+});
+
+describe('validateArgsAgainstSchema: new rules', () => {
+  it('rejects when pattern does not match', () => {
+    const schema = {
+      type: 'object' as const,
+      properties: { code: { type: 'string', pattern: '^A' } },
+    };
+    expect(validateArgsAgainstSchema({ code: 'B' }, schema)).toMatch(/pattern/);
+    expect(validateArgsAgainstSchema({ code: 'A1' }, schema)).toBeNull();
+  });
+
+  it('rejects when exclusiveMinimum is not exclusive', () => {
+    const schema = {
+      type: 'object' as const,
+      properties: { x: { type: 'number', exclusiveMinimum: 5 } },
+    };
+    expect(validateArgsAgainstSchema({ x: 5 }, schema)).toMatch(/exclusive/);
+    expect(validateArgsAgainstSchema({ x: 6 }, schema)).toBeNull();
+  });
+
+  it('rejects when maxItems is exceeded', () => {
+    const schema = {
+      type: 'object' as const,
+      properties: { arr: { type: 'array', maxItems: 2, items: { type: 'string' } } },
+    };
+    expect(validateArgsAgainstSchema({ arr: ['a', 'b', 'c'] }, schema)).toMatch(/maxItems/);
+    expect(validateArgsAgainstSchema({ arr: ['a'] }, schema)).toBeNull();
+  });
+
+  it('rejects duplicates when uniqueItems is true', () => {
+    const schema = {
+      type: 'object' as const,
+      properties: { arr: { type: 'array', uniqueItems: true, items: { type: 'string' } } },
+    };
+    expect(validateArgsAgainstSchema({ arr: ['a', 'a'] }, schema)).toMatch(/duplicate/);
+    expect(validateArgsAgainstSchema({ arr: ['a', 'b'] }, schema)).toBeNull();
+  });
+
+  it('validates unknown properties against additionalProperties schema', () => {
+    const schema = {
+      type: 'object' as const,
+      properties: {},
+      additionalProperties: { type: 'string' },
+    };
+    expect(validateArgsAgainstSchema({ extra: 123 }, schema)).toMatch(
+      /additionalProperties: type string/
+    );
+    expect(validateArgsAgainstSchema({ extra: 'ok' }, schema)).toBeNull();
+  });
+
+  it('ignores invalid regex patterns in schemas', () => {
+    const schema = {
+      type: 'object' as const,
+      properties: { s: { type: 'string', pattern: '[invalid(' } },
+    };
+    // Should not throw; should accept anything
+    expect(validateArgsAgainstSchema({ s: 'anything' }, schema)).toBeNull();
+  });
+});
+
+describe('caseKey is order-independent', () => {
+  it('produces the same key for the same args in different key order', () => {
+    const a: GeneratedCase = {
+      tool: 't',
+      title: 'x',
+      args: { foo: 1, bar: 2 },
+      expectation: 'success',
+      rationale: '',
+      source: 'rule:test',
+    };
+    const b: GeneratedCase = { ...a, args: { bar: 2, foo: 1 } };
+    expect(caseKey(a)).toBe(caseKey(b));
+  });
+
+  it('produces different keys for different values', () => {
+    const a: GeneratedCase = {
+      tool: 't',
+      title: 'x',
+      args: { foo: 1 },
+      expectation: 'success',
+      rationale: '',
+      source: 'rule:test',
+    };
+    const b: GeneratedCase = { ...a, args: { foo: 2 } };
+    expect(caseKey(a)).not.toBe(caseKey(b));
+  });
+});

@@ -330,7 +330,7 @@ describe('Integration', () => {
 ```
 
 ### Current Test Suite
-- **Total Tests**: 795 tests (all passing)
+- **Total Tests**: 826 tests (all passing)
 - **Test Suites**: 21
 - **Tests by file** (run `npx jest --json` to refresh):
   - `validation.test.ts`: 109

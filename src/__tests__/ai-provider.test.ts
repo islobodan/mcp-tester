@@ -16,7 +16,7 @@ import {
   DEFAULT_AI_BASE_URL,
   DEFAULT_AI_MODEL,
 } from '../ai/provider.js';
-import type { OpenAICompatOptions } from '../ai/provider.js';
+import type { OpenAICompatOptions, ServerAnalysis } from '../ai/provider.js';
 import { mergeAndValidateCases } from '../generate-cases.js';
 import type { FetchMock } from './helpers/fetch-mock.js';
 import { jsonResponse, okResponse, errorResponse } from './helpers/fetch-mock.js';
@@ -368,6 +368,159 @@ describe('suggestCasesWithAI', () => {
       expect(files.some((f) => f.startsWith('ai-cases-') && f.endsWith('.json'))).toBe(true);
       const raw = readFileSync(join(dir, 'cache', files[0]), 'utf-8');
       expect(JSON.parse(raw)).toMatchObject({ model: 'm' });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('parseJsonLoose', () => {
+  // Re-import for direct unit testing.
+  const { parseJsonLoose } = require('../ai/provider.js') as typeof import('../ai/provider.js');
+
+  it('parses a bare JSON object', () => {
+    expect(parseJsonLoose('{"cases":[{"tool":"t","args":{}}]}')).toEqual({
+      cases: [{ tool: 't', args: {} }],
+    });
+  });
+
+  it('parses JSON inside a ```json fence', () => {
+    expect(parseJsonLoose('Here you go:\n```json\n{"cases":[]}\n```\nThanks!')).toEqual({
+      cases: [],
+    });
+  });
+
+  it('parses JSON inside a bare ``` fence', () => {
+    expect(parseJsonLoose('```\n{"cases":[{"a":1}]}\n```')).toEqual({ cases: [{ a: 1 }] });
+  });
+
+  it('handles nested braces inside string values', () => {
+    // The string value contains a `{` and `}` that should NOT be mistaken
+    // for structural braces.
+    const content = 'prefix {"cases":[{"tool":"x","args":{"json":"{not closed}"}}]} suffix';
+    expect(parseJsonLoose(content)).toEqual({
+      cases: [{ tool: 'x', args: { json: '{not closed}' } }],
+    });
+  });
+
+  it('chooses the longest valid object when multiple are present', () => {
+    const content = '{"a":1} prose {"cases":[{"tool":"t","args":{}}]} more prose';
+    expect(parseJsonLoose(content)).toEqual({ cases: [{ tool: 't', args: {} }] });
+  });
+
+  it('returns null when no JSON object is present', () => {
+    expect(parseJsonLoose('no json here, just text')).toBeNull();
+  });
+
+  it('returns null for empty or non-string input', () => {
+    expect(parseJsonLoose('')).toBeNull();
+    expect(parseJsonLoose(null as unknown as string)).toBeNull();
+  });
+});
+
+describe('response_format auto-fallback', () => {
+  function makeProviderWithFailingFirstThenOk(): {
+    provider: OpenAICompatProvider;
+    requests: Array<{ url: string; body: string }>;
+  } {
+    const requests: Array<{ url: string; body: string }> = [];
+    let calls = 0;
+    const mock: FetchMock = async (url, init) => {
+      const body = init?.body ? String(init.body) : '';
+      requests.push({ url: String(url), body });
+      calls++;
+      if (calls === 1) {
+        // First call: server rejects response_format.
+        return new Response(JSON.stringify({ error: 'response_format is not supported' }), {
+          status: 400,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      return new Response(JSON.stringify({ choices: [{ message: { content: '{"cases":[]}' } }] }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    };
+    const provider = new OpenAICompatProvider({ apiKey: 'k', fetchImpl: mock, cacheDir: null });
+    return { provider, requests };
+  }
+
+  it('retries without response_format when the gateway rejects it', async () => {
+    const { provider, requests } = makeProviderWithFailingFirstThenOk();
+    const result = await provider.suggestCases(analysis);
+    expect(result).toEqual([]);
+    expect(requests).toHaveLength(2);
+    expect(requests[0].body).toContain('response_format');
+    expect(requests[1].body).not.toContain('response_format');
+  });
+
+  it('skips response_format entirely when strictJson is false', async () => {
+    const requests: string[] = [];
+    const mock: FetchMock = async (_url, init) => {
+      requests.push(String(init?.body ?? ''));
+      return new Response(JSON.stringify({ choices: [{ message: { content: '{"cases":[]}' } }] }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    };
+    const provider = new OpenAICompatProvider({
+      apiKey: 'k',
+      fetchImpl: mock,
+      strictJson: false,
+      cacheDir: null, // avoid contamination from other tests' cache
+    });
+    await provider.suggestCases(analysis);
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).not.toContain('response_format');
+  });
+});
+
+describe('cache invalidation', () => {
+  it('honours cacheMaxAgeMs by re-fetching stale entries', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'mcp-tester-cache-'));
+    try {
+      let calls = 0;
+      const mock: FetchMock = async () => {
+        calls++;
+        return new Response(
+          JSON.stringify({ choices: [{ message: { content: '{"cases":[]}' } }] }),
+          { status: 200, headers: { 'content-type': 'application/json' } }
+        );
+      };
+      const provider = new OpenAICompatProvider({
+        apiKey: 'k',
+        cacheDir: dir,
+        cacheMaxAgeMs: 1, // anything older than 1ms is stale
+        fetchImpl: mock,
+      });
+      await provider.suggestCases(analysis);
+      // Sleep a bit so mtime is older than 1ms from the next call.
+      await new Promise((r) => setTimeout(r, 10));
+      await provider.suggestCases(analysis);
+      // Second call should have re-fetched because the first cache entry is
+      // older than cacheMaxAgeMs.
+      expect(calls).toBe(2);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('shares cache entries across requests with identical tool sets and serverLabel', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'mcp-tester-cache-'));
+    try {
+      let calls = 0;
+      const mock: FetchMock = async () => {
+        calls++;
+        return new Response(
+          JSON.stringify({ choices: [{ message: { content: '{"cases":[]}' } }] }),
+          { status: 200, headers: { 'content-type': 'application/json' } }
+        );
+      };
+      const provider = new OpenAICompatProvider({ apiKey: 'k', cacheDir: dir, fetchImpl: mock });
+      const a: ServerAnalysis = { serverLabel: 'svc', tools: [{ name: 't', inputSchema: {} }] };
+      await provider.suggestCases(a);
+      await provider.suggestCases(a); // second call should hit cache
+      expect(calls).toBe(1);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
