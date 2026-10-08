@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.3] - 2026-10-08
+
+### Fixed
+- **`npm run test:coverage` failed its branch-coverage gate for `src/generate-cases.ts`** (`81.87% < 85%`) even though every test passed. Added tests covering the previously untested `additionalProperties`-as-schema constraint checks (`minLength`/`maxLength`/`maximum`/`exclusiveMinimum`/`exclusiveMaximum`/`minItems`/`maxItems`/`uniqueItems`), constraint-only violating-value inference, union/`null`/untyped-property handling, and rule-engine edges (numeric enums, unmatched `required` keys, required object properties, `maxItems` without an `items` schema). Branch coverage for the file is now 97.65%; overall branch coverage is 87.76%.
+
 ## [1.5.2] - 2026-10-08
 
 ### Fixed
