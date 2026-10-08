@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-10-08
+
+### Security
+- Cleared the `npm audit` findings that blocked the 1.5.0 publish (the `release.yml` job's hard `npm audit --audit-level=high` gate). A semver-safe `npm audit fix` bumped:
+  - `@modelcontextprotocol/sdk` 1.29.0 → 1.32.1 (high — the OAuth client could send credentials to an authorization server chosen by the MCP server, [GHSA-6qxp-vccf-f47h](https://github.com/advisories/GHSA-6qxp-vccf-f47h)).
+  - `proxy-addr` 2.0.7 → 2.0.8 (critical — IP spoofing via an IPv4-mapped IPv6 trust subnet, [GHSA-jqcg-44mw-7w3h](https://github.com/advisories/GHSA-jqcg-44mw-7w3h)), transitive via `express` through the SDK's server integration.
+  - `ts-jest` → 29.4.14 and `babel-plugin-istanbul` → 8.0.2 transitively.
+  - The remaining advisories are dev-only moderate findings (`sprintf-js` via `ts-jest`) and sit below the release gate's `--audit-level=high` threshold; clearing them requires a breaking `ts-jest` downgrade (`npm audit fix --force`), so they are intentionally left in place.
+
 ## [1.5.0] - 2026-10-08
 
 ### Added
