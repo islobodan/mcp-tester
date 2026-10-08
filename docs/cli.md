@@ -10,7 +10,7 @@ npx @slbdn/mcp-tester test node ./server.js
 
 ## Transports
 
-The CLI supports three transport types:
+The CLI supports four transport types:
 
 ### Stdio (default)
 
@@ -41,6 +41,19 @@ mcp-tester test --transport http --url https://api.example.com/mcp --headers '{"
 
 ```bash
 mcp-tester test --transport sse --url http://localhost:3000/sse
+```
+
+### WebSocket
+
+```bash
+mcp-tester test --transport websocket --url ws://localhost:3000
+```
+
+A `ws://` or `wss://` URL passed as the first argument is auto-detected as the
+WebSocket transport:
+
+```bash
+mcp-tester test wss://api.example.com/mcp
 ```
 
 ## Commands

@@ -10,7 +10,7 @@ For planned improvements, features, and enhancements, see [TODO.md](./TODO.md). 
 - Detailed task descriptions and effort estimates
 - Progress tracking with status indicators: `[ ]` (not started), `[/]` (in progress), `[x]` (completed)
 - Quick wins that can be completed in under 1 hour
-- Current completion: 82.7% (43 completed)
+- Current completion: 84.6% (44 completed)
 
 ## Project Overview
 
@@ -330,29 +330,32 @@ describe('Integration', () => {
 ```
 
 ### Current Test Suite
-- **Total Tests**: 826 tests (all passing)
-- **Test Suites**: 21
+- **Total Tests**: 866 tests (all passing)
+- **Test Suites**: 24
 - **Tests by file** (run `npx jest --json` to refresh):
-  - `validation.test.ts`: 109
+  - `validation.test.ts`: 110
   - `matchers.test.ts`: 78
+  - `generate-cases.test.ts`: 74
   - `property-based.test.ts`: 73
   - `mock-server.test.ts`: 68
   - `assert.test.ts`: 67
   - `generate-types.test.ts`: 65
   - `cli.test.ts`: 46
-  - `generate-cases.test.ts`: 39
+  - `generate-tests.test.ts`: 45
   - `everything-server.test.ts`: 37
-  - `generate-tests.test.ts`: 35
+  - `ai-provider.test.ts`: 33
   - `masking.test.ts`: 32
   - `errors.test.ts`: 28
   - `resources-prompts.test.ts`: 23
   - `logger.test.ts`: 22
-  - `ai-provider.test.ts`: 20
   - `health-check.test.ts`: 17
   - `http-transport.test.ts`: 15
   - `real-server.test.ts`: 14
+  - `websocket-transport.test.ts`: 7
+  - `jest-d-ts.test.ts`: 4
   - `client.test.ts`: 3
   - `version.test.ts`: 3
+  - `jest-aug.test.ts`: 1
   - `advanced.test.ts`: 1
 
 ## Important Gotchas & Non-Obvious Patterns
@@ -496,6 +499,14 @@ assert.equal(tools.length, 4);
 
 `setupCustomMatchers()` is available as a backward-compatible alias for `setupJestMatchers()`.
 
+### 13. Browser Support & Lazy stdio
+`MCPClient` supports `stdio` (default), `http`, `sse`, and `websocket` transports. To keep browser bundles free of Node built-ins:
+- The stdio transport is **not statically imported**. `MCPClient.createTransport()` does `await import('../utils/stdio-transport.js')`, and that wrapper is mapped to `false` under the `browser` field in `package.json`.
+- `src/browser.ts` is a browser-safe barrel (client, matchers, assert, errors, masking, edge-case generator). Bundlers pick it up automatically via the `browser` field; no `exports` map is defined (adding one would break deep imports).
+- Node globals are guarded: `utils/logger.ts` checks `typeof process !== 'undefined'` for TTY detection, and `MCPClient` has `getProcessEnv()` / `isProcessAlive()` fallbacks for browsers.
+- The WebSocket transport relies on a global `WebSocket` (browsers, Node ≥ 22). Tests inject an in-process `MockWebSocket` (`src/__tests__/websocket-transport.test.ts`).
+- `npm run test:browser` (esbuild, `platform: 'browser'`) is the regression gate; it fails if `node:*` or `cross-spawn` leaks into the bundle. Run it after `npm run build`.
+
 ## CI/CD Integration
 
 ### GitHub Actions Workflow (`.github/workflows/test.yml`)
@@ -606,7 +617,9 @@ chore: maintenance tasks
 | `jest.config.js` | Jest test configuration with ESM support |
 | `.eslintrc.json` | ESLint linting rules |
 | `.prettierrc.json` | Code formatting rules |
-| `src/index.ts` | Library entry point |
+| `src/index.ts` | Library entry point (Node) |
+| `src/browser.ts` | Browser-safe entry point (HTTP/SSE/WebSocket, matchers, assert) |
+| `src/utils/stdio-transport.ts` | Node-only stdio loader (mapped to `false` in the `browser` field) |
 | `src/client/MCPClient.ts` | Main client implementation |
 | `src/utils/logger.ts` | Logging utility (colors, timestamps, timers) |
 | `src/utils/masking.ts` | Secret masking (patterns, env keys, prettyPrint) |
@@ -620,6 +633,8 @@ chore: maintenance tasks
 | `src/ai/provider.ts` | OpenAI-compatible AI case provider (OpenAICompatProvider, createProviderFromEnv) |
 | `src/generate-types.ts` | TypeScript type generator from tool schemas (generateTypes) |
 | `docs/ai-generation.md` | Edge cases, LLM integration, `--verify` guide |
+| `docs/browser.md` | Browser/edge support, transports, bundler notes, limitations |
+| `scripts/check-browser-bundle.mjs` | Browser bundle smoke test (`npm run test:browser`) |
 | `vitest.d.ts` | Vitest type declarations for matchers |
 | `src/__tests__/fixtures/mock-server.ts` | In-memory mock server for unit tests |
 | `examples/mock-server.js` | Basic standalone MCP server (echo, add, delay, error_tool) |
@@ -691,8 +706,8 @@ chore: maintenance tasks
 
 ## Known Limitations
 
-1. **Transport**: Supports stdio (default), Streamable HTTP, and SSE transports
-2. **Runtime**: Designed for Node.js servers (other runtimes may need adjustments)
+1. **Transport**: Supports stdio (default), Streamable HTTP, SSE, and WebSocket transports
+2. **Runtime**: Node.js by default; the `http`/`sse`/`websocket` transports also run in browsers and edge runtimes through the browser entry point (`src/browser.ts`, selected via the `browser` field in `package.json`). `stdio`, test/type generation, and the AI provider are Node-only.
 3. **Mock Server**: Enhanced implementation with delays, failures, stateful tools, validation, custom handlers, and call history tracking
 4. **Test Coverage**: Per-file floors (60–100%) — run `npm run test:coverage` to see breakdown
 
@@ -747,10 +762,11 @@ chore: maintenance tasks
 ## Project Statistics
 
 - **Total Lines of Code**: ~6,600 lines (excluding tests)
-- **Test Coverage**: 91/86/95/91 (statements/branches/functions/lines) with per-file floors
-- **Tests**: 793 (all passing, 21 suites)
+- **Test Coverage**: 92/88/96/92 (statements/branches/functions/lines) with per-file floors
+- **Tests**: 866 (all passing, 24 suites)
 - **Build Time**: ~3 seconds
-- **Test Execution Time**: ~110 seconds
+- **Test Execution Time**: ~115 seconds
 - **Node.js Versions Tested**: 20, 22
-- **SDK Version**: 1.29.0
+- **SDK Version**: ^1.29.0
+- **Browsers / Runtimes**: modern browsers and edge runtimes via `http`/`sse`/`websocket` (`npm run test:browser`)
 - **Pre-commit Hooks**: Husky + lint-staged (eslint + prettier)

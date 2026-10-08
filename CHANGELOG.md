@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Browser support.** `mcp-tester` can now run in browsers and edge runtimes over the `http`, `sse`, and new `websocket` transports. A browser-safe entry point (`src/browser.ts`) is selected automatically via the `browser` field in `package.json`, and the Node-only stdio transport is isolated so bundlers exclude it from browser builds.
+- **WebSocket transport** (`{ transport: 'websocket', url: 'ws://…' }`), available in the client and the CLI (`--transport websocket`), using the browser-native `WebSocket` API and the `mcp` subprotocol. `ws://`/`wss://` URLs are auto-detected by the CLI. Config validation accepts `ws:`/`wss:` for this transport.
+- `docs/browser.md` and a README "Browser Support" section.
+- `npm run test:browser` bundles the package with esbuild using `platform: 'browser'` and fails if Node built-ins or the stdio transport leak into the bundle; wired into CI.
+
 ## [1.5.4] - 2026-10-08
 
 ### Fixed

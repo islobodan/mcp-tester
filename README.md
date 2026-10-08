@@ -8,7 +8,7 @@
 [![npm downloads](https://img.shields.io/npm/dm/@slbdn/mcp-tester)](https://www.npmjs.com/package/@slbdn/mcp-tester)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Test Status](https://img.shields.io/badge/tests-858%20passing-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)
+[![Test Status](https://img.shields.io/badge/tests-866%20passing-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)
 [![Coverage](https://img.shields.io/badge/coverage-92%2F88%2F96%2F92-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)  <!-- statements/branches/functions/lines -->
 [![codecov](https://codecov.io/gh/islobodan/mcp-tester/branch/main/graph/badge.svg)](https://codecov.io/gh/islobodan/mcp-tester)
 
@@ -51,7 +51,7 @@ No more manual clicking through inspectors — write real tests, run them in CI,
 │  │   │       MCPTimeoutError │ MCPConnectionError │ ...       │   │  │
 │  │   └───────────────────────────┬────────────────────────────┘   │  │
 │  └───────────────────────────────┼────────────────────────────────┘  │
-│                                  │ stdio, HTTP, SSE                  │
+│                                  │ stdio, HTTP, SSE, WebSocket       │
 │  ┌───────────────────────────────▼────────────────────────────────┐  │
 │  │                           MCP Server                           │  │
 │  │   ┌──────────────┐     ┌──────────────┐     ┌──────────────┐   │  │
@@ -64,15 +64,15 @@ No more manual clicking through inspectors — write real tests, run them in CI,
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-**Data flow**: Your test calls `MCPClient` → which sends JSON-RPC over stdio/HTTP/SSE → to the MCP server → server responds → `MCPClient` returns typed results → your assertion validates them.
+**Data flow**: Your test calls `MCPClient` → which sends JSON-RPC over stdio/HTTP/SSE/WebSocket → to the MCP server → server responds → `MCPClient` returns typed results → your assertion validates them.
 
-**Key design**: `MCPClient` manages the server lifecycle (spawn/kill for stdio, connect/disconnect for HTTP/SSE) and protocol handling. Your tests never deal with the transport layer directly.
+**Key design**: `MCPClient` manages the server lifecycle (spawn/kill for stdio, connect/disconnect for HTTP/SSE/WebSocket) and protocol handling. Your tests never deal with the transport layer directly.
 
 ## Why MCP Tester?
 
 - **Full protocol support** — tools, resources, prompts, sampling, elicitation, notifications
 - **Built on the official SDK** — `@modelcontextprotocol/sdk` ^1.29.0
-- **Works out of the box** — mock server included, 858 tests passing
+- **Works out of the box** — mock server included, 866 tests passing
 - **CLI included** — test any server from the command line
 - **TypeScript first** — strict types, ESM, full IntelliSense
 - **Parallel execution** — fire multiple tool calls concurrently with `Promise.all` for blazing-fast test suites
@@ -88,7 +88,7 @@ No more manual clicking through inspectors — write real tests, run them in CI,
 | Branches | 88% |
 | Functions | 96% |
 | Lines | 92% |
-| Tests | 858 passing |
+| Tests | 866 passing |
 
 Per-file coverage thresholds are set in `jest.config.js` to catch regressions while avoiding CI noise. Run `npm run test:coverage` to see the full breakdown by file. PRs automatically receive a coverage comment via GitHub Actions.
 
@@ -153,6 +153,12 @@ await client.start({
 await client.start({
   transport: 'sse',
   url: 'http://localhost:3000/sse',
+});
+
+// WebSocket transport (browser-friendly)
+await client.start({
+  transport: 'websocket',
+  url: 'ws://localhost:3000',
 });
 ```
 
@@ -359,6 +365,36 @@ await client.stop();
 Works because each MCP call is independent — the client multiplexes requests over a single stdio connection.
 No extra config needed. Just `Promise.all` and go.
 
+## Browser Support
+
+`mcp-tester` runs in browser and edge runtimes when you connect over
+**HTTP**, **SSE**, or **WebSocket** — the transports that don't require spawning
+a local process. Bundlers automatically pick the browser-safe entry point via
+the `browser` field in `package.json`, so no configuration is needed:
+
+```typescript
+import { MCPClient } from '@slbdn/mcp-tester';
+
+const client = new MCPClient();
+
+// HTTP (fetch-based) — recommended for remote servers
+await client.start({ transport: 'http', url: 'https://api.example.com/mcp' });
+
+// WebSocket — uses the browser-native WebSocket API
+await client.start({ transport: 'websocket', url: 'wss://api.example.com/mcp' });
+```
+
+**What's included in the browser bundle:** `MCPClient`, custom matchers, the
+`assert` utilities, error classes, and the edge-case generator (`suggestEdgeCases`).
+
+**What's Node-only:** the `stdio` transport (spawns a child process), test/type
+generation (`generateTests`, `generateTypes`), and the AI provider. These are
+tree-shaken out of browser bundles.
+
+**Requirements:** a global `WebSocket` (all modern browsers; Node.js ≥ 22) and
+`fetch` (all modern browsers). See [Browser Support](./docs/browser.md) for
+details, bundler notes, and limitations.
+
 ## Core API
 
 | Method | Returns | Description |
@@ -525,6 +561,7 @@ await runTest("Echo returns input", async () => {
 | [Advanced Usage](./docs/advanced.md) | Timeouts, retries, concurrency, notifications, logging |
 | [CLI Reference](./docs/cli.md) | CLI commands, options, and output formats |
 | [AI-Assisted Test Generation](./docs/ai-generation.md) | Edge cases, LLM integration, `--verify` |
+| [Browser Support](./docs/browser.md) | Browser/edge transports, bundlers, limitations |
 | [CI/CD Integration](./docs/cicd.md) | GitHub Actions, CircleCI, Jenkins |
 | [Troubleshooting](./docs/troubleshooting.md) | Common issues and solutions |
 | [Releases](./docs/releases.md) | Release process and commands |
@@ -536,19 +573,30 @@ await runTest("Echo returns input", async () => {
 ```
 mcp-tester/
 ├── src/
-│   ├── client/MCPClient.ts      # Main client class
+│   ├── client/MCPClient.ts      # Main client class (stdio/HTTP/SSE/WebSocket)
 │   ├── cli/index.ts             # CLI tool
+│   ├── browser.ts               # Browser-safe entry point
 │   ├── assert.ts               # Assertion utilities
-│   ├── matchers.ts             # Custom Jest matchers
+│   ├── matchers.ts             # Custom Jest/Vitest matchers
+│   ├── generate-tests.ts       # Test code generator
+│   ├── generate-cases.ts       # Edge-case rules engine
+│   ├── generate-types.ts       # TypeScript type generator
+│   ├── ai/provider.ts          # OpenAI-compatible AI case provider
 │   ├── utils/
 │   │   ├── errors.ts            # Error classes
 │   │   ├── logger.ts            # Logging
+│   │   ├── masking.ts           # Secret masking
+│   │   ├── validation.ts        # Input validation
+│   │   ├── stdio-transport.ts   # Node-only stdio loader (stubbed for browser)
 │   │   └── env.ts               # Environment utilities
-│   └── __tests__/               # 306 tests
+│   └── __tests__/               # 866 tests
 │       ├── everything-server.test.ts  # Integration tests (server-everything)
 │       ├── real-server.test.ts        # Integration tests (stdio transport)
+│       ├── websocket-transport.test.ts # WebSocket transport (in-process double)
 │       ├── cli.test.ts                # CLI tool tests
 │       └── fixtures/mock-server.ts    # In-memory mock server
+├── scripts/
+│   └── check-browser-bundle.mjs  # Browser bundle smoke test
 ├── examples/
 │   ├── basic-test.ts            # Basic usage example
 │   ├── full-test.ts             # Full capabilities example
@@ -563,7 +611,7 @@ mcp-tester/
 │   ├── minimal-jest/             # One test file, one mock server
 │   ├── standard-jest/            # Per-capability tests, HTML report, CI matrix
 │   └── full-stack/               # TS server + code generation + typed tools
-└── docs/                        # Documentation
+└── docs/                        # Documentation (incl. browser.md)
 ```
 
 ## Development

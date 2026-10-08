@@ -888,15 +888,15 @@ new ConsoleLogger({
 
 ## Future / Experimental
 
-### [ ] 36. Add Browser Support
+### [x] 36. Add Browser Support
 **Description**: Run mcp-tester in browser environments.
 
 **Tasks**:
-- Research browser transport for MCP
-- Implement WebSocket transport
-- Add browser-specific tests
-- Document browser limitations
-- Update CI for browser testing
+- [x] Research browser transport for MCP — the MCP SDK's `WebSocketClientTransport` uses the global `WebSocket` and has no Node built-ins; `http`/`sse` are fetch-based; `stdio` (`cross-spawn`, `node:process`, `node:stream`) is the only Node-bound transport
+- [x] Implement WebSocket transport — `{ transport: 'websocket', url }` in `MCPClient`, CLI, and config validation (`ws://`/`wss://`)
+- [x] Add browser-specific tests — `src/__tests__/websocket-transport.test.ts` (in-process WebSocket double) + `scripts/check-browser-bundle.mjs` esbuild browser bundle gate (`npm run test:browser`)
+- [x] Document browser limitations — `docs/browser.md` + README "Browser Support" section
+- [x] Update CI for browser testing — `test.yml` runs `npm run test:browser` after build
 
 **Impact**: Web-based testing
 
@@ -1099,12 +1099,12 @@ The following tasks can be completed quickly and provide immediate value:
 ## Progress Tracking
 
 **Total Items**: 52
-**Completed**: 43
+**Completed**: 44
 **In Progress**: 0
 **Postponed**: 1 (item 12 — snapshot testing, deprioritised as poor fit for MCP)
-**Not Started**: 8
+**Not Started**: 7
 
-**Completion Percentage**: 82.7% (43/52)
+**Completion Percentage**: 84.6% (44/52)
 
 > The two checked items under "Quick Wins" above (`Add Codecov badge`, `Add Node.js compatibility badge`) are extra checklist entries and are not part of the numbered 52-item total.
 

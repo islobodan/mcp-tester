@@ -99,6 +99,23 @@ await client.start({
 });
 ```
 
+#### WebSocket
+
+Connects to a server over WebSocket using the browser-native `WebSocket` API
+and the `mcp` subprotocol. Browser-friendly.
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `config.transport` | `'websocket'` | ✅ | Must be `'websocket'` |
+| `config.url` | `string` | ✅ | `ws://` or `wss://` server URL |
+
+```typescript
+await client.start({
+  transport: 'websocket',
+  url: 'wss://api.example.com/mcp',
+});
+```
+
 **Throws:**
 - `MCPAlreadyStartedError` — if the client is already connected
 - `MCPConnectionError` — if the connection fails
@@ -127,7 +144,7 @@ if (client.isConnected()) {
 
 ### `getTransportType(): TransportType | null`
 
-Get the active transport type. Returns `'stdio'`, `'http'`, `'sse'`, or `null`.
+Get the active transport type. Returns `'stdio'`, `'http'`, `'sse'`, `'websocket'`, or `null`.
 
 ```typescript
 const type = client.getTransportType();
