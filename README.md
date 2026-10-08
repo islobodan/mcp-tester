@@ -8,8 +8,9 @@
 [![npm downloads](https://img.shields.io/npm/dm/@slbdn/mcp-tester)](https://www.npmjs.com/package/@slbdn/mcp-tester)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Test Status](https://img.shields.io/badge/tests-669%20passing-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)
-[![Coverage](https://img.shields.io/badge/coverage-68%2F61%2F60%2F68-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)  <!-- statements/branches/functions/lines -->
+[![Test Status](https://img.shields.io/badge/tests-858%20passing-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)
+[![Coverage](https://img.shields.io/badge/coverage-92%2F88%2F96%2F92-brightgreen)](https://github.com/islobodan/mcp-tester/actions/workflows/test.yml)  <!-- statements/branches/functions/lines -->
+[![codecov](https://codecov.io/gh/islobodan/mcp-tester/branch/main/graph/badge.svg)](https://codecov.io/gh/islobodan/mcp-tester)
 
 A production-ready MCP (Model Context Protocol) client for **automated testing** of MCP servers with Jest.
 No more manual clicking through inspectors — write real tests, run them in CI, break builds on regressions.
@@ -70,8 +71,8 @@ No more manual clicking through inspectors — write real tests, run them in CI,
 ## Why MCP Tester?
 
 - **Full protocol support** — tools, resources, prompts, sampling, elicitation, notifications
-- **Built on the official SDK** — `@modelcontextprotocol/sdk` v1.29.0
-- **Works out of the box** — mock server included, 257 tests passing
+- **Built on the official SDK** — `@modelcontextprotocol/sdk` ^1.29.0
+- **Works out of the box** — mock server included, 858 tests passing
 - **CLI included** — test any server from the command line
 - **TypeScript first** — strict types, ESM, full IntelliSense
 - **Parallel execution** — fire multiple tool calls concurrently with `Promise.all` for blazing-fast test suites
@@ -83,11 +84,11 @@ No more manual clicking through inspectors — write real tests, run them in CI,
 
 | Metric | Coverage |
 |--------|----------|
-| Statements | 68% |
-| Branches | 61% |
-| Functions | 60% |
-| Lines | 68% |
-| Tests | 669 passing |
+| Statements | 92% |
+| Branches | 88% |
+| Functions | 96% |
+| Lines | 92% |
+| Tests | 858 passing |
 
 Per-file coverage thresholds are set in `jest.config.js` to catch regressions while avoiding CI noise. Run `npm run test:coverage` to see the full breakdown by file. PRs automatically receive a coverage comment via GitHub Actions.
 

@@ -1059,8 +1059,8 @@ The following tasks can be completed quickly and provide immediate value:
 - [x] Triage open Dependabot PRs
 - [x] Add property-based tests for critical paths
 - [x] Add visual test reports
-- [ ] Add Codecov badge to README
-- [ ] Add Node.js compatibility badge
+- [x] Add Codecov badge to README
+- [x] Add Node.js compatibility badge
 
 ---
 
@@ -1105,6 +1105,8 @@ The following tasks can be completed quickly and provide immediate value:
 **Not Started**: 8
 
 **Completion Percentage**: 82.7% (43/52)
+
+> The two checked items under "Quick Wins" above (`Add Codecov badge`, `Add Node.js compatibility badge`) are extra checklist entries and are not part of the numbered 52-item total.
 
 ---
 
