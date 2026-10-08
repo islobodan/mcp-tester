@@ -7,10 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-10-08
+
 ### Added
 - **AI-assisted & schema-driven test-case generation** (TODO #39) — `generate` now goes beyond happy-path calls:
   - `--edge-cases` — deterministic boundary/invalid cases from each tool's JSON Schema (offline, no AI): missing required args, invalid enums, wrong types, `minLength`/`maxLength`, `minimum`/`maximum` bounds, `minItems`, `additionalProperties: false`. Expectations are `error`, `observe`, or `success`, and every case is tagged with a provenance comment (`// rule:required — ...`).
-  - `--ai-generate` — augments the edge cases with LLM suggestions via any OpenAI-compatible endpoint (OpenAI, Ollama, LM Studio, vLLM). The model only proposes **structured case data** (`GeneratedCase`); every suggestion is validated against the real tool schemas and rendered deterministically — hallucinated arguments are dropped with a summary line, and the model never emits code. Configure via `MCP_TESTER_AI_API_KEY` / `MCP_TESTER_AI_BASE_URL` / `MCP_TESTER_AI_MODEL` or the new `--ai-model` / `--ai-base-url` / `--require-ai` flags. Responses are cached in `.mcp-tester-cache/`.
+  - `--ai-generate` — augments the edge cases with LLM suggestions via any OpenAI-compatible endpoint (OpenAI, Ollama, LM Studio, vLLM). The model only proposes **structured case data** (`GeneratedCase`); every suggestion is validated against the real tool schemas and rendered deterministically — hallucinated arguments are dropped with a summary line, and the model never emits code — model-supplied rationales are sanitized before being embedded in a comment, so a crafted rationale cannot break out and become executable test code. Configure via `MCP_TESTER_AI_API_KEY` / `MCP_TESTER_AI_BASE_URL` / `MCP_TESTER_AI_MODEL` or the new `--ai-model` / `--ai-base-url` / `--require-ai` flags. Responses are cached in `.mcp-tester-cache/`.
   - `--verify` — dry-runs every derived case against the live server before writing the file; predictions that don't hold become `it.skip` blocks with an explanatory comment instead of broken tests.
   - New modules: `generate-cases.ts` (rules engine, `GeneratedCase`, `suggestEdgeCases*`, `validateArgsAgainstSchema`, `mergeAndValidateCases`) and `ai/provider.ts` (`OpenAICompatProvider` with injectable `fetchImpl`, `createProviderFromEnv`). All exported from the package barrel.
   - Docs: [`docs/ai-generation.md`](docs/ai-generation.md), README section, CLI reference.
@@ -22,11 +24,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation: [`docs/starter-templates.md`](docs/starter-templates.md) and a new README section.
 
 ### Fixed
-- **Jest matcher types were broken for consumers since the Jest 30 upgrade (1.4.3)** — `expect(tools).toHaveTool(...)` produced TS2339 in consumer projects (the global `jest.Matchers` augmentation no longer reaches Jest 30's `expect()` return type). The matchers are now additionally declared against the `expect` package's `Matchers` interface via `MCPMatchers`, so autocomplete/type-checking works in both ts-jest and plain `tsc` setups.
+- **Jest matcher types were broken for consumers since the Jest 30 upgrade (1.4.3)** — `expect(tools).toHaveTool(...)` produced TS2339 in consumer projects (the global `jest.Matchers` augmentation no longer reaches Jest 30's `expect()` return type). The matchers are now additionally declared against the `expect` package's `Matchers` interface via `MCPMatchers`, so autocomplete/type-checking works in both ts-jest and plain `tsc` setups. Because TypeScript does not apply module augmentations shipped inside `node_modules`, the package now ships a copy-ready `jest.d.ts` — copy it into your project to enable the types (see README).
 - Templates now typecheck cleanly under `strict` `tsc --noEmit` (they were only ever compiled by ts-jest's non-strict inline config): `content[0].text`-style union accesses replaced with typed `contentText()` / `promptText()` / `resourceText()` helpers, and full-stack's server handler no longer assumes `arguments` is defined.
 - `generateTests` (stdio variant) now respects the `includeTools` / `includeResources` / `includePrompts` flags when fetching from the server, matching the behaviour of `generateTestsFromClient`. Previously it always called `listResources` and `listPrompts` even when the output flags said to skip them — causing generation to fail against servers that don't declare those capabilities.
 - `examples/mock-server.js`: the `delay` tool now rejects invalid `ms` values (`NaN`, negative, > 60000) instead of passing them to `setTimeout` — caught by the new `--verify` mode.
 - The published package now ships the top-level `docs/*.md` guides, so the README's documentation links resolve on npmjs.com (they previously 404'd — the generated `docs/api/` HTML is still excluded).
+- The generated `it(...)` titles and call arguments now escape the exact quote delimiter they are interpolated into, so tool/resource/prompt names containing apostrophes, double quotes, or backslashes produce valid test files. Observe-oracle cases emit a proper single-quoted tool literal instead of a literal `${c.tool}` expression (which previously caused a `ReferenceError`).
+- AI mode no longer drops the deterministic one-past-`maxLength` `observe` case during schema validation, so `--edge-cases` and `--ai-generate` produce the same rule cases. The merge diagnostic now counts only AI rejections.
+- The `additionalProperties`-as-schema rule now emits a value that actually violates the declared type (it previously injected a number that satisfied `{ type: 'number' }`), and the `pattern` rule skips patterns that match every probe value (e.g. `.*`) instead of asserting a false `error`.
+- `parseJsonLoose` falls back past an unparseable code fence to a valid JSON payload elsewhere in the response, and its object scanner skips past a well-formed object instead of rescanning every nested `{`.
+- `validateValueAgainstSchema` now checks `enum`/`pattern`/numeric/array constraints on `additionalProperties` values, not just type and string length.
+
+### Security
+- **Generated test code cannot be turned into an injection vector** — model-supplied case rationales are collapsed onto a single line comment before being emitted, so a crafted multi-line rationale can no longer close the comment and inject executable statements into the generated file. The copy-ready `jest.d.ts` shipped to consumers also no longer contains a `*/` inside its doc comment (which made the file a syntax error).
 
 ## [1.4.3] - 2026-10-05
 
