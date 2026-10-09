@@ -7,11 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-10-08
+
 ### Added
 - **Browser support.** `mcp-tester` can now run in browsers and edge runtimes over the `http`, `sse`, and new `websocket` transports. A browser-safe entry point (`src/browser.ts`) is selected automatically via the `browser` field in `package.json`, and the Node-only stdio transport is isolated so bundlers exclude it from browser builds.
 - **WebSocket transport** (`{ transport: 'websocket', url: 'ws://…' }`), available in the client and the CLI (`--transport websocket`), using the browser-native `WebSocket` API and the `mcp` subprotocol. `ws://`/`wss://` URLs are auto-detected by the CLI. Config validation accepts `ws:`/`wss:` for this transport.
 - `docs/browser.md` and a README "Browser Support" section.
 - `npm run test:browser` bundles the package with esbuild using `platform: 'browser'` and fails if Node built-ins or the stdio transport leak into the bundle; wired into CI.
+
+### Changed
+- Refreshed the README badges: added a live Codecov badge, updated the test-status badge (669 → 866 tests), the coverage badge/table (68/61/60/68 → 92/88/96/92), and aligned the documented SDK range with `package.json` (`^1.29.0`). Marked the corresponding quick-win items complete in `TODO.md`.
+
+### Security
+- Bumped the transitive `handlebars` dependency (via `ts-jest`) 4.7.9 → 4.7.10 to clear a critical JavaScript-injection advisory that was failing the release workflow's hard `npm audit --audit-level=high` gate. Applied with the CI's npm 10 so the regenerated lockfile stays installable by npm 10 (`npm ci`).
 
 ## [1.5.4] - 2026-10-08
 
