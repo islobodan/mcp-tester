@@ -242,7 +242,7 @@ function p6LocalGates() {
   ];
   for (const [name, cmd] of gates) {
     log.dim(`    (${cmd})`);
-    const r = run('npm', ['run', name], { shell: true });
+    const r = run('npm', ['run', name]);
     if (r.status !== 0) {
       return `\`${cmd}\` failed (exit ${r.status}). Re-run it manually for the real error output.`;
     }
@@ -336,6 +336,7 @@ function rApplyEdits(V, N, date) {
   const changelogText = readFileSync(changelogPath, 'utf8');
 
   const { pkg: newPkg, lock: newLock } = applyVersionEdits(pkgText, lockText, V, N);
+  const newChangelog = promoteChangelog(changelogText, N, date);
 
   writeFileSync(pkgPath, newPkg);
   writeFileSync(lockPath, newLock);
@@ -364,17 +365,23 @@ function rApplyEdits(V, N, date) {
         .join('\n')}`
     );
   }
-  // Sanity bounds: package.json should be 1 line, lock 2, changelog 3.
-  // (changelog adds `## [N] - YYYY-MM-DD` heading line + a blank line; old
-  // `## [Unreleased]` line is replaced in-place — net change is +2 lines
-  // for the new heading + blank; total touched ~3.)
+  // Sanity bounds: each version line is replaced 1-for-1 (1+/1-), so for
+  // package.json (1 line) and package-lock.json (2 lines) the per-file
+  // added and deleted counts must each be ≤ the line count, and equal.
+  // The changelog is "+2" (new `## [N] - DATE` heading + blank line) and
+  // "-0" (the old `## [Unreleased]` is moved, not deleted). A 0/0 (no
+  // change at all) is also acceptable here for robustness.
+  const expectations = {
+    'package.json': 1,
+    'package-lock.json': 2,
+    'CHANGELOG.md': 6, // upper bound — promotion adds 2-3 lines
+  };
   for (const line of lines) {
     const [add, del, p] = line.split('\t');
     const added = Number(add);
     const deleted = Number(del);
-    const limit =
-      p === 'package.json' ? 1 : p === 'package-lock.json' ? 2 : 6;
-    if (added + deleted > limit) {
+    const limit = expectations[p] ?? 0;
+    if (added > limit || deleted > limit) {
       return (
         `${p} diff is larger than expected (${added}+ / ${deleted}-, limit ${limit}).\n` +
         `    Inspect with: git diff -- ${p}\n` +
