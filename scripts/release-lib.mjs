@@ -158,6 +158,23 @@ export function checkChangelog(text, version) {
 }
 
 /**
+ * Decide whether the repo is in an "interrupted release" state the CLI
+ * should resume: the current version is already promoted in the CHANGELOG,
+ * HEAD is exactly a `chore: release <version>` commit, and the matching tag
+ * does not exist yet.
+ *
+ * Pure — the CLI gathers the inputs (fs + git) and passes them in.
+ *
+ * @param {{ version: string, headSubject: string, tagExists: boolean, changelogText: string }} s
+ * @returns {boolean}
+ */
+export function isResumeState({ version, headSubject, tagExists, changelogText }) {
+  if (tagExists) return false;
+  if (headSubject !== `chore: release ${version}`) return false;
+  return checkChangelog(changelogText, version).alreadyReleased;
+}
+
+/**
  * Promote `## [Unreleased]` in-place: keep the heading (with a fresh empty
  * block above), insert `## [<version>] - <date>` immediately after it, and
  * preserve all content byte-for-byte below.

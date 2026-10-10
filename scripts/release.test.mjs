@@ -17,6 +17,7 @@ import {
   checkChangelog,
   promoteChangelog,
   applyVersionEdits,
+  isResumeState,
 } from './release-lib.mjs';
 
 // ---------------------------------------------------------------------------
@@ -179,6 +180,76 @@ All notable changes to this project will be documented in this file.
   test('alreadyReleased=false for an unused version', () => {
     const r = checkChangelog(sample, '9.9.9');
     assert.equal(r.alreadyReleased, false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// isResumeState
+// ---------------------------------------------------------------------------
+
+describe('isResumeState', () => {
+  const promoted =
+    '# Changelog\n\n## [Unreleased]\n\n## [1.6.1] - 2026-10-10\n\n### Added\n- x\n';
+  const unreleased = '# Changelog\n\n## [Unreleased]\n\n### Added\n- x\n';
+
+  test('true when commit + promoted changelog exist and tag is missing', () => {
+    assert.equal(
+      isResumeState({
+        version: '1.6.1',
+        headSubject: 'chore: release 1.6.1',
+        tagExists: false,
+        changelogText: promoted,
+      }),
+      true
+    );
+  });
+
+  test('false when the tag already exists (nothing to resume)', () => {
+    assert.equal(
+      isResumeState({
+        version: '1.6.1',
+        headSubject: 'chore: release 1.6.1',
+        tagExists: true,
+        changelogText: promoted,
+      }),
+      false
+    );
+  });
+
+  test('false when HEAD is not the release commit', () => {
+    assert.equal(
+      isResumeState({
+        version: '1.6.1',
+        headSubject: 'feat: something else',
+        tagExists: false,
+        changelogText: promoted,
+      }),
+      false
+    );
+  });
+
+  test('false when the changelog was not promoted (empty [Unreleased])', () => {
+    assert.equal(
+      isResumeState({
+        version: '1.6.1',
+        headSubject: 'chore: release 1.6.1',
+        tagExists: false,
+        changelogText: unreleased,
+      }),
+      false
+    );
+  });
+
+  test('false for a different version than the promoted one', () => {
+    assert.equal(
+      isResumeState({
+        version: '1.6.2',
+        headSubject: 'chore: release 1.6.1',
+        tagExists: false,
+        changelogText: promoted,
+      }),
+      false
+    );
   });
 });
 

@@ -29,6 +29,7 @@ import {
   checkChangelog,
   promoteChangelog,
   applyVersionEdits,
+  isResumeState,
 } from './release-lib.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -257,7 +258,7 @@ function p6LocalGates() {
  *   V = current package.json version
  *   P = latest published version on the registry
  */
-function p7VersionSanity(bumpType) {
+function p7VersionSanity(bumpType, { resume = false } = {}) {
   let P;
   try {
     P = capture('npm', ['view', PACKAGE_NAME, 'version']).trim();
@@ -265,17 +266,22 @@ function p7VersionSanity(bumpType) {
     return `npm view ${PACKAGE_NAME} version failed: ${e.message}`;
   }
   const V = JSON.parse(readFileSync(join(REPO_ROOT, 'package.json'), 'utf8')).version;
-  const N = semverInc(V, bumpType);
+  // Resume mode: the bump already happened — V *is* the target.
+  const N = resume ? V : semverInc(V, bumpType);
   const warnings = [];
 
-  if (V !== P) {
+  if (!resume && V !== P) {
     warnings.push(
       `package.json version "${V}" differs from published "${P}" (e.g. post-fold state). Continuing because N > P.`
     );
   }
 
   if (compareSemver(N, P) <= 0) {
-    return `new version ${N} is not strictly greater than the published ${P}. Pick a larger bump.`;
+    return `version ${N} is not strictly greater than the published ${P}. ${
+      resume
+        ? 'The interrupted release was already published — do NOT tag it.'
+        : 'Pick a larger bump.'
+    }`;
   }
 
   // Local tag collision
@@ -287,10 +293,19 @@ function p7VersionSanity(bumpType) {
     return `tag ${tagRef} already exists locally. Delete it (git tag -d ${tagRef}) or pick a different bump.`;
   }
 
-  // Registry collision (the version is already published)
+  // Registry collision. `npm view pkg@N` exits non-zero BOTH for "no such
+  // version" (E404 — the expected good case) and for network/registry
+  // trouble (which must never be mistaken for "unpublished").
   const regCheck = run('npm', ['view', `${PACKAGE_NAME}@${N}`, 'version'], { silent: true });
   if (regCheck.status === 0) {
     return `version ${N} is already on the registry. Pick a different bump.`;
+  }
+  const regErr = `${regCheck.stderr || ''}${regCheck.stdout || ''}`;
+  if (!/E404/.test(regErr)) {
+    return (
+      `could not verify that ${N} is absent from the registry (npm view exited ${regCheck.status} without E404).\n` +
+      `    Check your network and re-run — never tag a release on an unverified registry state.`
+    );
   }
 
   return { N, V, P, warnings };
@@ -365,25 +380,26 @@ function rApplyEdits(V, N, date) {
         .join('\n')}`
     );
   }
-  // Sanity bounds: each version line is replaced 1-for-1 (1+/1-), so for
-  // package.json (1 line) and package-lock.json (2 lines) the per-file
-  // added and deleted counts must each be ≤ the line count, and equal.
-  // The changelog is "+2" (new `## [N] - DATE` heading + blank line) and
-  // "-0" (the old `## [Unreleased]` is moved, not deleted). A 0/0 (no
-  // change at all) is also acceptable here for robustness.
+  // Sanity bounds. Version lines are replaced 1-for-1, so package.json
+  // (1 line) and package-lock.json (2 lines) must show added === deleted,
+  // each within the version-line count. CHANGELOG promotion inserts the
+  // version heading + a blank line after `## [Unreleased]` (+2/-0); allow a
+  // small loose bound there (a duplicate heading would blow past it).
   const expectations = {
-    'package.json': 1,
-    'package-lock.json': 2,
-    'CHANGELOG.md': 6, // upper bound — promotion adds 2-3 lines
+    'package.json': { added: 1, deleted: 1, exact: true },
+    'package-lock.json': { added: 2, deleted: 2, exact: true },
+    'CHANGELOG.md': { added: 3, deleted: 3, exact: false },
   };
   for (const line of lines) {
     const [add, del, p] = line.split('\t');
     const added = Number(add);
     const deleted = Number(del);
-    const limit = expectations[p] ?? 0;
-    if (added > limit || deleted > limit) {
+    const exp = expectations[p] ?? { added: 0, deleted: 0, exact: true };
+    const overBound = added > exp.added || deleted > exp.deleted;
+    const unequal = exp.exact && added !== deleted;
+    if (overBound || unequal) {
       return (
-        `${p} diff is larger than expected (${added}+ / ${deleted}-, limit ${limit}).\n` +
+        `${p} diff is larger than expected (${added}+ / ${deleted}-, limit ≤${exp.added}+ ≤${exp.deleted}-${exp.exact ? ', equal' : ''}).\n` +
         `    Inspect with: git diff -- ${p}\n` +
         `    Refusing to commit a suspect release.`
       );
@@ -439,38 +455,72 @@ function runCheck(label, fn) {
   return r;
 }
 
-function preflight(bumpType) {
+function preflight(bumpType, { resume = false } = {}) {
   runCheck('P1 clean working tree', p1CleanTree);
-  runCheck('P2 in sync with origin/main', p2InSyncWithOrigin);
+  if (resume) {
+    log.dim('    (P2 skipped: resume mode — HEAD is expected to be ahead of origin until you push)');
+  } else {
+    runCheck('P2 in sync with origin/main', p2InSyncWithOrigin);
+  }
   runCheck('P3 no dangling local tags', p3NoDanglingTags);
   runCheck("P4 lockfile installable by CI's npm@10", p4LockfileInstallable);
   runCheck('P5 npm@10 audit --audit-level=high', p5Audit);
   runCheck('P6 local gates (build/lint/format/tests/browser/coverage/package)', p6LocalGates);
-  const vinfo = runCheck('P7 version sanity (registry + tags + semver order)', () => p7VersionSanity(bumpType));
-  runCheck('P8 CHANGELOG [Unreleased] non-empty', () => p8Changelog(vinfo.N));
+  const vinfo = runCheck('P7 version sanity (registry + tags + semver order)', () =>
+    p7VersionSanity(bumpType, { resume })
+  );
+  if (resume) {
+    log.dim('    (P8 skipped: resume mode — CHANGELOG already promoted)');
+  } else {
+    runCheck('P8 CHANGELOG [Unreleased] non-empty', () => p8Changelog(vinfo.N));
+  }
   return vinfo;
 }
 
-function cutRelease(vinfo) {
+/**
+ * Undo partial release edits. `git reset` first unstages (a no-op when
+ * nothing is staged yet), then `git checkout` restores the worktree from
+ * HEAD. A plain `git checkout --` alone would restore from the INDEX and
+ * silently keep the bumped content if rCommit had already staged the files.
+ */
+function restoreReleaseFiles() {
+  const files = ['package.json', 'package-lock.json', 'CHANGELOG.md'];
+  run('git', ['reset', '-q', 'HEAD', '--', ...files]);
+  run('git', ['checkout', '-q', '--', ...files]);
+}
+
+function cutRelease(vinfo, { resume = false } = {}) {
   const { N, V } = vinfo;
   const date = new Date().toISOString().slice(0, 10);
-  log.step(`\nCutting release ${N} (${date})…`);
 
-  const err = rApplyEdits(V, N, date);
-  if (err) {
-    log.fail(err);
-    // Best-effort: undo any partial writes.
-    run('git', ['checkout', '--', 'package.json', 'package-lock.json', 'CHANGELOG.md']);
-    process.exit(1);
-  }
-  log.ok('version bumped, CHANGELOG promoted');
+  if (!resume) {
+    log.step(`\nCutting release ${N} (${date})…`);
+    let err = null;
+    try {
+      err = rApplyEdits(V, N, date);
+    } catch (e) {
+      err = `unexpected failure while applying release edits: ${e.message}`;
+    }
+    if (err) {
+      log.fail(err);
+      restoreReleaseFiles();
+      process.exit(1);
+    }
+    log.ok('version bumped, CHANGELOG promoted');
 
-  if (rCommit(N)) {
-    log.fail(`commit failed`);
-    run('git', ['checkout', '--', 'package.json', 'package-lock.json', 'CHANGELOG.md']);
-    process.exit(1);
+    const commitErr = rCommit(N);
+    if (commitErr) {
+      log.fail(commitErr);
+      restoreReleaseFiles();
+      process.exit(1);
+    }
+    log.ok('release commit created');
+  } else {
+    // Resume: the bump + commit already exist. NEVER re-run rApplyEdits —
+    // promoteChangelog is not idempotent and would insert a duplicate
+    // version heading.
+    log.step(`\nCompleting interrupted release ${N} — commit in place, tag missing…`);
   }
-  log.ok('release commit created');
 
   if (rTag(N)) {
     log.fail(`tagging failed`);
@@ -480,31 +530,25 @@ function cutRelease(vinfo) {
 }
 
 /**
- * Detect an interrupted run (commit done, tag missing). If detected,
- * complete only the missing steps.
+ * Detect an interrupted run (release commit done, tag missing) using LOCAL
+ * state only — no network, no gates. Returns { N, V } to resume, or null.
+ *
+ * This is a cheap shape check, not a safety gate: the heavy verification
+ * (tests, audit, V > P on the registry, tag/registry collisions) still runs
+ * in resume mode via preflight({ resume: true }).
  */
-function detectResume(bumpType) {
+function detectResume() {
   const V = JSON.parse(readFileSync(join(REPO_ROOT, 'package.json'), 'utf8')).version;
   const changelogText = readFileSync(join(REPO_ROOT, 'CHANGELOG.md'), 'utf8');
-  if (!checkChangelog(changelogText, V).alreadyReleased) return null;
-
   const headSubject = capture('git', ['log', '-1', '--pretty=%s']).trim();
-  if (headSubject !== `chore: release ${V}`) return null;
-
-  const tagCheck = run('git', ['rev-parse', '-q', '--verify', `refs/tags/v${V}`], { silent: true });
-  if (tagCheck.status === 0) return null; // tag already exists, nothing to resume
-
-  // V must still be > published P.
-  let P;
-  try {
-    P = capture('npm', ['view', PACKAGE_NAME, 'version']).trim();
-  } catch {
-    return null;
-  }
-  if (compareSemver(V, P) <= 0) return null;
-
-  // The bump type doesn't matter for resume; force-set to match the existing V.
-  return { N: V, V, P, warnings: [`resuming interrupted run for v${V} — skipping bump and commit`] };
+  const tagExists =
+    run('git', ['rev-parse', '-q', '--verify', `refs/tags/v${V}`], { silent: true }).status === 0;
+  if (!isResumeState({ version: V, headSubject, tagExists, changelogText })) return null;
+  return {
+    N: V,
+    V,
+    warnings: [`resuming interrupted run for v${V} — bump and commit already in place`],
+  };
 }
 
 function main() {
@@ -512,31 +556,38 @@ function main() {
   log.step(`Release script${dryRun ? ' (dry-run)' : ''} — bump=${bump}`);
   log.dim(`  repo: ${REPO_ROOT}`);
 
-  // Resume case: commit present, tag missing. Skip P1/P2 (might be in
-  // post-commit state where the commit just made HEAD ahead of origin),
-  // and skip P7's bump logic — just create the tag.
-  const resumed = !dryRun ? detectResume(bump) : null;
+  // Resume case: release commit present, tag missing. The full pre-flight
+  // still runs (P1, P3–P7); only P2 (HEAD is necessarily ahead of origin —
+  // the release commit is about to be pushed) and P8 (the changelog is
+  // already promoted — that IS the resume signal) are skipped.
+  const resumed = detectResume();
   let vinfo;
   if (resumed) {
     log.warn(resumed.warnings[0]);
-    vinfo = resumed;
+    vinfo = preflight(bump, { resume: true });
   } else {
     vinfo = preflight(bump);
   }
 
   if (dryRun) {
     const date = new Date().toISOString().slice(0, 10);
-    log.step(`\n[DRY RUN] Would cut release ${vinfo.N} (${date})`);
-    log.dim('  - bump package.json + lock to ' + vinfo.N);
-    log.dim('  - promote CHANGELOG [Unreleased] → [N]');
-    log.dim('  - commit "chore: release ' + vinfo.N + '"');
+    log.step(
+      `\n[DRY RUN] ${resumed ? 'Would complete interrupted release' : 'Would cut release'} ${vinfo.N} (${date})`
+    );
+    if (resumed) {
+      log.dim('  - (bump + commit already in place — no new commit)');
+    } else {
+      log.dim('  - bump package.json + lock to ' + vinfo.N);
+      log.dim('  - promote CHANGELOG [Unreleased] → [N]');
+      log.dim('  - commit "chore: release ' + vinfo.N + '"');
+    }
     log.dim('  - lightweight tag v' + vinfo.N);
     log.dim('  - print: git push origin main --tags');
     log.ok('dry-run complete');
     return;
   }
 
-  cutRelease(vinfo);
+  cutRelease(vinfo, { resume: !!resumed });
 
   log.step(`\nRelease ${vinfo.N} is ready.`);
   log.info('Next:');

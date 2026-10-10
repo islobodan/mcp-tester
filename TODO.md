@@ -1107,12 +1107,12 @@ The following tasks can be completed quickly and provide immediate value:
 ## Progress Tracking
 
 **Total Items**: 52
-**Completed**: 44
+**Completed**: 45
 **In Progress**: 0
 **Postponed**: 1 (item 12 — snapshot testing, deprioritised as poor fit for MCP)
-**Not Started**: 7
+**Not Started**: 6
 
-**Completion Percentage**: 84.6% (44/52)
+**Completion Percentage**: 86.5% (45/52)
 
 > The two checked items under "Quick Wins" above (`Add Codecov badge`, `Add Node.js compatibility badge`) are extra checklist entries and are not part of the numbered 52-item total.
 

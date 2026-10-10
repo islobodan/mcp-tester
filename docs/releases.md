@@ -125,7 +125,7 @@ Add entries to `CHANGELOG.md` under `## [Unreleased]`, or skip this release. The
 
 ### Resume after an interrupted run
 
-If the script died between the commit and the tag (e.g. lost connection), the next run detects the state — `package.json` is bumped, `CHANGELOG.md` has the new section, HEAD is `chore: release <N>`, but the tag is missing — and just creates the missing tag. The full pre-flight is skipped in resume mode, but `N > published P` is still verified.
+If the script died between the commit and the tag (e.g. lost connection), the next run detects the state — `package.json` is bumped, `CHANGELOG.md` has the new section, HEAD is `chore: release <N>`, but the tag is missing — and just creates the missing tag. Resume detection itself is a cheap local shape check (no network); the full pre-flight still runs in resume mode, with two deliberate exceptions: P2 (HEAD is necessarily ahead of `origin/main` — the release commit is about to be pushed) and P8 (the changelog is already promoted — that is the resume signal). `N > published P` is still verified in P7, and the release steps never re-run the bump/promotion (which is not idempotent).
 
 ### `release.yml` verify job fails
 

@@ -10,7 +10,7 @@ For planned improvements, features, and enhancements, see [TODO.md](./TODO.md). 
 - Detailed task descriptions and effort estimates
 - Progress tracking with status indicators: `[ ]` (not started), `[/]` (in progress), `[x]` (completed)
 - Quick wins that can be completed in under 1 hour
-- Current completion: 84.6% (44 completed)
+- Current completion: 86.5% (45 completed)
 
 ## Project Overview
 
@@ -73,21 +73,22 @@ npm run audit:fix
 ### Release
 
 ```bash
-# Patch release (1.0.0 → 1.0.1)
-npm run release:patch
+# Pre-flight + bump + commit + tag (nothing is pushed or published)
+npm run release -- patch        # or: minor | major | prerelease
 
-# Minor release (1.0.0 → 1.1.0)
-npm run release:minor
+# Run every pre-flight gate, print the plan, write nothing
+npm run release -- patch --dry-run
 
-# Major release (1.0.0 → 2.0.0)
-npm run release:major
+# Unit tests for the release script (node:test, no Jest)
+npm run test:release
 
-# Prerelease (1.0.0 → 1.0.1-beta.0)
-npm run release:prerelease
-
-# Commit version bump and CHANGELOG updates
-npm run release:commit
+# Then push — release.yml verifies, publishes, and creates the GitHub release
+git push origin main --tags
 ```
+
+You can still use the `release:patch` / `release:minor` / `release:major` /
+`release:prerelease` aliases — they delegate to the release script. The old
+`release:commit` script is gone (the release script commits itself).
 
 ## Code Organization
 
