@@ -152,10 +152,36 @@ jobs:
           node-version: ${{ matrix.node-version }}
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Install published package
-        run: npm install "@slbdn/mcp-tester@${{ steps.get_version.outputs.VERSION }}"
+      - name: Install published package (waits for npm registry propagation)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+
+          # The npm registry is eventually consistent: a version published seconds
+          # ago can still 404 (CDN negative caching). Poll until it is visible.
+          echo "Waiting for @slbdn/mcp-tester@${VERSION} to become visible on the registry…"
+          deadline=$(( $(date +%s) + 600 ))
+          until npm view "@slbdn/mcp-tester@${VERSION}" version >/dev/null 2>&1; do
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+              echo "❌ @slbdn/mcp-tester@${VERSION} was not visible after 10 minutes"
+              exit 1
+            fi
+            sleep 20
+          done
+          echo "✓ Version is visible on the registry"
+
+          # The install itself can still race metadata propagation; retry it.
+          for attempt in 1 2 3; do
+            if npm install --no-audit --no-fund "@slbdn/mcp-tester@${VERSION}"; then
+              echo "✓ Installed on attempt ${attempt}"
+              exit 0
+            fi
+            echo "Install attempt ${attempt} failed; retrying in 30s…"
+            sleep 30
+          done
+          echo "❌ npm install failed after 3 attempts"
+          exit 1
 
       - name: Verify package installation
         run: |

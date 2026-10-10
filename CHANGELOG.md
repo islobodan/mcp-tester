@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- The release workflow's post-publish verification no longer fails on npm registry propagation lag. `npm publish` is eventually consistent — a version published seconds earlier can still 404 via CDN negative caching — so the `verify` job now polls `npm view` until the version is visible (up to 10 minutes) and retries the install a few times instead of failing the run. Previously the job had to be manually re-run a few minutes later to go green.
+
 ## [1.6.0] - 2026-10-08
 
 ### Added

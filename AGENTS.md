@@ -546,7 +546,7 @@ assert.equal(tools.length, 4);
 5. Publish to npm (requires `NPM_TOKEN` secret)
 6. Create GitHub release with CHANGELOG notes
 7. Upload coverage to Codecov
-8. Verify package installation
+8. Verify package installation (waits up to 10 min for npm registry propagation and retries the install — the registry is eventually consistent, so a just-published version can 404 briefly)
 
 ## Error Handling Patterns
 
