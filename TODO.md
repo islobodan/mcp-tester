@@ -788,12 +788,16 @@ new ConsoleLogger({
 **Plan**: [`docs/plans/release-automation.md`](./docs/plans/release-automation.md) — self-contained implementation spec, ready for handoff. Design decision: **no** `semantic-release`/`conventional-changelog` (they fight this repo's `chore: release` + tag discipline, and the CHANGELOG is hand-curated); instead a zero-dependency `scripts/release.mjs` + `release-lib.mjs` with a strict pre-flight (clean tree ↔ origin sync, no dangling tags, npm@10 `ci` dry-run, npm@10 audit, full local gates, registry/tag/semver sanity, non-empty `[Unreleased]`) followed by version-only bump, CHANGELOG promotion, `chore: release` commit, lightweight tag. Every gate maps to a real 1.5.x/1.6.0 incident (see plan §1). Post-publish registry-propagation flake already fixed separately in `24fee8d`.
 
 **Tasks**:
-- [x] Write implementation plan (this document)
-- [ ] Add conventional-changelog for CHANGELOG generation ~~(replaced: direct `[Unreleased]` promotion, Keep a Changelog stays hand-curated)~~
-- [ ] Add semantic-release for versioning ~~(replaced: deterministic local pre-flight + `release.yml` unchanged)~~
-- [ ] Configure automated npm publishing ~~(already done: `release.yml` publishes on tag push)~~
-- [ ] Add GitHub release notes generation ~~(already done: `release.yml` extracts CHANGELOG notes)~~
-- [ ] Test release automation thoroughly (acceptance criteria §8 + cut next release with it)
+- [x] Write implementation plan
+- [x] Pure library (`scripts/release-lib.mjs`) + 34 `node:test` unit tests (`scripts/release.test.mjs`)
+- [x] Orchestrator (`scripts/release.mjs`) with P1–P8 pre-flight, R1–R6 release steps, `--dry-run`, and resume detection
+- [x] `npm run release` + `release:patch/minor/major/prerelease` + `test:release` scripts in `package.json`; CI step `npm run test:release` in the `package` job of `test.yml`
+- [x] Documentation: `docs/releases.md` rewritten, `AGENTS.md` gotcha #14, `README.md` dev block, `CHANGELOG.md` [Unreleased]
+- [/] Test release automation thoroughly (acceptance criteria §8 in the plan; final M5 = cut the next real release with it)
+- [x] ~~Add conventional-changelog~~ (replaced: direct `[Unreleased]` promotion, CHANGELOG stays hand-curated)
+- [x] ~~Add semantic-release~~ (replaced: deterministic local pre-flight + `release.yml` unchanged)
+- [x] ~~Configure automated npm publishing~~ (already done: `release.yml` publishes on tag push)
+- [x] ~~Add GitHub release notes generation~~ (already done: `release.yml` extracts CHANGELOG notes)
 
 **Impact**: Smoother releases
 

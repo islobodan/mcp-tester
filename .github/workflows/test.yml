@@ -188,3 +188,6 @@ jobs:
 
       - name: Verify the packed tarball installs and imports
         run: npm run test:package
+
+      - name: Release script unit tests
+        run: npm run test:release

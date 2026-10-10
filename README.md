@@ -617,12 +617,14 @@ mcp-tester/
 ## Development
 
 ```bash
-npm install          # Install dependencies
-npm run build        # Compile TypeScript
-npm run dev          # Watch mode — auto-rebuild on source changes
-npm test             # Run tests (auto-generates reports/test-report.html)
-npm run lint         # Lint code
-npm run format       # Format with Prettier
+npm install              # Install dependencies
+npm run build            # Compile TypeScript
+npm run dev              # Watch mode — auto-rebuild on source changes
+npm test                 # Run tests (auto-generates reports/test-report.html)
+npm run test:browser     # Smoke-test the browser bundle (esbuild, platform: 'browser')
+npm run lint             # Lint code
+npm run format           # Format with Prettier
+npm run release -- patch # Cut a release (see docs/releases.md)
 ```
 
 ## Troubleshooting

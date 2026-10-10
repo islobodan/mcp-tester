@@ -507,6 +507,11 @@ assert.equal(tools.length, 4);
 - The WebSocket transport relies on a global `WebSocket` (browsers, Node ≥ 22). Tests inject an in-process `MockWebSocket` (`src/__tests__/websocket-transport.test.ts`).
 - `npm run test:browser` (esbuild, `platform: 'browser'`) is the regression gate; it fails if `node:*` or `cross-spawn` leaks into the bundle. Run it after `npm run build`.
 
+### 14. Release script + the npm@10 lockfile rule
+- `npm run release -- <bump>` is the only sanctioned way to cut a release. It runs a strict pre-flight (P1–P8, see `docs/plans/release-automation.md`) and then a direct JSON edit of `package.json` + `package-lock.json` with a `git diff --numstat` self-check.
+- **Never** run plain `npm version` or `npm audit fix` under npm 11 against this repo's lockfile — both have twice (v1.5.1, v1.6.0) produced locks the CI's npm 10 cannot install (`EUSAGE Missing: @emnapi/core`). The release script's P4 gate is the canary: it runs `npx -y npm@10 ci --dry-run --ignore-scripts` in a temp dir. If you ever need to fix the lock, use `npx -y npm@10 …` so the result is installable by npm 10.
+- The release script never pushes; pushing `main --tags` is still manual, and **one tag per push** (two concurrent tag pushes race two `release.yml` runs for npm `latest`).
+
 ## CI/CD Integration
 
 ### GitHub Actions Workflow (`.github/workflows/test.yml`)
@@ -634,7 +639,10 @@ chore: maintenance tasks
 | `src/generate-types.ts` | TypeScript type generator from tool schemas (generateTypes) |
 | `docs/ai-generation.md` | Edge cases, LLM integration, `--verify` guide |
 | `docs/browser.md` | Browser/edge support, transports, bundler notes, limitations |
+| `docs/plans/release-automation.md` | Spec for the `npm run release` tool; incident log; acceptance criteria |
 | `scripts/check-browser-bundle.mjs` | Browser bundle smoke test (`npm run test:browser`) |
+| `scripts/release.mjs` | Release CLI: pre-flight + bump + commit + tag (`npm run release`) |
+| `scripts/release-lib.mjs` | Pure semver + CHANGELOG helpers used by `release.mjs` |
 | `vitest.d.ts` | Vitest type declarations for matchers |
 | `src/__tests__/fixtures/mock-server.ts` | In-memory mock server for unit tests |
 | `examples/mock-server.js` | Basic standalone MCP server (echo, add, delay, error_tool) |
@@ -672,12 +680,12 @@ chore: maintenance tasks
 4. Update relevant sections in this file
 
 ### Creating a Release
-1. Run version bump: `npm run release:patch` (or minor/major)
-2. Update `CHANGELOG.md` - move items from [Unreleased] to new version
-3. Commit: `npm run release:commit`
-4. Tag: `git tag v1.0.1`
-5. Push: `git push origin main --tags`
-6. Workflow automatically publishes to npm
+1. Ensure `## [Unreleased]` in `CHANGELOG.md` has the entries you want to ship.
+2. `git push origin main` (the script refuses to operate on unpushed history).
+3. `npm run release -- patch` (or `minor` / `major` / `prerelease`). Add `--dry-run` for a no-write preview.
+   The script runs a strict pre-flight (clean tree, origin sync, no dangling tags, `npm@10` lockfile check, `npm@10` audit, full local gates, version sanity, non-empty `[Unreleased]`), then bumps the version, promotes the changelog, commits `chore: release <version>`, and creates a lightweight `v<version>` tag. Nothing is pushed or published.
+4. `git push origin main --tags`. The `release.yml` workflow takes over: verify tag↔version → `npm ci` → audit → build → lint → format → test → coverage → `npm publish` → GitHub release → verify install (with propagation retries).
+5. Never run `npm version` against this repo's lockfile; the script edits `package.json` + `package-lock.json` directly. See `docs/plans/release-automation.md` for the spec and the incident log that justifies every gate.
 
 ## Environment Variables
 
