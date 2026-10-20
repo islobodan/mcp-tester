@@ -240,7 +240,10 @@ describe('generateTests', () => {
       expect(() => {
         execSync(
           `node dist/cli/index.js generate ${MOCK_SERVER_CMD} ${MOCK_SERVER_ARGS.join(' ')} --framework mocha`,
-          { timeout: 15000 }
+          // `stdio: 'pipe'` keeps the child's stderr (the "❌ Framework must be
+          // jest or vitest" message) out of the Jest output — otherwise this
+          // deliberate failure looks like a real error in the test log.
+          { timeout: 15000, stdio: 'pipe' }
         );
       }).toThrow();
     }, 20000);

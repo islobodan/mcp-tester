@@ -192,7 +192,7 @@ Read `CHANGELOG.md`, then require:
 **R2 — Bump versions by direct edit** (do **not** run `npm version` — it rewrites the lockfile through npm's own machinery and has historically produced churn):
 - `package.json`: the top-level `"version": "…"` value → `N`.
 - `package-lock.json`: exactly two values → `N`: top-level `version` and `packages[""].version`. Implement as a targeted text replacement anchored on the package name, or parse→mutate→`JSON.stringify(obj, null, 2) + '\n'` (the lock is written with 2-space indent; verify with git).
-- **Self-check after write**: `git diff --numstat` must show exactly `package.json` 1/1 and `package-lock.json` 2/2 and nothing else. Any larger diff → `git checkout -- package.json package-lock.json`, abort with the diff shown. (This guarantees the "version-only diff" property that 1.6.0 was hand-verified for.)
+- **Self-check after write**: `git diff --numstat` must show exactly `package.json` 1/1 and `package-lock.json` 2/2 and nothing else. Any larger diff → `git reset -q HEAD -- <files>` + `git checkout -- <files>`, abort with the diff shown. (The `git reset` matters: after a failed commit the files are already *staged*, and a bare `git checkout --` restores from the index — it would keep the bumped content.) (This guarantees the "version-only diff" property that 1.6.0 was hand-verified for.)
 
 **R3 — Promote CHANGELOG**: replace the `## [Unreleased]` heading with
 ```markdown
@@ -228,6 +228,11 @@ If the process dies between R4 and R5, a re-run with the same `<bump-type>`… n
 - HEAD commit subject is exactly `chore: release V`,
 - and tag `v{V}` is missing
 → skip pre-flight P7's bump math (still verify `V > P`), skip R2–R4, and perform R5 only. Print `resuming: tagging already-committed release V`.
+
+**Implementation note (hardened during the self-review).** The detection itself is a cheap *local* shape check (`isResumeState()` in `release-lib.mjs` — no network, no gates); the heavy verification still runs in resume mode:
+- The full pre-flight runs, **except** P2 (HEAD is necessarily ahead of `origin/main` — the release commit is about to be pushed) and P8 (the changelog is already promoted — that *is* the resume signal).
+- `V > P` on the registry is verified in P7, which runs in resume mode with the bump math disabled.
+- R2–R4 are skipped: `promoteChangelog()` is **not idempotent** and would insert a duplicate `## [V]` heading. The resume path only creates the tag.
 
 ### 5.5 Refusals are the feature
 
