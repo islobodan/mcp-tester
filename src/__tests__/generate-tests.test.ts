@@ -196,7 +196,7 @@ describe('generateTests', () => {
 
       execSync(
         `node dist/cli/index.js generate ${MOCK_SERVER_CMD} ${MOCK_SERVER_ARGS.join(' ')} -o ${outputPath}`,
-        { timeout: 15000 }
+        { timeout: 15000, stdio: 'pipe' }
       );
 
       expect(fs.existsSync(outputPath)).toBe(true);
@@ -214,7 +214,7 @@ describe('generateTests', () => {
       const { execSync } = await import('child_process');
       const output = execSync(
         `node dist/cli/index.js generate ${MOCK_SERVER_CMD} ${MOCK_SERVER_ARGS.join(' ')} --framework vitest`,
-        { timeout: 15000, encoding: 'utf-8' }
+        { timeout: 15000, encoding: 'utf-8', stdio: 'pipe' }
       );
 
       expect(output).toContain("from 'vitest'");
@@ -227,7 +227,7 @@ describe('generateTests', () => {
       const { execSync } = await import('child_process');
       const output = execSync(
         `node dist/cli/index.js generate ${MOCK_SERVER_CMD} ${MOCK_SERVER_ARGS.join(' ')} --description "My Server"`,
-        { timeout: 15000, encoding: 'utf-8' }
+        { timeout: 15000, encoding: 'utf-8', stdio: 'pipe' }
       );
 
       expect(output).toContain("describe('My Server'");
@@ -254,7 +254,7 @@ describe('generateTests', () => {
       const { execSync } = await import('child_process');
       const output = execSync(
         `node dist/cli/index.js generate ${MOCK_SERVER_CMD} ${MOCK_SERVER_ARGS.join(' ')} --no-resources`,
-        { timeout: 15000, encoding: 'utf-8' }
+        { timeout: 15000, encoding: 'utf-8', stdio: 'pipe' }
       );
 
       expect(output).not.toContain("describe('Resources'");
