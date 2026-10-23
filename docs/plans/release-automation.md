@@ -227,12 +227,12 @@ If the process dies between R4 and R5, a re-run with the same `<bump-type>`… n
 - `CHANGELOG.md` already contains `## [V]`,
 - HEAD commit subject is exactly `chore: release V`,
 - and tag `v{V}` is missing
-→ skip pre-flight P7's bump math (still verify `V > P`), skip R2–R4, and perform R5 only. Print `resuming: tagging already-committed release V`.
+→ resume mode: run the pre-flight and R-steps as refined in the implementation note below — detection itself is a cheap local shape check, and only R5 (the tag) is performed.
 
 **Implementation note (hardened during the self-review).** The detection itself is a cheap *local* shape check (`isResumeState()` in `release-lib.mjs` — no network, no gates); the heavy verification still runs in resume mode:
 - The full pre-flight runs, **except** P2 (HEAD is necessarily ahead of `origin/main` — the release commit is about to be pushed) and P8 (the changelog is already promoted — that *is* the resume signal).
 - `V > P` on the registry is verified in P7, which runs in resume mode with the bump math disabled.
-- R2–R4 are skipped: `promoteChangelog()` is **not idempotent** and would insert a duplicate `## [V]` heading. The resume path only creates the tag.
+- R2–R4 are skipped: `promoteChangelog()` is **not idempotent** and would insert a duplicate `## [V]` heading. The resume path only creates the tag. Detection prints `resuming interrupted run for v{V} — bump and commit already in place`; the R-step prints `Completing interrupted release {V} — commit in place, tag missing…`.
 
 ### 5.5 Refusals are the feature
 
