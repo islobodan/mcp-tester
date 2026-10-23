@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The release workflow's post-publish verification no longer fails on npm registry propagation lag. `npm publish` is eventually consistent — a version published seconds earlier can still 404 via CDN negative caching — so the `verify` job now polls `npm view` until the version is visible (up to 10 minutes) and retries the install a few times instead of failing the run. Previously the job had to be manually re-run a few minutes later to go green.
 - Running the CLI test suite no longer leaks the child process's deliberate error output (e.g. `❌ Framework must be "jest" or "vitest"` from the invalid-flag test) into the Jest log — every spawned CLI invocation now pipes its output. A passing suite printed as if it had errors; it did this twice per release run.
 
+### Security
+- `markdown-it` 14.3.2 → 14.3.3 (GHSA-vfgh-jcmw-g37q, GHSA-gfr2-rv44-r23c — quadratic-time DoS; dev-only, via TypeDoc) and `ip-address` 10.7.3 → 10.7.4 (GHSA-rxp7-6hxx-x8q5; dev-only, via the SDK's express-rate-limit). `npm audit` is now clean at the `high` threshold. Notably, the release tool's own P5 audit gate caught this locally before tagging — the same failure class that blocked the 1.5.0 release in CI.
+
 ## [1.6.0] - 2026-10-08
 
 ### Added
