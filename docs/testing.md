@@ -21,12 +21,49 @@ src/__tests__/
 ├── advanced.test.ts             # Sampling, elicitation
 ├── real-server.test.ts          # Integration tests (stdio transport)
 ├── everything-server.test.ts    # Full integration (server-everything)
+├── e2e/                         # End-to-end tests (real spawned servers)
+│   ├── helpers.ts               # startE2EClient / stopE2EClient / waitForPidGone
+│   ├── fixtures/
+│   │   └── e2e-server.mjs       # Deterministic E2E MCP server fixture
+│   ├── lifecycle.e2e.test.ts    # Start/stop, restart, zombie, env, notifications
+│   ├── recovery.e2e.test.ts     # Crash, timeout, retry accounting, serverCode
+│   ├── concurrency.e2e.test.ts  # Fan-out, order, counter integrity, multi-client
+│   └── payloads.e2e.test.ts     # 1MB, 10k-array, deep-nest, unicode, 500-seq
 ├── http-transport.test.ts       # Streamable HTTP / SSE transport
 ├── websocket-transport.test.ts  # WebSocket transport (in-process double)
 ├── cli.test.ts                  # CLI tool tests
 └── fixtures/
     └── mock-server.ts           # In-memory mock MCP server
 ```
+
+## End-to-End Tests
+
+The `e2e/` suites spawn **real server processes** over stdio and exercise complete
+workflows: lifecycle, error recovery, concurrency, and large payloads.
+
+The fixture server (`src/__tests__/e2e/fixtures/e2e-server.mjs`) is deterministic —
+chaos is selected purely through environment variables, so tests never sleep-and-pray:
+
+| Env var | Effect |
+| --- | --- |
+| `E2E_CRASH_ON_TOOL=<name>` | Server calls `process.exit(70)` when that tool is invoked |
+| `E2E_HANG_ON_TOOL=<name>` | Server never responds to that tool |
+| `E2E_FAIL_ONCE=<name>` | First call to that tool fails, later calls succeed |
+| `E2E_PID_FILE=<path>` | Server writes its pid to the file at startup |
+| `E2E_TOKEN=<value>` | Value returned by the `env_dump` tool |
+
+Reuse the helpers in your own suites:
+
+```typescript
+import { startE2EClient, stopE2EClient, waitForPidGone } from './e2e/helpers.js';
+
+const client = await startE2EClient({ env: { E2E_TOKEN: 'x' }, timeout: 30_000 });
+// ... callTool / listTools against the real process ...
+await stopE2EClient(client);
+```
+
+Each E2E file raises Jest's per-test timeout to 60 s (process spawns are slow on CI
+runners); the suites add ~9 s to `npm test` end-to-end.
 
 ## Writing Tests
 

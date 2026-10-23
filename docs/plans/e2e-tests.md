@@ -36,7 +36,7 @@ HTTP), deterministic, no new runtime deps, wired into the existing `npm test` ga
 |---|---|
 | `examples/mock-server.js` (plain JS, spawnable) | baseline stdio target; `echo`, `add`, `delay`, `error_tool` |
 | `@modelcontextprotocol/server-everything` (already a dep, spawned in tests today) | the one **multi-client over HTTP** scenario; port-poll readiness pattern (`http-transport.test.ts`) |
-| `MCPClient` API | `start/stop`, `isConnected`, `isHealthy()`, `setNotificationHandlers`, per-call `retries`/`retryDelay`/`timeout`, `MCPTimeoutError`/`MCPServerError`/`MCPNotStartedError` |
+| `MCPClient` API | `start/stop`, `isConnected`, `isHealthy()`, `setNotificationHandlers`, per-call `retries`/`timeout` (no `retryDelay` option — confirmed against `ToolCallOptions`), `MCPTimeoutError`/`MCPServerError`/`MCPNotStartedError` |
 | Jest wiring | `testMatch: ['**/__tests__/**/*.test.ts']` → files under `src/__tests__/e2e/` are **automatically** in `npm test` (and therefore in CI's matrix jobs and the release tool's P6 — no workflow edits needed); coverage excludes `src/__tests__/**`; `maxWorkers: 1` already serial |
 
 ### Missing (build)
@@ -107,7 +107,7 @@ Built on the SDK's `McpServer` (same API surface as `examples/mock-server.js`).
 ## 5. Suites & scenarios
 
 Shared helpers (`src/__tests__/e2e/helpers.ts`): `startE2EClient(env?)` (wraps `new MCPClient` +
-`start` with the fixture), `expectEventually`, `waitForPidGone(pid, ms)`, per-file
+`start` with the fixture), `waitForPidGone(pid, ms)` (as built; the generic `expectEventually` helper proved unnecessary), per-file
 `jest.setTimeout(60_000)` (spawns on CI runners are slow; the repo default is 30 s).
 
 ### 5.1 `lifecycle.e2e.test.ts` (~8 tests)
@@ -127,7 +127,7 @@ Shared helpers (`src/__tests__/e2e/helpers.ts`): `startE2EClient(env?)` (wraps `
 - `stop()` after server death is clean (no throw, no hang — the cleanup path)
 - **recovery**: new client + `start` against the same command → counter behavior normal (the workflow a CI pipeline actually needs)
 - **timeout then continue**: `E2E_HANG_ON_TOOL=hang_now`, `callTool { timeout: 1500 }` → `MCPTimeoutError` with `.timeout === 1500` and `.operation`; server still alive → `echo` works immediately after
-- **retry semantics**: `E2E_FAIL_ONCE=fail_once_tool`, `callTool { retries: 1, retryDelay: 50 }` → succeeds; `call_stats` shows exactly 2 calls to that tool
+- **retry semantics**: `E2E_FAIL_ONCE=fail_once_tool`, `callTool { retries: 1 }` → succeeds; `call_stats` shows exactly 2 calls to that tool (fixture counts failed attempts)
 - same call with `retries: 0` → rejects; `call_stats` shows 1 call
 - `error_tool`-style server error → `MCPServerError` with `serverCode` preserved
 
