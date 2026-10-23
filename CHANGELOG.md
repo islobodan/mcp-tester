@@ -9,10 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - `npm run release -- <patch|minor|major|prerelease>` — a one-command release tool that runs a strict pre-flight (clean tree, origin sync, no dangling tags, `npm@10` lockfile check, `npm@10` audit, full local gates, version sanity, non-empty `[Unreleased]`) and then bumps the version, promotes the CHANGELOG, commits `chore: release <x.y.z>`, and creates a lightweight `v<x.y.z>` tag. `--dry-run` runs every gate and prints the plan without writing. Every gate maps to a real incident (1.5.0 audit, 1.5.1 / 1.6.0 emnapi lockfile trap, v1.5.5 fold); see `docs/plans/release-automation.md` and `docs/releases.md`. Zero new runtime deps; pure library in `scripts/release-lib.mjs`, orchestrator in `scripts/release.mjs`, 39 `node:test` cases in `scripts/release.test.mjs` run by `npm run test:release` (wired into CI). Replaces the old `npm version`-based `release:patch/minor/major/prerelease` scripts (the new aliases delegate to the script).
-- The release tool's pre-flight is a strict superset of the gates `release.yml` runs, so a green pre-flight ≈ a green publish.
+- The release tool's pre-flight is a strict superset of the gates `release.yml` runs, so a green pre-flight ≈ a green publish. Interrupted runs are detected and resumed safely — a re-run re-verifies the gates and completes only the missing tag, never re-applying the bump or changelog promotion — and any failure path rolls back every partial write (including staged content).
+- `--dry-run` and exit codes (0 ok / 1 gate failed / 2 usage error) make the tool safe to call from scripts.
 
 ### Fixed
 - The release workflow's post-publish verification no longer fails on npm registry propagation lag. `npm publish` is eventually consistent — a version published seconds earlier can still 404 via CDN negative caching — so the `verify` job now polls `npm view` until the version is visible (up to 10 minutes) and retries the install a few times instead of failing the run. Previously the job had to be manually re-run a few minutes later to go green.
+- Running the CLI test suite no longer leaks the child process's deliberate error output (e.g. `❌ Framework must be "jest" or "vitest"` from the invalid-flag test) into the Jest log — every spawned CLI invocation now pipes its output. A passing suite printed as if it had errors; it did this twice per release run.
 
 ## [1.6.0] - 2026-10-08
 
