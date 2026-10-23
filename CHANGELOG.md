@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-10-23
+
 ### Added
 - End-to-end test suites under `src/__tests__/e2e/` covering complete server workflows: lifecycle (start/connect/discover with drift-free repeated discovery, stop, double-stop no-op, restart with fresh process state, zombie-process proof via pidfile, env passthrough, server→client logging notifications), error recovery (mid-session crash → clean teardown, `MCPTimeoutError` with `.timeout`/`.operation` on a hung tool with the server surviving, exact retry accounting via per-tool call stats, `MCPServerError` with `serverCode` preserved), concurrency (20 parallel `echo` calls with per-request pairing, quick-calls-complete-before-large-response ordering, 25 concurrent counter increments serializing to 25, state isolation across two server processes, concurrent stdio + HTTP sessions on one shared HTTP server, `Promise.allSettled` batch isolation), and payload handling (100 KB argument and 1 MB result byte-exact round-trips hashed, 10,000-element array sum, depth-100 nesting, unicode with tabs/newlines, 500 sequential calls within budget). Deterministic env-driven fixture server (`src/__tests__/e2e/fixtures/e2e-server.mjs`) — crash (`E2E_CRASH_ON_TOOL`) / hang (`E2E_HANG_ON_TOOL`) / fail-once (`E2E_FAIL_ONCE`) chaos via env, no randomness. 30 new E2E tests; full suite now 896 tests / 28 suites, added wall time ~9 s.
 
