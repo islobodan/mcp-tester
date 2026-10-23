@@ -722,18 +722,25 @@ new ConsoleLogger({
 
 ## Testing Enhancements
 
-### [/] 27. Add E2E Tests
+### [x] 27. Add E2E Tests
 **Description**: End-to-end tests covering complete workflows.
 
 **Plan**: [docs/plans/e2e-tests.md](./plans/e2e-tests.md) — four suites (lifecycle, recovery, concurrency, payloads) against a single deterministic `e2e-server.mjs` fixture (crash/hang/fail-once via env), placed in `src/__tests__/e2e/` so the existing `testMatch` picks them up in `npm test` — CI matrix and the release tool's P6 gate them automatically. Budget: ≤ 120 s added wall time. Zero new runtime deps.
 
+**Status**: **COMPLETE (M1–M5 done)**
+- M1: fixture server + helpers + smoke lifecycle test → **pass** (9 tests green in 6.7 s)
+- M2: `lifecycle.e2e.test.ts` → **pass** (9/9)
+- M3: `recovery.e2e.test.ts` → **pass** (6/6)
+- M4: `concurrency.e2e.test.ts` + `payloads.e2e.test.ts` → **pass** (4 + 5)
+- M5: timing (~10 s added; full suite 124.6 s / 890 tests, 28 suites green), 3× stability runs green, docs swept, gates green; release shipped as **1.8.0**
+
 **Tasks**:
 - [x] Write implementation plan (`docs/plans/e2e-tests.md`)
-- [ ] M1: fixture server + helpers + smoke test
-- [ ] M2: `lifecycle.e2e.test.ts` (restart cycle, zombie proof, env passthrough, notifications)
-- [ ] M3: `recovery.e2e.test.ts` (crash mid-session, timeout-then-continue, retry accounting)
-- [ ] M4: `concurrency.e2e.test.ts` + `payloads.e2e.test.ts` (fan-out pairing, counter integrity, 1 MB round-trip)
-- [ ] M5: timing measurement, 3× stability runs, docs, ship 1.8.0
+- [x] M1: fixture server + helpers + smoke test
+- [x] M2: `lifecycle.e2e.test.ts` (restart cycle, zombie proof, env passthrough, notifications)
+- [x] M3: `recovery.e2e.test.ts` (crash mid-session, timeout-then-continue, retry accounting)
+- [x] M4: `concurrency.e2e.test.ts` + `payloads.e2e.test.ts` (fan-out pairing, counter integrity, 1 MB round-trip)
+- [x] M5: timing measurement, 3× stability runs, docs, ship 1.8.0
 
 **Impact**: Better confidence in system
 
@@ -1109,12 +1116,12 @@ The following tasks can be completed quickly and provide immediate value:
 ## Progress Tracking
 
 **Total Items**: 52
-**Completed**: 45
-**In Progress**: 1 (item 27 — E2E tests, plan written)
+**Completed**: 46
+**In Progress**: 0
 **Postponed**: 1 (item 12 — snapshot testing, deprioritised as poor fit for MCP)
-**Not Started**: 6
+**Not Started**: 5
 
-**Completion Percentage**: 86.5% (45/52)
+**Completion Percentage**: 88.5% (46/52)
 
 > The two checked items under "Quick Wins" above (`Add Codecov badge`, `Add Node.js compatibility badge`) are extra checklist entries and are not part of the numbered 52-item total.
 

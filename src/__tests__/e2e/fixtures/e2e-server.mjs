@@ -283,6 +283,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       recordCall(name);
       return { content: [{ type: 'text', text: String(process.pid) }] };
     }
+    case 'fail_once_tool': {
+      // The fail-once chaos above consumed the single failure; reaching this
+      // case means the retry (if any) succeeded and we return normally.
+      recordCall(name);
+      return { content: [{ type: 'text', text: 'recovered-after-fail-once' }] };
+    }
     default:
       throw new Error(`Unknown tool: ${name}`);
   }

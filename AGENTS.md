@@ -119,9 +119,16 @@ src/
     ├── advanced.test.ts             # Advanced features tests
     ├── real-server.test.ts          # Integration tests (stdio transport)
     ├── everything-server.test.ts    # Full integration tests (server-everything)
+    ├── e2e/                          # End-to-end tests against REAL spawned servers
+    │   ├── helpers.ts                # startE2EClient / stopE2EClient / E2E_SERVER_PATH
+    │   ├── lifecycle.e2e.test.ts    # Start/stop, restart, zombie, env, notifications
+    │   ├── recovery.e2e.test.ts     # Crash, timeout, retry accounting
+    │   ├── concurrency.e2e.test.ts # Fan-out, counter integrity, multi-client HTTP
+    │   └── payloads.e2e.test.ts     # 1MB, 10k-array, deep-nest, unicode, 500-seq
     ├── cli.test.ts                  # CLI tool tests
     └── fixtures/
-        └── mock-server.ts           # In-memory mock MCP server
+        ├── mock-server.ts           # In-memory mock MCP server
+        └── e2e-server.mjs           # Deterministic E2E MCP server fixture
 
 examples/
 ├── basic-test.ts            # Basic usage example
@@ -204,6 +211,10 @@ scripts/
 - All tests in `src/__tests__/` directory
 - Test files named `*.test.ts`
 - Mock fixtures in `src/__tests__/fixtures/`
+- E2E suites in `src/__tests__/e2e/` (spawn real `node` servers via `startE2EClient`)
+- E2E fixture server: `src/__tests__/e2e/fixtures/e2e-server.mjs` (deterministic, env-driven chaos)
+- E2E suites in `src/__tests__/e2e/` (spawn real `node` servers via `startE2EClient`)
+- E2E fixture server: `src/__tests__/e2e/fixtures/e2e-server.mjs` (deterministic, env-driven chaos)
 
 ### Testing Patterns
 
@@ -330,9 +341,27 @@ describe('Integration', () => {
 });
 ```
 
+#### 7. Using the E2E Fixture Server (real spawned process, deterministic chaos)
+```typescript
+import { startE2EClient, stopE2EClient, E2E_SERVER_PATH } from './e2e/helpers.js';
+
+describe('E2E', () => {
+  it('should do full workflow', async () => {
+    const client = await startE2EClient({ env: { E2E_TOKEN: 'x' }, timeout: 30_000 });
+    // ... client.callTool etc.
+    await stopE2EClient(client);
+  });
+});
+```
+
+The E2E fixture (`src/__tests__/e2e/fixtures/e2e-server.mjs`) is a plain `.mjs`
+MCP server (high-level `Server` + `StdioServerTransport`). Chaos is env-driven and
+deterministic — `E2E_CRASH_ON_TOOL`, `E2E_HANG_ON_TOOL`, `E2E_FAIL_ONCE`, `E2E_PID_FILE`,
+`E2E_TOKEN`. No randomness; suites never need `jest.useFakeTimers`.
+
 ### Current Test Suite
-- **Total Tests**: 866 tests (all passing)
-- **Test Suites**: 24
+- **Total Tests**: 890 tests (all passing)
+- **Test Suites**: 28
 - **Tests by file** (run `npx jest --json` to refresh):
   - `validation.test.ts`: 110
   - `matchers.test.ts`: 78
@@ -344,6 +373,10 @@ describe('Integration', () => {
   - `cli.test.ts`: 46
   - `generate-tests.test.ts`: 45
   - `everything-server.test.ts`: 37
+  - `e2e/lifecycle.e2e.test.ts`: 9
+  - `e2e/recovery.e2e.test.ts`: 6
+  - `e2e/concurrency.e2e.test.ts`: 4
+  - `e2e/payloads.e2e.test.ts`: 5
   - `ai-provider.test.ts`: 33
   - `masking.test.ts`: 32
   - `errors.test.ts`: 28
@@ -646,6 +679,8 @@ chore: maintenance tasks
 | `scripts/release-lib.mjs` | Pure semver + CHANGELOG helpers used by `release.mjs` |
 | `vitest.d.ts` | Vitest type declarations for matchers |
 | `src/__tests__/fixtures/mock-server.ts` | In-memory mock server for unit tests |
+| `src/__tests__/e2e/helpers.ts` | E2E client helpers (`startE2EClient`, `stopE2EClient`) |
+| `src/__tests__/e2e/fixtures/e2e-server.mjs` | Deterministic E2E MCP server fixture |
 | `examples/mock-server.js` | Basic standalone MCP server (echo, add, delay, error_tool) |
 | `examples/simple-server.ts` | Minimal TypeScript MCP server (greet, version, welcome) |
 | `examples/stateful-server.ts` | Stateful MCP server (counter + todos with notifications) |
@@ -774,7 +809,7 @@ chore: maintenance tasks
 - **Test Coverage**: 92/88/96/92 (statements/branches/functions/lines) with per-file floors
 - **Tests**: 866 (all passing, 24 suites)
 - **Build Time**: ~3 seconds
-- **Test Execution Time**: ~115 seconds
+- **Test Execution Time**: ~125 seconds
 - **Node.js Versions Tested**: 20, 22
 - **SDK Version**: ^1.29.0
 - **Browsers / Runtimes**: modern browsers and edge runtimes via `http`/`sse`/`websocket` (`npm run test:browser`)
