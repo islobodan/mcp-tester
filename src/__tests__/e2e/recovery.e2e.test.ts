@@ -1,19 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { describe, it, expect, jest } from '@jest/globals';
 import { MCPClient } from '../../client/MCPClient.js';
-import { MCPTimeoutError, MCPClientError } from '../../utils/errors.js';
+import { MCPTimeoutError, MCPServerError } from '../../utils/errors.js';
 import { startE2EClient, stopE2EClient } from './helpers.js';
 
+jest.setTimeout(60_000);
+
 describe('E2E — Server Error Recovery', () => {
-  let client: MCPClient;
-
-  beforeEach(async () => {
-    client = await startE2EClient({ timeout: 30_000 });
-  });
-
-  afterEach(async () => {
-    await stopE2EClient(client);
-  });
-
   it('should surface a server crash mid-session as a thrown error', async () => {
     // Restart with crash chaos enabled.
     const crashClient = await startE2EClient({
@@ -63,7 +55,9 @@ describe('E2E — Server Error Recovery', () => {
     const err = await hangClient
       .callTool({ name: 'hang_now', arguments: {}, timeout: 1500 })
       .catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(MCPTimeoutError);
     expect((err as MCPTimeoutError).timeout).toBe(1500);
+    expect((err as MCPTimeoutError).operation).toContain('hang_now');
 
     // The connection itself is still alive — a non-hung tool must succeed.
     const ok = (await hangClient.callTool({
@@ -93,12 +87,13 @@ describe('E2E — Server Error Recovery', () => {
     const stats = (await retryClient.callTool({ name: 'call_stats', arguments: {} })) as {
       content: Array<{ type: string; text: string }>;
     };
-    expect(stats.content[0].text).toContain('fail_once_tool');
+    // Exact accounting: the failed attempt AND the successful retry both count.
+    expect(JSON.parse(stats.content[0].text)).toMatchObject({ fail_once_tool: 2 });
 
     await stopE2EClient(retryClient);
   });
 
-  it('should respect retries: 0 (no retry) and leave the call counted once', async () => {
+  it('should respect retries: 0 (no retry) and leave the call counted exactly once', async () => {
     const retryClient = await startE2EClient({
       env: { E2E_FAIL_ONCE: 'fail_once_tool' },
       timeout: 30_000,
@@ -108,6 +103,24 @@ describe('E2E — Server Error Recovery', () => {
       retryClient.callTool({ name: 'fail_once_tool', arguments: {}, retries: 0 })
     ).rejects.toThrow();
 
+    const stats = (await retryClient.callTool({ name: 'call_stats', arguments: {} })) as {
+      content: Array<{ type: string; text: string }>;
+    };
+    expect(JSON.parse(stats.content[0].text)).toMatchObject({ fail_once_tool: 1 });
+
     await stopE2EClient(retryClient);
+  });
+
+  it('should surface server tool errors as MCPServerError with serverCode preserved', async () => {
+    const client = await startE2EClient({ timeout: 30_000 });
+
+    const err = await client
+      .callTool({ name: 'error_tool', arguments: {} })
+      .catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(MCPServerError);
+    expect((err as MCPServerError).serverCode).toBe(-32050);
+    expect((err as MCPServerError).operation).toContain('error_tool');
+
+    await stopE2EClient(client);
   });
 });

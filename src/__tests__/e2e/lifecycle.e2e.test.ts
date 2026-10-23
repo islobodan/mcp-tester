@@ -1,10 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
-import { readFileSync } from 'node:fs';
+import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { MCPClient } from '../../client/MCPClient.js';
 import type { MCPClientOptions } from '../../client/MCPClient.js';
-import { startE2EClient, stopE2EClient, E2E_SERVER_PATH } from './helpers.js';
+import { startE2EClient, stopE2EClient, waitForPidGone, E2E_SERVER_PATH } from './helpers.js';
+
+jest.setTimeout(60_000);
 
 describe('E2E — Server Lifecycle', () => {
   let client: MCPClient;
@@ -25,6 +26,12 @@ describe('E2E — Server Lifecycle', () => {
 
   it('should stop and disconnect', async () => {
     await client.stop();
+    expect(client.isConnected()).toBe(false);
+  });
+
+  it('should treat a second stop() as a no-op (no throw, no hang)', async () => {
+    await client.stop();
+    await expect(client.stop()).resolves.toBeUndefined();
     expect(client.isConnected()).toBe(false);
   });
 
@@ -61,12 +68,28 @@ describe('E2E — Server Lifecycle', () => {
     await stopE2EClient(clientB);
   });
 
+  it('should list identical capabilities across repeated discovery calls (no drift)', async () => {
+    const toolsA = await client.listTools();
+    const toolsB = await client.listTools();
+    const namesA = toolsA.map((t) => t.name).sort();
+    const namesB = toolsB.map((t) => t.name).sort();
+    expect(namesA).toEqual(namesB);
+    expect(namesA.length).toBeGreaterThanOrEqual(15);
+
+    const resourcesA = await client.listResources();
+    const resourcesB = await client.listResources();
+    expect(resourcesA).toEqual(resourcesB);
+
+    const promptsA = await client.listPrompts();
+    const promptsB = await client.listPrompts();
+    expect(promptsA).toEqual(promptsB);
+  });
+
   it('should tear down without leaking the server process (zombie proof)', async () => {
     const pidFile = join(tmpdir(), `e2e-pid-${Date.now()}.txt`);
     const env = { E2E_PID_FILE: pidFile };
     const e2eClient = await startE2EClient({ env, timeout: 30_000 });
 
-    await e2eClient.callTool({ name: 'pid_dump', arguments: {} });
     const pidText = (await e2eClient.callTool({ name: 'pid_dump', arguments: {} })) as {
       content: Array<{ type: string; text: string }>;
     };
@@ -76,17 +99,7 @@ describe('E2E — Server Lifecycle', () => {
     await stopE2EClient(e2eClient);
 
     // The child must be reaped by now (bounded retries — teardown is async).
-    let alive = true;
-    for (let i = 0; i < 50; i += 1) {
-      try {
-        process.kill(pid, 0);
-        await new Promise((r) => setTimeout(r, 100));
-      } catch {
-        alive = false;
-        break;
-      }
-    }
-    expect(alive).toBe(false);
+    await expect(waitForPidGone(pid, 5_000)).resolves.toBeUndefined();
   });
 
   it('should forward E2E_TOKEN env var through to tool calls', async () => {

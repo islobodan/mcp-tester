@@ -1,8 +1,10 @@
-import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
+import { describe, it, expect, beforeAll, afterAll, jest } from '@jest/globals';
 import { spawn, type ChildProcess } from 'child_process';
 import { join } from 'node:path';
 import { MCPClient } from '../../client/MCPClient.js';
-import { startE2EClient, stopE2EClient, E2E_SERVER_PATH } from './helpers.js';
+import { startE2EClient, stopE2EClient } from './helpers.js';
+
+jest.setTimeout(60_000);
 
 const EVERYTHING_SERVER = join(
   process.cwd(),
@@ -13,8 +15,6 @@ const EVERYTHING_SERVER = join(
   'index.js'
 );
 const HTTP_PORT = 3261;
-
-let httpServer: ChildProcess | null = null;
 
 async function waitForServer(port: number, timeout = 15_000): Promise<void> {
   const start = Date.now();
@@ -30,13 +30,26 @@ async function waitForServer(port: number, timeout = 15_000): Promise<void> {
   throw new Error(`Server on port ${port} did not start within ${timeout}ms`);
 }
 
+/** Spawn server-everything over Streamable HTTP on the scratch port. */
 function startEverythingServerHttp(): ChildProcess {
   const proc = spawn('node', [EVERYTHING_SERVER, 'streamableHttp'], {
     env: { ...process.env, PORT: String(HTTP_PORT) },
     stdio: ['pipe', 'pipe', 'pipe'],
   });
-  proc.stderr?.on('data', (data) => process.stderr.write(String(data)));
+  // Consume stderr (pipe must drain) without dumping server logs into Jest output.
+  proc.stderr?.on('data', () => {});
+  proc.on('error', () => {});
   return proc;
+}
+
+/** SIGTERM the HTTP server and wait for exit so nothing outlives the suite. */
+async function stopEverythingServerHttp(proc: ChildProcess): Promise<void> {
+  if (proc.exitCode !== null) return;
+  const exited = new Promise<void>((resolve) => {
+    proc.once('exit', () => resolve());
+  });
+  proc.kill('SIGTERM');
+  await Promise.race([exited, new Promise((r) => setTimeout(r, 5_000))]);
 }
 
 describe('E2E — Concurrency', () => {
@@ -48,10 +61,6 @@ describe('E2E — Concurrency', () => {
 
   afterAll(async () => {
     await stopE2EClient(client);
-    if (httpServer) {
-      httpServer.kill('SIGTERM');
-      httpServer = null;
-    }
   });
 
   it('should handle 20 parallel tool calls with correct per-request pairing', async () => {
@@ -64,6 +73,28 @@ describe('E2E — Concurrency', () => {
       const r = results[i] as { content: Array<{ type: string; text: string }> };
       expect(r.content[0].text).toBe(`Echo: msg-${i}`);
     }
+  });
+
+  it('should complete quick calls before a large in-flight response (completion order)', async () => {
+    // Quicks are submitted first; the fixture handles requests FIFO on one
+    // stdio connection, so the 500 KB response must land last. Asserts order,
+    // not wall clock.
+    const done: string[] = [];
+    const quicks = Array.from({ length: 10 }, (_, i) =>
+      client.callTool({ name: 'echo', arguments: { message: `quick-${i}` } }).then((r) => {
+        const content = (r as { content: Array<{ type: string; text: string }> }).content;
+        expect(content[0].text).toBe(`Echo: quick-${i}`);
+        done.push(`quick-${i}`);
+      })
+    );
+    const big = client
+      .callTool({ name: 'echo_large', arguments: { size: 500_000 } })
+      .then(() => done.push('big'));
+
+    await Promise.all([...quicks, big]);
+    expect(done).toHaveLength(11);
+    expect(done.slice(0, 10)).toEqual(Array.from({ length: 10 }, (_, i) => `quick-${i}`));
+    expect(done[10]).toBe('big');
   });
 
   it('should serialize concurrent counter increments correctly', async () => {
@@ -83,28 +114,58 @@ describe('E2E — Concurrency', () => {
     expect(final.content[0].text).toBe('Counter: 25');
   });
 
-  it('should isolate two independent MCP sessions over one shared HTTP server', async () => {
-    // Start a second server over HTTP on a scratch port.
-    httpServer = startEverythingServerHttp();
-    await waitForServer(HTTP_PORT);
-
-    const httpClient = new MCPClient({
-      name: 'e2e-client-http',
-      version: '1.0.0',
-      timeout: 30_000,
-    });
-    await httpClient.start({ transport: 'http', url: `http://localhost:${HTTP_PORT}/mcp` });
+  it('should isolate state between two clients over two separate server processes', async () => {
+    // Interleaved writes to same-named tools on different processes: each
+    // client must only ever see its own process's counter.
+    const clientA = await startE2EClient({ timeout: 30_000 });
+    const clientB = await startE2EClient({ timeout: 30_000 });
     try {
-      const a = (await httpClient.callTool({ name: 'echo', arguments: { message: 'from-a' } })) as {
+      await clientA.callTool({ name: 'counter_increment', arguments: { amount: 5 } });
+      await clientB.callTool({ name: 'counter_increment', arguments: { amount: 2 } });
+      await clientA.callTool({ name: 'counter_increment', arguments: { amount: 1 } });
+
+      const getA = (await clientA.callTool({ name: 'counter_get', arguments: {} })) as {
         content: Array<{ type: string; text: string }>;
       };
-      const b = (await httpClient.callTool({ name: 'echo', arguments: { message: 'from-b' } })) as {
+      const getB = (await clientB.callTool({ name: 'counter_get', arguments: {} })) as {
         content: Array<{ type: string; text: string }>;
       };
-      expect(a.content[0].text).toBe('Echo: from-a');
-      expect(b.content[0].text).toBe('Echo: from-b');
+      expect(getA.content[0].text).toBe('Counter: 6');
+      expect(getB.content[0].text).toBe('Counter: 2');
     } finally {
-      await httpClient.stop();
+      await stopE2EClient(clientA);
+      await stopE2EClient(clientB);
+    }
+  });
+
+  it('should serve two concurrent sessions (stdio + HTTP) against one shared HTTP server', async () => {
+    const httpServer = startEverythingServerHttp();
+    try {
+      await waitForServer(HTTP_PORT);
+
+      const httpClient = new MCPClient({
+        name: 'e2e-client-http',
+        version: '1.0.0',
+        timeout: 30_000,
+      });
+      await httpClient.start({ transport: 'http', url: `http://localhost:${HTTP_PORT}/mcp` });
+      try {
+        // Both sessions issue calls at the same time against the shared server.
+        const [stdioRes, httpRes] = await Promise.all([
+          client.callTool({ name: 'echo', arguments: { message: 'from-stdio' } }),
+          httpClient.callTool({ name: 'echo', arguments: { message: 'from-http' } }),
+        ]);
+        expect(
+          (stdioRes as { content: Array<{ type: string; text: string }> }).content[0].text
+        ).toBe('Echo: from-stdio');
+        expect(
+          (httpRes as { content: Array<{ type: string; text: string }> }).content[0].text
+        ).toBe('Echo: from-http');
+      } finally {
+        await httpClient.stop();
+      }
+    } finally {
+      await stopEverythingServerHttp(httpServer);
     }
   });
 

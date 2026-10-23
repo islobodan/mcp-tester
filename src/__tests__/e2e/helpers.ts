@@ -44,3 +44,20 @@ export async function stopE2EClient(client: MCPClient): Promise<void> {
     await client.stop();
   }
 }
+
+/**
+ * Poll until `process.kill(pid, 0)` fails (process is gone), or throw.
+ * Process teardown is async — bounded retries, not a single check.
+ */
+export async function waitForPidGone(pid: number, timeoutMs = 5_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      process.kill(pid, 0);
+    } catch {
+      return; // gone (or unreapable zombie-free state)
+    }
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  throw new Error(`pid ${pid} still alive after ${timeoutMs}ms`);
+}

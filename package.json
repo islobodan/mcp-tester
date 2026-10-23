@@ -21,6 +21,7 @@
   ],
   "scripts": {
     "build": "tsc && node scripts/copy-templates.mjs",
+    "prebuild": "node scripts/clean-dist.mjs",
     "predev": "node scripts/copy-templates.mjs",
     "dev": "tsc --watch",
     "docs": "typedoc",

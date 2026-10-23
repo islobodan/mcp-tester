@@ -120,15 +120,16 @@ src/
     ├── real-server.test.ts          # Integration tests (stdio transport)
     ├── everything-server.test.ts    # Full integration tests (server-everything)
     ├── e2e/                          # End-to-end tests against REAL spawned servers
-    │   ├── helpers.ts                # startE2EClient / stopE2EClient / E2E_SERVER_PATH
+    │   ├── helpers.ts                # startE2EClient / stopE2EClient / waitForPidGone
+    │   ├── fixtures/
+    │   │   └── e2e-server.mjs        # Deterministic E2E MCP server fixture
     │   ├── lifecycle.e2e.test.ts    # Start/stop, restart, zombie, env, notifications
-    │   ├── recovery.e2e.test.ts     # Crash, timeout, retry accounting
-    │   ├── concurrency.e2e.test.ts # Fan-out, counter integrity, multi-client HTTP
+    │   ├── recovery.e2e.test.ts     # Crash, timeout, retry accounting, serverCode
+    │   ├── concurrency.e2e.test.ts # Fan-out, order, counter integrity, multi-client
     │   └── payloads.e2e.test.ts     # 1MB, 10k-array, deep-nest, unicode, 500-seq
     ├── cli.test.ts                  # CLI tool tests
     └── fixtures/
-        ├── mock-server.ts           # In-memory mock MCP server
-        └── e2e-server.mjs           # Deterministic E2E MCP server fixture
+        └── mock-server.ts           # In-memory mock MCP server
 
 examples/
 ├── basic-test.ts            # Basic usage example
@@ -144,6 +145,8 @@ templates/                       # Starter templates (shipped in dist/templates)
 └── full-stack/              # TS server, code generation, typed tools
 
 scripts/
+├── check-browser-bundle.mjs # Browser bundle smoke test (`npm run test:browser`)
+├── clean-dist.mjs           # Build step: removes stale dist/ before tsc (prebuild)
 └── copy-templates.mjs       # Build step: mirrors templates/ → dist/templates/
 ```
 
@@ -212,7 +215,7 @@ scripts/
 - Test files named `*.test.ts`
 - Mock fixtures in `src/__tests__/fixtures/`
 - E2E suites in `src/__tests__/e2e/` (spawn real `node` servers via `startE2EClient`)
-- E2E fixture server: `src/__tests__/e2e/fixtures/e2e-server.mjs` (deterministic, env-driven chaos)
+- E2E fixture server: `src/__tests__/e2e/fixtures/e2e-server.mjs` (deterministic, env-driven chaos; distinct from `src/__tests__/fixtures/`)
 - E2E suites in `src/__tests__/e2e/` (spawn real `node` servers via `startE2EClient`)
 - E2E fixture server: `src/__tests__/e2e/fixtures/e2e-server.mjs` (deterministic, env-driven chaos)
 
@@ -360,7 +363,7 @@ deterministic — `E2E_CRASH_ON_TOOL`, `E2E_HANG_ON_TOOL`, `E2E_FAIL_ONCE`, `E2E
 `E2E_TOKEN`. No randomness; suites never need `jest.useFakeTimers`.
 
 ### Current Test Suite
-- **Total Tests**: 890 tests (all passing)
+- **Total Tests**: 896 tests (all passing)
 - **Test Suites**: 28
 - **Tests by file** (run `npx jest --json` to refresh):
   - `validation.test.ts`: 110
@@ -373,10 +376,10 @@ deterministic — `E2E_CRASH_ON_TOOL`, `E2E_HANG_ON_TOOL`, `E2E_FAIL_ONCE`, `E2E
   - `cli.test.ts`: 46
   - `generate-tests.test.ts`: 45
   - `everything-server.test.ts`: 37
-  - `e2e/lifecycle.e2e.test.ts`: 9
-  - `e2e/recovery.e2e.test.ts`: 6
-  - `e2e/concurrency.e2e.test.ts`: 4
-  - `e2e/payloads.e2e.test.ts`: 5
+  - `e2e/lifecycle.e2e.test.ts`: 11
+  - `e2e/recovery.e2e.test.ts`: 7
+  - `e2e/concurrency.e2e.test.ts`: 6
+  - `e2e/payloads.e2e.test.ts`: 6
   - `ai-provider.test.ts`: 33
   - `masking.test.ts`: 32
   - `errors.test.ts`: 28
@@ -809,7 +812,7 @@ chore: maintenance tasks
 - **Test Coverage**: 92/88/96/92 (statements/branches/functions/lines) with per-file floors
 - **Tests**: 866 (all passing, 24 suites)
 - **Build Time**: ~3 seconds
-- **Test Execution Time**: ~125 seconds
+- **Test Execution Time**: ~135 seconds
 - **Node.js Versions Tested**: 20, 22
 - **SDK Version**: ^1.29.0
 - **Browsers / Runtimes**: modern browsers and edge runtimes via `http`/`sse`/`websocket` (`npm run test:browser`)

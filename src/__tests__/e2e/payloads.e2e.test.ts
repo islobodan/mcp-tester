@@ -1,7 +1,9 @@
-import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
+import { describe, it, expect, beforeAll, afterAll, jest } from '@jest/globals';
 import { createHash } from 'node:crypto';
 import { MCPClient } from '../../client/MCPClient.js';
 import { startE2EClient, stopE2EClient } from './helpers.js';
+
+jest.setTimeout(60_000);
 
 describe('E2E — Payload Handling', () => {
   let client: MCPClient;
@@ -12,6 +14,27 @@ describe('E2E — Payload Handling', () => {
 
   afterAll(async () => {
     await stopE2EClient(client);
+  });
+
+  it('should round-trip a 100KB string argument byte-exactly', async () => {
+    const size = 100_000;
+    const expected = Array.from(
+      { length: size },
+      (_, i) => 'abcdefghijklmnopqrstuvwxyz0123456789'[i % 36]
+    ).join('');
+
+    const result = (await client.callTool({
+      name: 'unicode_echo',
+      arguments: { message: expected },
+    })) as {
+      content: Array<{ type: string; text: string }>;
+    };
+    const actual = result.content[0].text.slice('Echo: '.length);
+
+    expect(actual.length).toBe(size);
+    expect(createHash('sha256').update(actual).digest('hex')).toBe(
+      createHash('sha256').update(expected).digest('hex')
+    );
   });
 
   it('should round-trip a 1MB echo payload byte-exactly', async () => {
@@ -59,7 +82,7 @@ describe('E2E — Payload Handling', () => {
   });
 
   it('should round-trip unicode strings exactly', async () => {
-    const unicode = 'Hello — world! 你好 🎉 émoji 🇺🇸 combining: é';
+    const unicode = 'Hello — world! 你好 🎉 émoji 🇺🇸 combining: é\n\ttabbed';
     const result = (await client.callTool({
       name: 'unicode_echo',
       arguments: { message: unicode },

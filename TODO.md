@@ -728,11 +728,11 @@ new ConsoleLogger({
 **Plan**: [docs/plans/e2e-tests.md](./plans/e2e-tests.md) — four suites (lifecycle, recovery, concurrency, payloads) against a single deterministic `e2e-server.mjs` fixture (crash/hang/fail-once via env), placed in `src/__tests__/e2e/` so the existing `testMatch` picks them up in `npm test` — CI matrix and the release tool's P6 gate them automatically. Budget: ≤ 120 s added wall time. Zero new runtime deps.
 
 **Status**: **COMPLETE (M1–M5 done)**
-- M1: fixture server + helpers + smoke lifecycle test → **pass** (9 tests green in 6.7 s)
-- M2: `lifecycle.e2e.test.ts` → **pass** (9/9)
-- M3: `recovery.e2e.test.ts` → **pass** (6/6)
-- M4: `concurrency.e2e.test.ts` + `payloads.e2e.test.ts` → **pass** (4 + 5)
-- M5: timing (~10 s added; full suite 124.6 s / 890 tests, 28 suites green), 3× stability runs green, docs swept, gates green; release shipped as **1.8.0**
+- M1: fixture server + helpers + smoke lifecycle test → **pass** (11 tests green in ~7 s)
+- M2: `lifecycle.e2e.test.ts` → **pass** (11/11)
+- M3: `recovery.e2e.test.ts` → **pass** (7/7)
+- M4: `concurrency.e2e.test.ts` + `payloads.e2e.test.ts` → **pass** (6 + 6)
+- M5: timing (~9 s added; full suite 133 s / 896 tests, 28 suites green), 3× stability runs green, docs swept, gates green; release shipped as **1.8.0**
 
 **Tasks**:
 - [x] Write implementation plan (`docs/plans/e2e-tests.md`)

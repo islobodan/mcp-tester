@@ -159,12 +159,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     },
     {
       name: 'call_stats',
-      description: 'Return per-tool call counts',
+      description: 'Return per-tool call counts (failed attempts included)',
       inputSchema: { type: 'object', properties: {} },
     },
     {
       name: 'pid_dump',
       description: 'Return this server process pid',
+      inputSchema: { type: 'object', properties: {} },
+    },
+    {
+      name: 'error_tool',
+      description: 'Always fails with a coded server error (MCPServerError.serverCode = -32050)',
       inputSchema: { type: 'object', properties: {} },
     },
     {
@@ -198,6 +203,10 @@ async function sendLog(level, data) {
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
+  // Every attempt is counted — including ones that then crash/hang/fail — so
+  // tests can assert exact retry behaviour via `call_stats`.
+  recordCall(name);
+
   if (env.E2E_CRASH_ON_TOOL && name === env.E2E_CRASH_ON_TOOL) {
     process.exit(70);
   }
@@ -211,58 +220,47 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   switch (name) {
     case 'echo': {
-      recordCall(name);
       return { content: [{ type: 'text', text: `Echo: ${args?.message ?? ''}` }] };
     }
     case 'echo_large': {
-      recordCall(name);
       const size = Math.max(0, Math.min(Number(args?.size) || 0, 2_000_000));
       return { content: [{ type: 'text', text: deterministicString(size) }] };
     }
     case 'sum_large': {
-      recordCall(name);
       const nums = Array.isArray(args?.numbers) ? args.numbers.map(Number) : [];
       const sum = nums.reduce((acc, n) => acc + (Number.isFinite(n) ? n : 0), 0);
       return { content: [{ type: 'text', text: `Sum: ${sum}` }] };
     }
     case 'deep_nest': {
-      recordCall(name);
       const depth = Math.max(0, Math.min(Number(args?.depth) || 0, 500));
       return { content: [{ type: 'text', text: JSON.stringify(makeNested(depth)) }] };
     }
     case 'unicode_echo': {
-      recordCall(name);
       return { content: [{ type: 'text', text: `Echo: ${args?.message ?? ''}` }] };
     }
     case 'counter_increment': {
-      recordCall(name);
       const amount = Number(args?.amount ?? 1);
       state.counter += amount;
       await sendLog('info', `Counter incremented by ${amount} → now ${state.counter}`);
       return { content: [{ type: 'text', text: `Counter: ${state.counter}` }] };
     }
     case 'counter_get': {
-      recordCall(name);
       return { content: [{ type: 'text', text: `Counter: ${state.counter}` }] };
     }
     case 'counter_reset': {
-      recordCall(name);
       state.counter = 0;
       return { content: [{ type: 'text', text: 'Counter: 0' }] };
     }
     case 'todo_add': {
-      recordCall(name);
       const todo = { text: String(args?.text ?? ''), done: Boolean(args?.done) };
       state.todos.push(todo);
       return { content: [{ type: 'text', text: `Added todo ${state.todos.length}` }] };
     }
     case 'todo_list': {
-      recordCall(name);
       const items = state.todos.map((t, i) => `${i}: ${t.text}${t.done ? ' ✓' : ''}`).join('\n');
       return { content: [{ type: 'text', text: items || '(no todos)' }] };
     }
     case 'todo_complete': {
-      recordCall(name);
       const idx = Number(args?.index);
       if (Number.isInteger(idx) && idx >= 0 && idx < state.todos.length) {
         state.todos[idx].done = true;
@@ -270,23 +268,24 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return { content: [{ type: 'text', text: 'completed' }] };
     }
     case 'env_dump': {
-      recordCall(name);
       return { content: [{ type: 'text', text: `E2E_TOKEN=${env.E2E_TOKEN ?? ''}` }] };
     }
     case 'call_stats': {
-      recordCall(name);
       const obj = {};
       for (const [k, v] of callCounts) obj[k] = v;
       return { content: [{ type: 'text', text: JSON.stringify(obj) }] };
     }
     case 'pid_dump': {
-      recordCall(name);
       return { content: [{ type: 'text', text: String(process.pid) }] };
+    }
+    case 'error_tool': {
+      // Message embeds a JSON-RPC-style code so MCPClient.wrapError() parses
+      // it into MCPServerError.serverCode (regex: /code[:\s]+(-?\d+)/).
+      throw new Error('E2E simulated tool failure code: -32050');
     }
     case 'fail_once_tool': {
       // The fail-once chaos above consumed the single failure; reaching this
       // case means the retry (if any) succeeded and we return normally.
-      recordCall(name);
       return { content: [{ type: 'text', text: 'recovered-after-fail-once' }] };
     }
     default:

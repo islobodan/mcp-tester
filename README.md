@@ -589,18 +589,18 @@ mcp-tester/
 │   │   ├── validation.ts        # Input validation
 │   │   ├── stdio-transport.ts   # Node-only stdio loader (stubbed for browser)
 │   │   └── env.ts               # Environment utilities
-│   └── __tests__/               # 890 tests / 28 suites
+│   └── __tests__/               # 896 tests / 28 suites
 │       ├── everything-server.test.ts  # Integration tests (server-everything)
 │       ├── real-server.test.ts        # Integration tests (stdio transport)
 │       ├── e2e/                        # End-to-end tests (real spawned servers, deterministic)
+│       │   ├── fixtures/e2e-server.mjs # Deterministic E2E MCP server fixture
 │       │   ├── lifecycle.e2e.test.ts  # Start/stop, restart, zombie, env, notifications
-│       │   ├── recovery.e2e.test.ts   # Crash, timeout, retry accounting
-│       │   ├── concurrency.e2e.test.ts # Fan-out, counter integrity, multi-client HTTP
+│       │   ├── recovery.e2e.test.ts   # Crash, timeout, retry accounting, serverCode
+│       │   ├── concurrency.e2e.test.ts # Fan-out, order, counter integrity, multi-client
 │       │   └── payloads.e2e.test.ts   # 1MB, 10k-array, deep-nest, unicode, 500-seq
 │       ├── websocket-transport.test.ts # WebSocket transport (in-process double)
 │       ├── cli.test.ts                # CLI tool tests
 │       └── fixtures/mock-server.ts    # In-memory mock server
-│           └── e2e-server.mjs        # Deterministic E2E MCP server fixture
 ├── scripts/
 │   └── check-browser-bundle.mjs  # Browser bundle smoke test
 ├── examples/
