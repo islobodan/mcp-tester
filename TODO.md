@@ -722,16 +722,18 @@ new ConsoleLogger({
 
 ## Testing Enhancements
 
-### [ ] 27. Add E2E Tests
+### [/] 27. Add E2E Tests
 **Description**: End-to-end tests covering complete workflows.
 
+**Plan**: [docs/plans/e2e-tests.md](./plans/e2e-tests.md) — four suites (lifecycle, recovery, concurrency, payloads) against a single deterministic `e2e-server.mjs` fixture (crash/hang/fail-once via env), placed in `src/__tests__/e2e/` so the existing `testMatch` picks them up in `npm test` — CI matrix and the release tool's P6 gate them automatically. Budget: ≤ 120 s added wall time. Zero new runtime deps.
+
 **Tasks**:
-- Create `src/__tests__/e2e/` directory
-- Add test for full server lifecycle
-- Add test for error recovery
-- Add test for concurrent operations
-- Add test for large payload handling
-- Add to CI test suite
+- [x] Write implementation plan (`docs/plans/e2e-tests.md`)
+- [ ] M1: fixture server + helpers + smoke test
+- [ ] M2: `lifecycle.e2e.test.ts` (restart cycle, zombie proof, env passthrough, notifications)
+- [ ] M3: `recovery.e2e.test.ts` (crash mid-session, timeout-then-continue, retry accounting)
+- [ ] M4: `concurrency.e2e.test.ts` + `payloads.e2e.test.ts` (fan-out pairing, counter integrity, 1 MB round-trip)
+- [ ] M5: timing measurement, 3× stability runs, docs, ship 1.8.0
 
 **Impact**: Better confidence in system
 
@@ -1108,7 +1110,7 @@ The following tasks can be completed quickly and provide immediate value:
 
 **Total Items**: 52
 **Completed**: 45
-**In Progress**: 0
+**In Progress**: 1 (item 27 — E2E tests, plan written)
 **Postponed**: 1 (item 12 — snapshot testing, deprioritised as poor fit for MCP)
 **Not Started**: 6
 
