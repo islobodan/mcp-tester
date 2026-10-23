@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-10-23
+
 ### Added
 - `npm run release -- <patch|minor|major|prerelease>` — a one-command release tool that runs a strict pre-flight (clean tree, origin sync, no dangling tags, `npm@10` lockfile check, `npm@10` audit, full local gates, version sanity, non-empty `[Unreleased]`) and then bumps the version, promotes the CHANGELOG, commits `chore: release <x.y.z>`, and creates a lightweight `v<x.y.z>` tag. `--dry-run` runs every gate and prints the plan without writing. Every gate maps to a real incident (1.5.0 audit, 1.5.1 / 1.6.0 emnapi lockfile trap, v1.5.5 fold); see `docs/plans/release-automation.md` and `docs/releases.md`. Zero new runtime deps; pure library in `scripts/release-lib.mjs`, orchestrator in `scripts/release.mjs`, 39 `node:test` cases in `scripts/release.test.mjs` run by `npm run test:release` (wired into CI). Replaces the old `npm version`-based `release:patch/minor/major/prerelease` scripts (the new aliases delegate to the script).
 - The release tool's pre-flight is a strict superset of the gates `release.yml` runs, so a green pre-flight ≈ a green publish. Interrupted runs are detected and resumed safely — a re-run re-verifies the gates and completes only the missing tag, never re-applying the bump or changelog promotion — and any failure path rolls back every partial write (including staged content).
